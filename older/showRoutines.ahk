@@ -126,8 +126,6 @@ showGui() {
 ; initialize variables (global)
 ;---------------------------------------
 initialize() {
-;"C:\Users\nu72oa\OneDrive - NN\MY DATA\programs\AutoHotkey\AutoHotkeyPortable\AutoHotkey.exe" "C:\Users\nu72oa\OneDrive - NN\MY DATA\programs\AutoHotkey\AutoHotkey scripts\showRoutines\showRoutines.ahk" B9Y36.TXT B9Y36.CBLLE.TXT Z:\bussup\txt\\ *SELECT
-
     allRoutines := []
     allCode := []
     tmpRoutine  := {}
@@ -137,7 +135,7 @@ initialize() {
 
     SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
 
-    ; msgbox, %A_ScriptDir%\%scriptNameNoExt%.ini
+; msgbox, %A_ScriptDir%\%scriptNameNoExt%.ini
 
     IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileRoutines
     IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
@@ -149,54 +147,34 @@ initialize() {
 
     user := getSystem()
 
-    ; msgbox, % A_ScriptDir 
-    path := A_ScriptDir . "\data\"
-
     if (user = "SYSTEM_WORK") {
+        path := A_Args[3] <> "" ? A_Args[3] : "H:\"
 
         if (trim(A_Args[4]) = "*NO") {
-            pathIeffect := A_Args[3] <> "" ? A_Args[3] : "z:\bussup\txt\"
-
-            Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines " to folder " . path
+            Progress, zh0 fs10, % "Trying to move file " . path . fileRoutines " to folder " . "H:\"
             ; msgbox, % "Trying to move file " . path . fileRoutines " to folder " . "H:\"
-            FileMove, %pathIeffect%%fileRoutines% , %path% , 1
+            FileMove, %path%%fileRoutines% , H:\ , 1
             if (ErrorLevel <> 0) {
-                msgbox, % "Cannot move file " . pathIeffect . fileRoutines " to folder " . path
+                msgbox, % "Cannot move file " . path . fileRoutines " to folder " . "H:\"
             }
             Progress, Off
-            Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode " to folder " . path
+            Progress, zh0 fs10, % "Trying to move file " . path . fileCode " to folder " . "H:\"
             ; msgbox, % "Trying to move file " . path . fileCode " to folder " . "H:\"
-            FileMove, %path%%fileCode% ,  %path% , 1
+            FileMove, %path%%fileCode% , H:\ , 1
             if (ErrorLevel <> 0) {
-                msgbox, % "Cannot move file " . pathIeffect . fileCode " to folder " . path
+                msgbox, % "Cannot move file " . path . fileCode " to folder " . "H:\"
             }
             Progress, Off
-            
-            fullFileRoutines := path . fileRoutines
-            fullFileCode := path . fileCode
-        }
-
-        ; msgbox, %  A_Args[3]
-
-        if ( A_Args[4] = "*SELECT") {
-            FileSelectFile, fullFileRoutines, 1, %path% , Select routines file ,Text files (*.txt)
-            ; FileSelectFile, fullFileRoutines, 1, path , Select routines file ,Text files (*.txt)
-            
-            if (ErrorLevel = 1)
-                ExitApp
-            
-            SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-            fullFileCode := path . NameNoExt . ".cblle.txt"
-            ; msgbox, % "fullFileRoutines=" . fullFileRoutines . "`n" . "fullFileCode=" . fullFileCode
         }
     }
     
+
     if (user ="SYSTEM_HOME") {
         path := A_Args[3] <> "" ? A_Args[3] : "D:\_files\nic\pc-setups\AutoHotkey macros\cbtree\" 
-    
-        fullFileRoutines := path . fileRoutines
-        fullFileCode := path . fileCode
     }
+
+    fullFileRoutines := "H:\" . fileRoutines
+    fullFileCode := "H:\" . fileCode
 
     ; read last saved values
     IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
