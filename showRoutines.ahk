@@ -278,9 +278,11 @@ initialize() {
     Menu, MyContextMenu, Add, Unfold same level `tF8, contextMenuHandler
 
     ; menu bar
+    Menu, FileMenu, Add, Open file, MenuHandler
     Menu, FileMenu, Add, Script Icon, MenuHandler
     Menu, FileMenu, Add, Suspend Icon, MenuHandler
     Menu, FileMenu, Add, Pause Icon, MenuHandler
+    Menu, FileMenu, Icon, Open file, shell32.dll, 235      ;4
     Menu, FileMenu, Icon, Script Icon, %A_AhkPath%, 2 ; Use the 2nd icon group from the file
     Menu, FileMenu, Icon, Suspend Icon, %A_AhkPath%, -206 ; Use icon with resource identifier 206
     Menu, FileMenu, Icon, Pause Icon, %A_AhkPath%, -207 ; Use icon with resource identifier 207
@@ -291,6 +293,9 @@ initialize() {
     return
 
     MenuHandler:
+    if (A_ThisMenuItem = "Open file")
+        msgbox, % "open file..."
+
     return
 
     Exit:
