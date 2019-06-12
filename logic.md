@@ -1,20 +1,34 @@
-1. initialize:
-    1. get filename
-    2. set paths & filenames
-2. setup
-    1. init variables
-    2. populate data structures
-3. show gui
+
+* if parms = true and select = false
+    * load
+    * on error: blank page
+
+* else if select = true
+   * UI select file
+
+* else
+   * load from .ini
+   * on error: blank page
 
 **---------------------------
 
-1. if parms = true and select = false
-    1. load
-    2. on error: blank page
+## functions
 
-2. else if select = true
-   1. UI select file
+* fileSelector()
+    * input= home directory, filter
+    * output= selected file
 
-3. else
-   2. load from .ini
-   3. on error: blank page
+* initialize()
+    * runs once only
+    * check script arguments
+    * check system (home/work)
+    * set first filenames & paths
+
+* setup()
+    * runs every time a new file must be processed
+    * initialize all variables
+    * populate data structures
+
+* showGui()
+
+* 
