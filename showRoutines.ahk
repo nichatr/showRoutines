@@ -42,10 +42,9 @@ global fullFileCode, fileCode         ; text file with source code.
 global itemLevels
 global levels_LastIndex
 global scriptNameNoExt
-global params_exist
 
-checkParams()
 initialize()
+setup()
 populateRoutines()
 populateCode()
 loadTreeview()
@@ -129,65 +128,77 @@ showGui() {
 
 #IfWinActive
 
-checkParams() {
-    if (A_Args[1] <> "" and A_Args[2] <> "" and A_Args[3] <> ""  and A_Args[4] <> "")
-        params_exist = true
-    else
-        params_exist = false
-}
-    ;---------------------------------------
-    ; initialize variables (global)
-    ;---------------------------------------
-initialize() {
-    ;"C:\Users\nu72oa\OneDrive - NN\MY DATA\programs\AutoHotkey\AutoHotkeyPortable\AutoHotkey.exe" "C:\Users\nu72oa\OneDrive - NN\MY DATA\programs\AutoHotkey\AutoHotkey scripts\showRoutines\showRoutines.ahk" B9Y36.TXT B9Y36.CBLLE.TXT Z:\bussup\txt\\ *SELECT
+    ;------------------------------------------------------------------
+    ; get file selection from user, using given path and file filter.
+    ; populates global fields: fullFileRoutines, fullFileCode
+    ;------------------------------------------------------------------
+fileSelector(homePath, filter) {
+    FileSelectFile, fullFileRoutines, 1, %homePath% , Select routines file, %filter%
+            
+    if (ErrorLevel = 1)     ; cancelled by user
+        ExitApp
+    
+    SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
+    FoundPos := InStr(FileName, ".cblle.txt" , CaseSensitive:=false)
+    if (foundPos > 0) {
+        Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
+        NameNoExt := SubStr(FileName, 1, foundPos-1)
+    }
 
-    allRoutines := []
-    allCode := []
-    tmpRoutine  := {}
-    itemLevels := []
-    levels_LastIndex := 0
+    fileRoutines := FileName
+    fileCode := NameNoExt . ".cblle.txt"
+
+    ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
+    ; ExitApp
+}
+    ;-----------------------------------------------------------
+    ; find system script is running.
+    ;-----------------------------------------------------------
+getSystem() {
+    StringLower, user, A_UserName
+    if (user = "nu72oa")
+        return "SYSTEM_WORK"
+    Else
+        return "SYSTEM_HOME"
+}
+    ;--------------------------------------------------
+    ; check arguments, check run system, set filename,
+    ; move/rename files if needed.
+    ; called on first run only!
+    ;--------------------------------------------------
+initialize() {
+    params_exist = false
+    user := ""
     path := A_ScriptDir . "\data\"
     fileRoutines := ""
     fileCode := ""
 
-    SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
-    IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileRoutines
-    IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
-
-    ; routines calls file
-    fileRoutines := params_exist ? A_Args[1] : fileRoutines
-    ; routines code file
-    fileCode := params_exist ? A_Args[2] : fileCode
-
+    if (A_Args[1] <> "" and A_Args[2] <> "" and A_Args[3] <> ""  and A_Args[4] <> "")
+        params_exist = true
+    
     user := getSystem()
     
     if (user ="SYSTEM_HOME") {
-        FileSelectFile, fullFileRoutines, 1, %path% , Select routines file ,Text files (*.txt)
-            
-        if (ErrorLevel = 1)     ; cancelled by user
-            ExitApp
-        
-        SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-        FoundPos := InStr(FileName, ".cblle.txt" , CaseSensitive:=false)
-        if (foundPos > 0) {
-            Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
-            NameNoExt := SubStr(FileName, 1, foundPos-1)
-        }
-
-        fileRoutines := FileName
-        fileCode := NameNoExt . ".cblle.txt"
-
-        fullFileRoutines := path . fileRoutines
-        fullFileCode := path . fileCode
-
-        ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
-        ; ExitApp
+        fileSelector(path, "(*.txt)")
     }
 
     if (user = "SYSTEM_WORK") {
 
         ; use existing files(*yes):
-        ;   do nothing here, another function will load the files found in showRoutines.ini.
+        ;   load the files found in showRoutines.ini
+
+        if (trim(A_Args[4]) = "*YES") {
+            SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
+
+            IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileRoutines
+            IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
+
+            ; routines calls file
+            fileRoutines := params_exist ? A_Args[1] : fileRoutines
+            ; routines code file
+            fileCode := params_exist ? A_Args[2] : fileCode
+        }
+
         ; use existing files(*no):
         ;   move file.txt & file.cblle.txt from ieffect folder to .\data
 
@@ -208,33 +219,28 @@ initialize() {
                 msgbox, % "Cannot move file " . pathIeffect . fileCode " to folder " . path
             }
             Progress, Off
-            
-            fullFileRoutines := path . fileRoutines
-            fullFileCode := path . fileCode
         }
-
+        
         ; use existing files(*select) or ini file has not corresponding entry: open file selector
 
         if (A_Args[4] = "*SELECT" or fileRoutines = "") {
-            FileSelectFile, fullFileRoutines, 1, %path% , Select routines file ,Text files (*.txt)
-            
-            if (ErrorLevel = 1)     ; cancelled by user
-                ExitApp
-            
-            SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-            FoundPos := InStr(FileName, ".cblle.txt" , CaseSensitive:=false)
-            if (foundPos > 0) {
-                Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
-                NameNoExt := SubStr(FileName, 1, foundPos-1)
-            }
-
-            fileRoutines := FileName
-            fileCode := NameNoExt . ".cblle.txt"
-
-            fullFileRoutines := path . fileRoutines
-            fullFileCode := path . fileCode
+            fileSelector(path, "(*.txt)")
         }
     }
+    
+    fullFileRoutines := path . fileRoutines
+    fullFileCode := path . fileCode
+}
+    ;--------------------------------------------
+    ; set environment, populate data structures
+    ;--------------------------------------------
+setup() {
+
+    allRoutines := []
+    allCode := []
+    tmpRoutine  := {}
+    itemLevels := []
+    levels_LastIndex := 0
 
     ; read last saved values
     IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
@@ -693,16 +699,7 @@ searchRoutine(routineName) {
     }
     return 0
 }
-    ;-----------------------------------------------------------
-    ; find system script is running.
-    ;-----------------------------------------------------------
-getSystem() {
-    StringLower, user, A_UserName
-    if (user = "nu72oa")
-        return "SYSTEM_WORK"
-    Else
-        return "SYSTEM_HOME"
-}
+
     ;-----------------------------------------------------------------------
     ; read mpmdl001.cblle file and populate array with all code
     ;-----------------------------------------------------------------------
