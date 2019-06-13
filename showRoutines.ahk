@@ -172,6 +172,10 @@ initialize() {
     path := A_ScriptDir . "\data\"
     fileRoutines := ""
     fileCode := ""
+    
+    ; the global variable scriptNameNoExt is used for accessing the .INI file from multiple places
+    ; so it is defined at the beggining.
+    SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
 
     if (A_Args[1] <> "" and A_Args[2] <> "" and A_Args[3] <> ""  and A_Args[4] <> "")
         params_exist = true
@@ -188,7 +192,6 @@ initialize() {
         ;   load the files found in showRoutines.ini
 
         if (trim(A_Args[4]) = "*YES") {
-            SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
 
             IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileRoutines
             IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
@@ -206,14 +209,12 @@ initialize() {
             pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
 
             Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines " to folder " . path
-            ; msgbox, % "Trying to move file " . path . fileRoutines " to folder " . "H:\"
             FileMove, %pathIeffect%%fileRoutines% , %path% , 1
             if (ErrorLevel <> 0) {
                 msgbox, % "Cannot move file " . pathIeffect . fileRoutines " to folder " . path
             }
             Progress, Off
             Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode " to folder " . path
-            ; msgbox, % "Trying to move file " . path . fileCode " to folder " . "H:\"
             FileMove, %pathIeffect%%fileCode% ,  %path% , 1
             if (ErrorLevel <> 0) {
                 msgbox, % "Cannot move file " . pathIeffect . fileCode " to folder " . path
