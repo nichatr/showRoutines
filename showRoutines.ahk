@@ -1,47 +1,60 @@
-;--------------------------------------------------------------------------------------
-; Version with:
-;   listbox for showing code
-;   parameter for input file
-;   external ini file
-;--------------------------------------------------------------------------------------
-; parameters:
-;   A_Args[1] = routine calls file = outfile.txt
-;   A_Args[2] = source code file   = outfile.cblle.txt
-;   A_Args[3] = path where above files created = z:\bussup\txt\\
-;   A_Args[4] = use existing files or select = *yes|*no|*select (default)
-;               *no = try to load above files
-;               *yes = use existing file found in showRoutines.ini
-;               *select = open file selector
-;
-;--------------------------------------------------------------------------------------
-; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
-; 00001, 0886.00, 0913.00, 0899.00,MAIN                          ,INITIALIZE-ROUTINE            
-; 00002, 0886.00, 0913.00, 0900.00,MAIN                          ,MAIN-ROUTINE                  
-; 00003, 0916.00, 0940.00, 0000.00,INITIALIZE-ROUTINE            ,                              
-; 00004, 0943.00, 0976.00, 0968.00,MAIN-ROUTINE                  ,RFCONLIF-ROUTINE 
-;    etc...
-; 2. populate array of routines allRoutines[] with above data.
-;--------------------------------------------------------------------------------------
-; file cbtreef5.txt was created in AS400 with:
-; cbtree_2 ....
-; cpyf qtemp/cbtreef5  dcommon/cbtreef5 *replace
-; CVTDBF FROMFILE(DCOMMON/CBTREEF5) TOSTMF('/output/bussup/txt/cbtreef5') TOFMT(*FIXED) FIXED(*CRLF (*DBF) (*DBF) *SYSVAL *COMMA)
-;--------------------------------------------------------------------------------------
-; TODO: add resize capability in treeview.
-; TODO: add save/load user settings (last windows size & position)
-; TODO: add F-key to load source in notepad++ beginning from current routine
-; TODO: redesign context menu (ctr f = f1 = double click)
-;--------------------------------------------------------------------------------------
 #SingleInstance off     ;force
+#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+    ;--------------------------------------------------------------------------------------
+    ; Version with:
+    ;   listbox for showing code
+    ;   parameter for input file
+    ;   external ini file
+    ;--------------------------------------------------------------------------------------
+    ; parameters:
+    ;   A_Args[1] = routine calls file = outfile.txt
+    ;   A_Args[2] = source code file   = outfile.cblle.txt
+    ;   A_Args[3] = path where above files created = z:\bussup\txt\\
+    ;   A_Args[4] = use existing files or select = *yes|*no|*select (default)
+    ;               *no = try to load above files
+    ;               *yes = use existing file found in showRoutines.ini
+    ;               *select = open file selector
+    ;
+    ;--------------------------------------------------------------------------------------
+    ; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
+    ; 00001, 0886.00, 0913.00, 0899.00,MAIN                          ,INITIALIZE-ROUTINE            
+    ; 00002, 0886.00, 0913.00, 0900.00,MAIN                          ,MAIN-ROUTINE                  
+    ; 00003, 0916.00, 0940.00, 0000.00,INITIALIZE-ROUTINE            ,                              
+    ; 00004, 0943.00, 0976.00, 0968.00,MAIN-ROUTINE                  ,RFCONLIF-ROUTINE 
+    ;    etc...
+    ; 2. populate array of routines allRoutines[] with above data.
+    ;--------------------------------------------------------------------------------------
+    ; file cbtreef5.txt was created in AS400 with:
+    ; cbtree_2 ....
+    ; cpyf qtemp/cbtreef5  dcommon/cbtreef5 *replace
+    ; CVTDBF FROMFILE(DCOMMON/CBTREEF5) TOSTMF('/output/bussup/txt/cbtreef5') TOFMT(*FIXED) FIXED(*CRLF (*DBF) (*DBF) *SYSVAL *COMMA)
+    ;--------------------------------------------------------------------------------------
+    ; TODO: add resize capability in treeview.
+    ; TODO: add save/load user settings (last windows size & position)
+    ; TODO: add F-key to load source in notepad++ beginning from current routine
+    ; TODO: redesign context menu (ctr f = f1 = double click)
+    ;--------------------------------------------------------------------------------------
 
 global allRoutines  ; array of class "routine"
 global allCode      ; array of source code to show
 global tmpRoutine 
 global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
 global fullFileCode, fileCode         ; text file with source code.
+global path
 global itemLevels
 global levels_LastIndex
 global scriptNameNoExt
+global TreeViewWidth
+global ListBoxWidth
+global MyTreeView, MyListBox, MyEdit
+global LVX, LVY,LVWidth, LVHeight
+
+; global cBackground := "c" . "1d1f21"
+; global cForeground := "c" . "c5c8c6"
+global cBackground := "c" . "1e1e1e"
+global cForeground := "c" . "d4d4d4"
+global cCurrentLine := "c" . "282a2e"
+
 
 initialize()
 setup()
@@ -167,6 +180,10 @@ getSystem() {
     ; called on first run only!
     ;--------------------------------------------------
 initialize() {
+    global
+    SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
+    SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
+
     params_exist = false
     user := ""
     path := A_ScriptDir . "\data\"
@@ -228,9 +245,7 @@ initialize() {
             fileSelector(path, "(*.txt)")
         }
     }
-    
-    fullFileRoutines := path . fileRoutines
-    fullFileCode := path . fileCode
+
 }
     ;--------------------------------------------
     ; set environment, populate data structures
@@ -242,16 +257,17 @@ setup() {
     tmpRoutine  := {}
     itemLevels := []
     levels_LastIndex := 0
+        
+    fullFileRoutines := path . fileRoutines
+    fullFileCode := path . fileCode
 
     ; read last saved values
     IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
     IniRead, valueOfTreeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, treeviewWidth
 
-    global TreeViewWidth := valueOfTreeviewWidth ; 400
-    global ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
-    global MyTreeView, MyListBox, MyEdit
-    global LVX := TreeViewWidth + 10
-    global LVY,LVWidth, LVHeight
+    TreeViewWidth := valueOfTreeviewWidth ; 400
+    ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
+    LVX := TreeViewWidth + 10
 
     ; Create an ImageList and put some standard system icons into it:
     ImageListID := IL_Create(5)
@@ -259,11 +275,14 @@ setup() {
         IL_Add(ImageListID, "shell32.dll", A_Index)
 
     color1 := "00447A"  ;blue from windows background
-    color2 := "ffffe6"  ;white
+        ;color2 := "ffffe6"  ;white
+    color2 := "cffffff"
     color3 := "000000"  ;black
-    ; color2 := "D4D4C8"  ;
+    ;; color2 := "D4D4C8"  ;
     Gui, Font, c%color2%
-    Gui, color ,%color1%, %color3%
+
+    Gui, Color, 1d1f21, 282a2e
+    ; Gui, color ,%color1%, %color3%
 
     Gui, +Resize
     ; Gui, Add, Text, , Search for routine:
@@ -289,7 +308,7 @@ setup() {
     Menu, FileMenu, Add, Script Icon, MenuHandler
     Menu, FileMenu, Add, Suspend Icon, MenuHandler
     Menu, FileMenu, Add, Pause Icon, MenuHandler
-    Menu, FileMenu, Icon, Open file, shell32.dll, 235      ;4
+    Menu, FileMenu, Icon, Open file, shell32.dll, 4
     Menu, FileMenu, Icon, Script Icon, %A_AhkPath%, 2 ; Use the 2nd icon group from the file
     Menu, FileMenu, Icon, Suspend Icon, %A_AhkPath%, -206 ; Use icon with resource identifier 206
     Menu, FileMenu, Icon, Pause Icon, %A_AhkPath%, -207 ; Use icon with resource identifier 207
@@ -299,14 +318,6 @@ setup() {
     Gui, Show
     return
 
-    MenuHandler:
-    if (A_ThisMenuItem = "Open file")
-        msgbox, % "open file..."
-
-    return
-
-    Exit:
-    ExitApp
 }
     ;-----------------------------------------------------------
     ; Handle enter key. 
@@ -398,6 +409,24 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
     ExitApp
 
     ;-----------------------------------------------------------
+    ; Handle menu bar actions
+    ;-----------------------------------------------------------
+MenuHandler:
+    if (A_ThisMenuItem = "Open file") {
+        fileSelector(path, "(*.txt)")
+        Gui, Destroy
+        setup()
+        populateRoutines()
+        populateCode()
+        loadTreeview()
+        showGui()
+        return
+    }
+
+    Exit:
+    ExitApp
+
+    ;-----------------------------------------------------------
     ; Handle context menu actions
     ;-----------------------------------------------------------
 contextMenuHandler:
@@ -483,8 +512,6 @@ processAll(mode) {
     ; hide/show all children nodes.
     ;-----------------------------------------------------------
 processChildren(currentItemID, mode) {
-    
-    ; global
     current_index := 0
     from_index := 0
     GuiControl, -Redraw, MyTreeView
@@ -518,8 +545,6 @@ processChildren(currentItemID, mode) {
     ; hide/show all nodes with same level as selected node.
     ;-----------------------------------------------------------
 processSameLevel(currentItemID, mode) {
-
-    ; global
     current_index := 0
     selected_index := 0
     selected_level := 0
@@ -736,6 +761,7 @@ loadListbox(routineName) {
     GuiControl, -Redraw, MyListBox
     GuiControl,,MyListBox, |
     GuiControl,,MyListBox, %sourceCode%
+    ; Gui, Font, s10, Segoe UI
     Gui, Font, s10, Courier New
     GuiControl, Font, MyListBox
     GuiControl, +Redraw, MyListBox
