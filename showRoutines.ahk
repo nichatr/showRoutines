@@ -86,52 +86,47 @@ showGui() {
 #IfWinActive ahk_class AutoHotkeyGUI
     global searchText
 
-    ^left::
+    ^left::     ;{ <-- decrease treeview
     resizeTreeview("-")
     return
 
-    ^right::
+    ^right::    ;{ <-- increase treeview
     resizeTreeview("+")
     return
 
-    ; ^f::    ; ctrl F = F1 = search forward
-    ; GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-    ; searchItem(searchText, "next")
-    ; return
-
-    F1::
+    F1::        ;{ <-- find next
     GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "next")
     return
 
-    F2::
+    F2::        ;{ <-- find previous
     GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "previous")
     return
 
-    F3::
+    F3::       ;{ <-- fold all routines 
     processAll("-Expand")
     return
 
-    F4::
+    F4::        ;{ <-- unfold all routines 
     processAll("Expand")
     return
 
-    F5::
+    F5::        ;{ <-- fold recursively current routine
     processChildren(TV_GetSelection(), "-Expand")
     return
 
-    F6::
+    F6::        ;{ <-- unfold recursively current routine
     processChildren(TV_GetSelection(), "Expand")
     return
 
-    F7::
+    F7::        ;{ <-- fold same level
     selected_itemID := TV_GetSelection()
     processSameLevel(selected_itemID, "-Expand")
     ; processSameLevel(TV_GetSelection(), "-Expand")
     return
 
-    F8::
+    F8::        ;{ <-- unfold same level
     processSameLevel(TV_GetSelection(), "Expand")
     return
 
@@ -247,13 +242,12 @@ initialize() {
     ; set environment, populate data structures
     ;--------------------------------------------
 setup() {
-
+    global
     allRoutines := []
     allCode := []
     tmpRoutine  := {}
     itemLevels := []
     levels_LastIndex := 0
-        
     fullFileRoutines := path . fileRoutines
     fullFileCode := path . fileCode
 
