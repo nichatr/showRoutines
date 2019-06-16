@@ -86,10 +86,6 @@ showGui() {
 #IfWinActive ahk_class AutoHotkeyGUI
     global searchText
 
-    !q::
-    Reload
-    return
-
     ^left::
     resizeTreeview("-")
     return
@@ -98,10 +94,10 @@ showGui() {
     resizeTreeview("+")
     return
 
-    ^f::    ; ctrl F = F1 = search forward
-    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-    searchItem(searchText, "next")
-    return
+    ; ^f::    ; ctrl F = F1 = search forward
+    ; GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+    ; searchItem(searchText, "next")
+    ; return
 
     F1::
     GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
@@ -295,10 +291,10 @@ setup() {
     Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, Routine name: (click any routine to show the code)
     Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
 
-    Menu, MyContextMenu, Add, Find next `tF1, contextMenuHandler
-    Menu, MyContextMenu, Add, Find previous `tF2, contextMenuHandler
-    Menu, MyContextMenu, Add, Show routine code `tLeft click, contextMenuHandler
-    Menu, MyContextMenu, Add    ; blank line
+    ; Menu, MyContextMenu, Add, Show routine code `tLeft click, contextMenuHandler
+    ; Menu, MyContextMenu, Add, Find next `tF1, contextMenuHandler
+    ; Menu, MyContextMenu, Add, Find previous `tF2, contextMenuHandler
+    ; Menu, MyContextMenu, Add    ; blank line
     Menu, MyContextMenu, Add, Fold all `tF3, contextMenuHandler
     Menu, MyContextMenu, Add, Unfold all `tF4, contextMenuHandler
     Menu, MyContextMenu, Add, Fold recursively `tF5, contextMenuHandler
@@ -329,9 +325,6 @@ ButtonOK:
     {
     GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "next")
-    
-    ; Gui, Submit, NoHide
-    ; send {F1}
     return
     }
     ;-----------------------------------------------------------
@@ -345,11 +338,12 @@ MyTreeView:
         loadListbox(SelectedItemText)              ; load routine code
     }
     
-    ; doubleclick an item: search the treeview
+    ; doubleclick an item: call Notepad++
     if (A_GuiEvent = "DoubleClick") {
-        TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
-        GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        searchItem(searchText, "next")
+        TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
+        staement := findRoutineFirstStatement(SelectedItemText)
+        RunWait, notepad++.exe -lcobol -nosession -ro -n%staement% "%fullFileCode%"
+        ; RunWait, runNotepad.bat "%fullFileCode%", A_WorkingDir
     }
 
     ; spacebar an item: load the routine code.
@@ -445,13 +439,30 @@ MenuHandler:
     ; Handle context menu actions
     ;-----------------------------------------------------------
 contextMenuHandler:
-    if (A_ThisMenuItem = "Find next") 
-        gosub findNext
-    if (A_ThisMenuItem = "Find previous")
-        gosub findPrevious
-    if (A_ThisMenuItem = "Show routine code (spacebar)") {
-        TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
-        loadListbox(SelectedItemText)
+
+    if (A_ThisMenuItem = "Show routine code `tLeft click") {
+        ; doesn't work!!!
+        ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
+        ; msgbox, % SelectedItemText . "----" . TV_GetSelection()
+        ; loadListbox(SelectedItemText)              ; load routine code
+    }
+    if (A_ThisMenuItem = "Find next `tF1") {
+        ; doesn't work!!!
+        ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
+        ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
+        ; searchItem(searchText, "next")
+
+        ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
+        ; msgbox, % SelectedItemText . "-----" . A_EventInfo
+        ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
+        ; searchItem(searchText, "next")
+    }
+    if (A_ThisMenuItem = "Find previous `tF2") {
+        ; doesn't work!!!
+        ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
+        ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
+        ; searchItem(searchText, "previous")
+        ; return
     }
 
     if (A_ThisMenuItem = "Fold all (F3)")
@@ -466,10 +477,6 @@ contextMenuHandler:
         processSameLevel(TV_GetSelection(), "-Expand")
     if (A_ThisMenuItem = "Unfold same level (F8)")
         processSameLevel(TV_GetSelection(), "Expand")
-
-    return
-findNext:
-findPrevious:
     return
 
     ;--------------------------------------------
@@ -740,7 +747,6 @@ searchRoutine(routineName) {
     }
     return 0
 }
-
     ;-----------------------------------------------------------------------
     ; read mpmdl001.cblle file and populate array with all code
     ;-----------------------------------------------------------------------
@@ -749,6 +755,20 @@ populateCode() {
     {
         allCode.push(A_LoopReadLine)
     }
+}
+    ;-----------------------------------------------------------------------
+    ; find the statement in the code that routine begins.
+    ;-----------------------------------------------------------------------
+findRoutineFirstStatement(routineName) {
+    from_line_number := 1
+    
+    if (routineName <> "") {
+        calledId := searchRoutine(routineName)
+        if (calledId > 0)
+            from_line_number := substr(allRoutines[calledId].startStmt, 1, 4)
+    }
+    
+    return from_line_number
 }
     ;-----------------------------------------------------------------------
     ; load listbox with the routine code (source)
