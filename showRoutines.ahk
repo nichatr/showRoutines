@@ -46,7 +46,7 @@ global levels_LastIndex
 global scriptNameNoExt
 global TreeViewWidth
 global ListBoxWidth
-global MyTreeView, MyListBox, MyEdit
+global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
 global LVX, LVY,LVWidth, LVHeight
 
 ; global cBackground := "c" . "1d1f21"
@@ -71,8 +71,8 @@ showGui() {
     IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winWidth
     IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
 
-    if (valueOfX < 0)
-        valueOfX := 0
+    if (valueOfX < -7)
+        valueOfX := -7
     if (valueOfY < 0)
         valueOfY := 0
     
@@ -99,17 +99,17 @@ showGui() {
     return
 
     ^f::    ; ctrl F = F1 = search forward
-    GuiControlGet, searchText, ,MyEdit  ;get search text from input field
+    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "next")
     return
 
     F1::
-    GuiControlGet, searchText, ,MyEdit  ;get search text from input field
+    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "next")
     return
 
     F2::
-    GuiControlGet, searchText, ,MyEdit  ;get search text from input field
+    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "previous")
     return
 
@@ -268,6 +268,7 @@ setup() {
     TreeViewWidth := valueOfTreeviewWidth ; 400
     ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
     LVX := TreeViewWidth + 10
+    search2_x := TreeViewWidth + 10
 
     ; Create an ImageList and put some standard system icons into it:
     ImageListID := IL_Create(5)
@@ -286,11 +287,13 @@ setup() {
 
     Gui, +Resize
     ; Gui, Add, Text, , Search for routine:
-    Gui, Add, Edit, r1 vMyEdit w150,Search for routine    ; text box, r1= 1 row
+    Gui, Add, Edit, r1 vMyEdit_routine x5 y5 w150,Search for routine    ; text box, r1= 1 row
+    Gui, Add, Edit, r1 vMyEdit_code x%search2_x% y5 w150,Search in code     ; text box, r1= 1 row
     Gui, Add, Button, x+1 Hidden Default, OK    ; hidden button to catch enter key! x+1 = show on same line with textbox
     ; gui, add, GroupBox, w200 h100
     Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
     Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, Routine name: (click any routine to show the code)
+    Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
 
     Menu, MyContextMenu, Add, Find next `tF1, contextMenuHandler
     Menu, MyContextMenu, Add, Find previous `tF2, contextMenuHandler
@@ -324,7 +327,7 @@ setup() {
     ;-----------------------------------------------------------
 ButtonOK: 
     {
-    GuiControlGet, searchText, ,MyEdit  ;get search text from input field
+    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
     searchItem(searchText, "next")
     
     ; Gui, Submit, NoHide
@@ -345,7 +348,7 @@ MyTreeView:
     ; doubleclick an item: search the treeview
     if (A_GuiEvent = "DoubleClick") {
         TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
-        GuiControl, , MyEdit , %SelectedItemText%   ; put it into search field
+        GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
         searchItem(searchText, "next")
     }
 
@@ -381,6 +384,9 @@ GuiContextMenu:
     return
     }
 
+    ;----------------------------------------------------------------
+    ; on app close save to INI file last position & size.
+    ;----------------------------------------------------------------
 GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
     
     if (fileRoutines = "ERROR")
@@ -388,12 +394,13 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
     if (fileCode = "ERROR")
         return
 
-    WinGetPos, winX, winY, winWidth, winHeight
-
     ; on exit save position & size of window
     ; but if it is minimized skip this step.
     WinGet, isMinimized , MinMax, ahk_class AutoHotkeyGUI
     if (isMinimized <> -1) {
+        actWin := WinExist("A")
+        WinGetPos, winX, winY, winWidth, winHeight, A
+        GetClientSize(actWin, winWidth, winHeight)
         IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winX
         IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winY
         IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winWidth
@@ -407,6 +414,14 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
         IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
     
     ExitApp
+
+GetClientSize(hWnd, ByRef w := "", ByRef h := "")
+    {
+    VarSetCapacity(rect, 16)
+    DllCall("GetClientRect", "ptr", hWnd, "ptr", &rect)
+    w := NumGet(rect, 8, "int")
+    h := NumGet(rect, 12, "int")
+    }
 
     ;-----------------------------------------------------------
     ; Handle menu bar actions
@@ -585,7 +600,7 @@ processSameLevel(currentItemID, mode) {
     TV_Modify(selectedItemId, VisFirst)     ;re-select old item & make it visible!
 }
     ;-----------------------------------------------------------
-    ; search the text entered in MyEdit control
+    ; search the text entered in MyEdit_routine control
     ;-----------------------------------------------------------
 searchItem(searchText, direction) {
 
