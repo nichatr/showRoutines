@@ -29,12 +29,6 @@
     ; cpyf qtemp/cbtreef5  dcommon/cbtreef5 *replace
     ; CVTDBF FROMFILE(DCOMMON/CBTREEF5) TOSTMF('/output/bussup/txt/cbtreef5') TOFMT(*FIXED) FIXED(*CRLF (*DBF) (*DBF) *SYSVAL *COMMA)
     ;--------------------------------------------------------------------------------------
-    ; TODO: add resize capability in treeview.
-    ; TODO: add save/load user settings (last windows size & position)
-    ; TODO: add F-key to load source in notepad++ beginning from current routine
-    ; TODO: redesign context menu (ctr f = f1 = double click)
-    ;--------------------------------------------------------------------------------------
-
 global allRoutines  ; array of class "routine"
 global allCode      ; array of source code to show
 global tmpRoutine 
@@ -49,6 +43,7 @@ global ListBoxWidth
 global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
 global LVX, LVY,LVWidth, LVHeight
 global from_line_number, to_line_number
+global gui_offset
 
 ; global cBackground := "c" . "1d1f21"
 ; global cForeground := "c" . "c5c8c6"
@@ -58,29 +53,51 @@ global cCurrentLine := "c" . "282a2e"
 
 
 initialize()
-setup()
-populateRoutines()
-populateCode()
-loadTreeview()
-showGui()
+mainProcess()
 return
 
+mainProcess() {
+    setup()
+    populateRoutines()
+    populateCode()
+    loadTreeview()
+    updateStatusBar()
+    showGui()
+}
+
 showGui() {
+    global
     ; read last saved win position & size
     IniRead, valueOfX, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winX
     IniRead, valueOfY, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winY
     IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winWidth
     IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
+    
+    IniRead, actualHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, actualWinHeight
+    gui_offset := actualHeight - valueOfHeight
 
     if (valueOfX < -7)
         valueOfX := -7
     if (valueOfY < 0)
         valueOfY := 0
     
+    ; {
+    ;     WinGetPos, X_main, Y_main, Width_main, Height_main, A
+    ;     actWin := WinExist("A")
+    ;     GetClientSize(actWin, Width_main, Height_main)
+
+    ;     GuiControlGet, myVar, Pos, MyTreeView
+    ;     msgbox %myvarX%  `n %myVarY% `n %Height_main%
+    ; }
+
     Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
     return
 }
 
+updateStatusBar(currentRoutine := "MAIN") {
+    SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
+    . " | Current routine:" . currentRoutine)
+}
     ;---------------------------------------
     ; define shortcut keys
     ;---------------------------------------
@@ -286,17 +303,16 @@ setup() {
 
     Gui, Add, Button, x+1 Hidden Default, OK    ; hidden button to catch enter key! x+1 = show on same line with textbox
     ; gui, add, GroupBox, w200 h100
-    Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit
+    
+    Gui, Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
     ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
+
     Gui, font, s14
     Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in Notepad++
     Gui, font, c%color2%
-    Gui, Add, StatusBar,, 
 
-    ; Menu, MyContextMenu, Add, Show routine code `tLeft click, contextMenuHandler
-    ; Menu, MyContextMenu, Add, Find next `tF1, contextMenuHandler
-    ; Menu, MyContextMenu, Add, Find previous `tF2, contextMenuHandler
-    ; Menu, MyContextMenu, Add    ; blank line
+    Gui, add, StatusBar
+
     Menu, MyContextMenu, Add, Fold all `tF3, contextMenuHandler
     Menu, MyContextMenu, Add, Unfold all `tF4, contextMenuHandler
     Menu, MyContextMenu, Add, Fold recursively `tF5, contextMenuHandler
@@ -316,7 +332,7 @@ setup() {
     Menu, MyMenuBar, Add, &File, :FileMenu
     Gui, Menu, MyMenuBar
     Gui, Add, Button, gExit, Exit This Example
-    Gui, Show
+    ; Gui, Show
     return
 
 }
@@ -341,18 +357,29 @@ ButtonOK:
     ;-----------------------------------------------------------
 MyTreeView:
     {
+    global currentRoutine
+
     ; click an item: load routine code
     if (A_GuiEvent = "S") {
         TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
         loadListbox(SelectedItemText)              ; load routine code
     }
     
-    ; doubleclick an item: call Notepad++
+    ; doubleclick an item: open code in Notepad++ and position to selected routine.
     if (A_GuiEvent = "DoubleClick") {
         TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
-        staement := findRoutineFirstStatement(SelectedItemText)
-        RunWait, notepad++.exe -lcobol -nosession -ro -n%staement% "%fullFileCode%"
+        statement := findRoutineFirstStatement(SelectedItemText)
+
+        WinGetPos, X_main, Y_main, Width_main, Height_main, A
+        actWin := WinExist("A")
+        GetClientSize(actWin, Width_main, Height_main)
+
+        RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
         ; RunWait, runNotepad.bat "%fullFileCode%", A_WorkingDir
+
+        Sleep, 100
+        ; position besides main window
+        WinMove, ahk_class Notepad++, , X_main + Width_main -16, Y_main
     }
 
     ; spacebar an item: load the routine code.
@@ -364,13 +391,15 @@ MyTreeView:
     }
 
 GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizing of window.
-    {   
+    {
     if (A_EventInfo = 1)  ; The window has been minimized. No action needed.
         return
 
     ; Otherwise, the window has been resized or maximized. Resize the controls to match.
-    GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - 30) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
-    GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
+    GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
+    
+    GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset + 20) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
+    ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
 
     return
     }
@@ -399,13 +428,22 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
 
     ; on exit save position & size of window
     ; but if it is minimized skip this step.
-    WinGet, isMinimized , MinMax, ahk_class AutoHotkeyGUI
+    actWin := WinExist("A")
+    WinGet, isMinimized , MinMax, actWin
     if (isMinimized <> -1) {
-        actWin := WinExist("A")
         WinGetPos, winX, winY, winWidth, winHeight, A
-        GetClientSize(actWin, winWidth, winHeight)
+
+        ; save X, Y that are absolute values.
         IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winX
         IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winY
+        
+        ; save absolute values of W,H.
+        IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, actualWinWidth
+        IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, actualWinHeight
+
+        GetClientSize(actWin, winWidth, winHeight)
+        
+        ; save client values of W,H (used by winmove)
         IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winWidth
         IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
     }
@@ -433,11 +471,7 @@ MenuHandler:
     if (A_ThisMenuItem = "Open file") {
         fileSelector(path, "(*.txt)")
         Gui, Destroy
-        setup()
-        populateRoutines()
-        populateCode()
-        loadTreeview()
-        showGui()
+        mainProcess()
         return
     }
 
@@ -826,6 +860,7 @@ loadListbox(routineName) {
         line_number ++
     }
 
+    updateStatusBar(SelectedItemText)
     GuiControl, -Redraw, MyListBox
     GuiControl,,MyListBox, |
     GuiControl,,MyListBox, %sourceCode%
