@@ -45,13 +45,6 @@ global LVX, LVY,LVWidth, LVHeight
 global from_line_number, to_line_number
 global gui_offset
 
-; global cBackground := "c" . "1d1f21"
-; global cForeground := "c" . "c5c8c6"
-global cBackground := "c" . "1e1e1e"
-global cForeground := "c" . "d4d4d4"
-global cCurrentLine := "c" . "282a2e"
-
-
 initialize()
 mainProcess()
 return
@@ -68,12 +61,12 @@ mainProcess() {
 showGui() {
     global
     ; read last saved win position & size
-    IniRead, valueOfX, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winX
-    IniRead, valueOfY, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winY
-    IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winWidth
-    IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
+    IniRead, valueOfX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+    IniRead, valueOfY, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
+    IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+    IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
     
-    IniRead, actualHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, actualWinHeight
+    IniRead, actualHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
     gui_offset := actualHeight - valueOfHeight
 
     if (valueOfX < -7)
@@ -87,7 +80,7 @@ showGui() {
 
 updateStatusBar(currentRoutine := "MAIN") {
     SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
-    . " | Current routine:" . currentRoutine)
+    . " | File:" . fileCode . " | Current routine:" . currentRoutine)
 }
     ;---------------------------------------
     ; define shortcut keys
@@ -148,8 +141,9 @@ updateStatusBar(currentRoutine := "MAIN") {
 fileSelector(homePath, filter) {
     FileSelectFile, fullFileRoutines, 1, %homePath% , Select routines file, %filter%
             
-    if (ErrorLevel = 1)     ; cancelled by user
-        ExitApp
+    if (ErrorLevel = 1) {    ; cancelled by user
+        return False
+    }
     
     SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     FoundPos := InStr(FileName, ".cblle.txt" , CaseSensitive:=false)
@@ -160,6 +154,7 @@ fileSelector(homePath, filter) {
 
     fileRoutines := FileName
     fileCode := NameNoExt . ".cblle.txt"
+    return true
 
     ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
     ; ExitApp
@@ -212,8 +207,8 @@ initialize() {
 
         if (trim(A_Args[4]) = "*YES" or trim(A_Args[4]) = "*NO") {
 
-            IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileRoutines
-            IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
+            IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
+            IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 
             ; routines calls file
             fileRoutines := params_exist ? A_Args[1] : fileRoutines
@@ -244,7 +239,8 @@ initialize() {
         ; use existing files(*select) or ini file has not corresponding entry: open file selector
 
         if (A_Args[4] = "*SELECT" or fileRoutines = "") {
-            fileSelector(path, "(*.txt)")
+            if (!fileSelector(path, "(*.txt)"))
+                ExitApp
         }
     }
 
@@ -263,8 +259,8 @@ setup() {
     fullFileCode := path . fileCode
 
     ; read last saved values
-    IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
-    IniRead, valueOfTreeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, treeviewWidth
+    IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
+    IniRead, valueOfTreeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
 
     TreeViewWidth := valueOfTreeviewWidth ; 400
     ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
@@ -276,31 +272,35 @@ setup() {
     ; Loop 300
     ;     IL_Add(ImageListID, "shell32.dll", A_Index)
 
-    color1 := "00447A"  ;blue from windows background
-        ;color2 := "ffffe6"  ;white
-    color2 := "cffffff"
-    color3 := "000000"  ;black
-    ;; color2 := "D4D4C8"  ;
-    Gui, Font, c%color2%
+    VSCODE_LETTERS := "C4C4C4"
+    VSCODE_EDIT_WIN := "232323"
+    VSCODE_LEFT_WIN := "2E3132"
+    VSCODE_HEAD := "3E3E3E"
+    VSCODE_SELECTED_MENUITEM := "114970"
 
-    Gui, Color, 1d1f21, 282a2e
-    ; Gui, color ,%color1%, %color3%
+    window_color := VSCODE_HEAD
+    control_color := VSCODE_EDIT_WIN
+    menu_color := VSCODE_LETTERS
 
-    Gui, +Resize
+    Gui, Font, c%VSCODE_LETTERS%
+
+    Gui, Color, %window_color%, %control_color%
+    ; Gui, Color, 1d1f21, 282a2e
+
+    Gui, +Resize +Border
     Gui, Add, Text, x5 y10 , Search for routine:
     Gui, Add, Edit, r1 vMyEdit_routine x+5 y5 w150
     Gui, Add, Text, x%search2_x% y10 , Search inside code:
     Gui, Add, Edit, r1 vMyEdit_code x+5 y5 w150
 
     Gui, Add, Button, x+1 Hidden Default, OK    ; hidden button to catch enter key! x+1 = show on same line with textbox
-    ; gui, add, GroupBox, w200 h100
     
     Gui, Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
     ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
 
-    Gui, font, s14
+    Gui, font, s12
     Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in Notepad++
-    Gui, font, c%color2%
+    Gui, font, c%VSCODE_LETTERS%
 
     Gui, add, StatusBar
 
@@ -318,9 +318,11 @@ setup() {
     Menu, FileMenu, Add, &Settings, MenuHandler
     Menu, FileMenu, Add, Save position, MenuHandler
     Menu, FileMenu, Add, Save tree as..., MenuHandler
+    Menu, FileMenu, Add, &Exit, MenuHandler
 
 
     Menu, MyMenuBar, Add, &File, :FileMenu
+    ; Menu, MyMenuBar, Color, %menu_color%
     ; Menu, MyMenuBar, Add, &Settings, :SettingsMenu
 
     Gui, Menu, MyMenuBar
@@ -425,25 +427,25 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
         WinGetPos, winX, winY, winWidth, winHeight, A
 
         ; save X, Y that are absolute values.
-        IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winX
-        IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winY
+        IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+        IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
         
         ; save absolute values of W,H.
-        IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, actualWinWidth
-        IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, actualWinHeight
+        IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
+        IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
 
         GetClientSize(actWin, winWidth, winHeight)
         
         ; save client values of W,H (used by winmove)
-        IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winWidth
-        IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, winHeight
+        IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+        IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
     }
 
     ; if filenames are non blank save also.
     if (fileRoutines <> "")
-        IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileRoutines
+        IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
     if (fileCode <> "")
-        IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, settings, fileCode
+        IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
     
     ExitApp
 
@@ -460,14 +462,20 @@ GetClientSize(hWnd, ByRef w := "", ByRef h := "")
     ;-----------------------------------------------------------
 MenuHandler:
     if (A_ThisMenuItem = "&Open file") {
-        fileSelector(path, "(*.txt)")
+        if (!fileSelector(path, "(*.txt)"))
+            return
         Gui, Destroy
         mainProcess()
         return
     }
     if (A_ThisMenuItem = "&Settings") {
+        ; loadSettings()
         showSettings()
         return
+    }
+    if (A_ThisMenuItem = "&Exit") {
+        Gui, Destroy
+        ExitApp
     }
 
     Exit:
@@ -522,7 +530,6 @@ contextMenuHandler:
 showSettings() {
 
     Gui 2:Add, Text, x33 y32 w50 h30 +0x200, All
-    ; Gui 2:Add, UpDown, x198 y41 w0 h21, 1
     Gui 2:Add, Edit, x116 y40 w104 h21 +Number, 14
     Gui 2:Add, UpDown, x204 y39 w18 h21, 14
     Gui 2:Add, Text, x32 y81 w82 h30 +0x200, Tree
