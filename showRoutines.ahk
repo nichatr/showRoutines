@@ -48,6 +48,7 @@ global TreeViewWidth
 global ListBoxWidth
 global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
 global LVX, LVY,LVWidth, LVHeight
+global from_line_number, to_line_number
 
 ; global cBackground := "c" . "1d1f21"
 ; global cForeground := "c" . "c5c8c6"
@@ -96,12 +97,12 @@ showGui() {
 
     F1::        ;{ <-- find next
     GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-    searchItem(searchText, "next")
+    searchItemInRoutine(searchText, "next")
     return
 
     F2::        ;{ <-- find previous
     GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-    searchItem(searchText, "previous")
+    searchItemInRoutine(searchText, "previous")
     return
 
     F3::       ;{ <-- fold all routines 
@@ -191,7 +192,9 @@ initialize() {
     user := getSystem()
     
     if (user ="SYSTEM_HOME") {
-        fileSelector(path, "(*.txt)")
+        ; fileSelector(path, "(*.txt)")
+        fileRoutines := "B9Y36.txt"
+        fileCode := "B9Y36.cblle.txt"
     }
 
     if (user = "SYSTEM_WORK") {
@@ -261,9 +264,9 @@ setup() {
     search2_x := TreeViewWidth + 10
 
     ; Create an ImageList and put some standard system icons into it:
-    ImageListID := IL_Create(5)
-    Loop 5 
-        IL_Add(ImageListID, "shell32.dll", A_Index)
+    ; ImageListID := IL_Create(300)
+    ; Loop 300
+    ;     IL_Add(ImageListID, "shell32.dll", A_Index)
 
     color1 := "00447A"  ;blue from windows background
         ;color2 := "ffffe6"  ;white
@@ -276,14 +279,19 @@ setup() {
     ; Gui, color ,%color1%, %color3%
 
     Gui, +Resize
-    ; Gui, Add, Text, , Search for routine:
-    Gui, Add, Edit, r1 vMyEdit_routine x5 y5 w150,Search for routine    ; text box, r1= 1 row
-    Gui, Add, Edit, r1 vMyEdit_code x%search2_x% y5 w150,Search in code     ; text box, r1= 1 row
+    Gui, Add, Text, x5 y10 , Search for routine:
+    Gui, Add, Edit, r1 vMyEdit_routine x+5 y5 w150
+    Gui, Add, Text, x%search2_x% y10 , Search inside code:
+    Gui, Add, Edit, r1 vMyEdit_code x+5 y5 w150
+
     Gui, Add, Button, x+1 Hidden Default, OK    ; hidden button to catch enter key! x+1 = show on same line with textbox
     ; gui, add, GroupBox, w200 h100
-    Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
-    Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, Routine name: (click any routine to show the code)
-    Gui, Add, StatusBar,, Bar's starting text (omit to start off empty).
+    Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit
+    ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
+    Gui, font, s14
+    Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in Notepad++
+    Gui, font, c%color2%
+    Gui, Add, StatusBar,, 
 
     ; Menu, MyContextMenu, Add, Show routine code `tLeft click, contextMenuHandler
     ; Menu, MyContextMenu, Add, Find next `tF1, contextMenuHandler
@@ -317,9 +325,16 @@ setup() {
     ;-----------------------------------------------------------
 ButtonOK: 
     {
-    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-    searchItem(searchText, "next")
-    return
+        GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+        if (searchText <> "")
+            searchItemInRoutine(searchText, "next")
+        else {
+            GuiControlGet, searchText, ,MyEdit_code  ;get search text from input field
+            if (searchText <> "")
+                item = searchItemInCode(searchText, "next")
+                GuiControl, Choose, MyListBox, item
+        }
+        return
     }
     ;-----------------------------------------------------------
     ; Handle user actions (such as clicking). 
@@ -444,18 +459,18 @@ contextMenuHandler:
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        ; searchItem(searchText, "next")
+        ; searchItemInRoutine(searchText, "next")
 
         ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
         ; msgbox, % SelectedItemText . "-----" . A_EventInfo
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        ; searchItem(searchText, "next")
+        ; searchItemInRoutine(searchText, "next")
     }
     if (A_ThisMenuItem = "Find previous `tF2") {
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        ; searchItem(searchText, "previous")
+        ; searchItemInRoutine(searchText, "previous")
         ; return
     }
 
@@ -603,7 +618,7 @@ processSameLevel(currentItemID, mode) {
     ;-----------------------------------------------------------
     ; search the text entered in MyEdit_routine control
     ;-----------------------------------------------------------
-searchItem(searchText, direction) {
+searchItemInRoutine(searchText, direction) {
 
     global
     static found := false
@@ -658,7 +673,7 @@ searchItem(searchText, direction) {
             }           
         }
         ; check if search text exists in current node.
-        foundPos := InStr(itemLevels[current_index, 3], searchText, false, 1)
+        foundPos := InStr(itemLevels[current_index, 3], searchText, CaseSensitive:=false, 1)
         if (foundPos > 0) {
             TV_Modify(itemLevels[current_index, 1])     ;select found node
             found := true
@@ -666,8 +681,29 @@ searchItem(searchText, direction) {
         }        
     }
 }
+    ;-----------------------------------------------------------
+    ; search the text entered in MyEdit_code control
+    ;-----------------------------------------------------------
+searchItemInCode(searchText, direction) {
+    line_number := from_line_number
+    itemNumber := 1
 
-
+    while (line_number <= to_line_number) {
+        FoundPos := InStr(allcode[line_number], searchText, CaseSensitive:=false)
+        if (foundPos > 0) {
+            ; msgbox, % "Found"
+            ; Control, Choose, itemNumber, MyListBox
+            ; ControlFocus, MyListBox
+            ; GuiControl, Choose, MyListBox, itemNumber
+            ; GuiControl, +Redraw, MyListBox
+            return itemNumber
+        }
+        line_number ++
+        itemNumber ++
+    }
+    return 0
+    ; msgbox, % "Not found"
+}
     ;---------------------------------------------------------------------
     ; recursively write routines array to a text file for testing.
     ;---------------------------------------------------------------------
@@ -720,7 +756,9 @@ processRoutine(currRoutine, parentID=0) {
     ; add a node to treeview
     ;---------------------------------------
 addToTreeview(routineName, currentLevel, parentRoutine) {
-    currentId := TV_add(routineName, parentRoutine, "Icon4 Expand")
+    currentId := TV_add(routineName, parentRoutine, "Expand")
+    ; currentId := TV_add(routineName, parentRoutine, "Icon138 Expand")
+    ; currentId := TV_add(routineName, parentRoutine, "Icon4 Expand")
     
     ; save routine level for later tree traversal.
     levels_LastIndex += 1
@@ -768,6 +806,7 @@ findRoutineFirstStatement(routineName) {
     ; load listbox with the routine code (source)
     ;-----------------------------------------------------------------------
 loadListbox(routineName) {
+    global
     from_line_number := 0
     to_line_number := 0
     sourceCode := ""
