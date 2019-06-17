@@ -81,15 +81,6 @@ showGui() {
     if (valueOfY < 0)
         valueOfY := 0
     
-    ; {
-    ;     WinGetPos, X_main, Y_main, Width_main, Height_main, A
-    ;     actWin := WinExist("A")
-    ;     GetClientSize(actWin, Width_main, Height_main)
-
-    ;     GuiControlGet, myVar, Pos, MyTreeView
-    ;     msgbox %myvarX%  `n %myVarY% `n %Height_main%
-    ; }
-
     Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
     return
 }
@@ -321,20 +312,20 @@ setup() {
     Menu, MyContextMenu, Add, Unfold same level `tF8, contextMenuHandler
 
     ; menu bar
-    Menu, FileMenu, Add, Open file, MenuHandler
-    Menu, FileMenu, Add, Script Icon, MenuHandler
-    Menu, FileMenu, Add, Suspend Icon, MenuHandler
-    Menu, FileMenu, Add, Pause Icon, MenuHandler
-    Menu, FileMenu, Icon, Open file, shell32.dll, 4
-    Menu, FileMenu, Icon, Script Icon, %A_AhkPath%, 2 ; Use the 2nd icon group from the file
-    Menu, FileMenu, Icon, Suspend Icon, %A_AhkPath%, -206 ; Use icon with resource identifier 206
-    Menu, FileMenu, Icon, Pause Icon, %A_AhkPath%, -207 ; Use icon with resource identifier 207
+    Menu, FileMenu, Add, &Open file, MenuHandler
+    Menu, FileMenu, Icon, &Open file, shell32.dll, 4
+
+    Menu, FileMenu, Add, &Settings, MenuHandler
+    Menu, FileMenu, Add, Save position, MenuHandler
+    Menu, FileMenu, Add, Save tree as..., MenuHandler
+
+
     Menu, MyMenuBar, Add, &File, :FileMenu
+    ; Menu, MyMenuBar, Add, &Settings, :SettingsMenu
+
     Gui, Menu, MyMenuBar
     Gui, Add, Button, gExit, Exit This Example
-    ; Gui, Show
     return
-
 }
     ;-----------------------------------------------------------
     ; Handle enter key. 
@@ -379,7 +370,7 @@ MyTreeView:
 
         Sleep, 100
         ; position besides main window
-        WinMove, ahk_class Notepad++, , X_main + Width_main -16, Y_main
+        WinMove, ahk_class Notepad++, , X_main + Width_main , Y_main
     }
 
     ; spacebar an item: load the routine code.
@@ -398,7 +389,7 @@ GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizin
     ; Otherwise, the window has been resized or maximized. Resize the controls to match.
     GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
     
-    GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset + 20) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
+    GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset + 10) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
     ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
 
     return
@@ -468,10 +459,14 @@ GetClientSize(hWnd, ByRef w := "", ByRef h := "")
     ; Handle menu bar actions
     ;-----------------------------------------------------------
 MenuHandler:
-    if (A_ThisMenuItem = "Open file") {
+    if (A_ThisMenuItem = "&Open file") {
         fileSelector(path, "(*.txt)")
         Gui, Destroy
         mainProcess()
+        return
+    }
+    if (A_ThisMenuItem = "&Settings") {
+        showSettings()
         return
     }
 
@@ -521,7 +516,39 @@ contextMenuHandler:
     if (A_ThisMenuItem = "Unfold same level (F8)")
         processSameLevel(TV_GetSelection(), "Expand")
     return
+    ;--------------------------------------------
+    ;
+    ;--------------------------------------------
+showSettings() {
 
+    Gui 2:Add, Text, x33 y32 w50 h30 +0x200, All
+    ; Gui 2:Add, UpDown, x198 y41 w0 h21, 1
+    Gui 2:Add, Edit, x116 y40 w104 h21 +Number, 14
+    Gui 2:Add, UpDown, x204 y39 w18 h21, 14
+    Gui 2:Add, Text, x32 y81 w82 h30 +0x200, Tree
+    Gui 2:Add, Edit, x116 y87 w88 h21 +Number, 15
+    Gui 2:Add, UpDown, x204 y86 w18 h21, 15
+    Gui 2:Add, Text, x33 y131 w82 h30 +0x200, Code
+    Gui 2:Add, Edit, x116 y134 w88 h21 +Number, 16
+    Gui 2:Add, UpDown, x202 y134 w18 h21, 16
+    Gui 2:Add, GroupBox, x18 y16 w235 h161, Font
+    Gui 2:Add, GroupBox, x263 y17 w247 h156, Background Color
+    Gui 2:Add, Text, x282 y80 w31 h23 +0x200, Tree
+    Gui 2:Add, Text, x282 y119 w61 h23 +0x200, Code
+    Gui 2:Add, Text, x282 y50 w50 h23 +0x200, All
+    Gui 2:Add, ComboBox, x324 y48 w120, ComboBox
+    Gui 2:Add, ComboBox, x325 y84 w120, ComboBox
+    Gui 2:Add, ComboBox, x324 y117 w120, ComboBox
+    Gui 2:Add, CheckBox, x42 y300 w120 h23 +Checked, Save on exit
+
+    Gui 2:Show, w620 h420, Window
+    Return
+
+2GuiEscape:
+2GuiClose:
+    Gui, 2:Destroy
+    Return
+}
     ;--------------------------------------------
     ; resize when ctrl+left or ctrl+right pressed
     ;--------------------------------------------

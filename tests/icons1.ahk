@@ -13,13 +13,13 @@ I added the FileSelectFile command to make exploring various files easier.
 Double-click on any image to save the file path and name plus the icon number to the Windows clipboard.
 Both C:\Windows\System32\shell32.dll and C:\Windows\System32\imageres.dll contain hundreds of icons.
 */
-
+#SingleInstance off
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 SendMode Input  ; Recommended for new scripts due to its superior speed and reliability.
 SetWorkingDir C:\WINDOWS\system32\ ; Ensures a consistent starting directory.
 ; SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
-FileSelectFile, file, 32,, Pick a file to check icons., *.*
+FileSelectFile, file, 32, C:\WINDOWS\system32\, Pick a file to check icons., (*.dll; *.exe; *.ico; *.png; *.jpg)
 if file =
     return
 
