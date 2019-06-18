@@ -322,8 +322,6 @@ setup() {
 
 
     Menu, MyMenuBar, Add, &File, :FileMenu
-    ; Menu, MyMenuBar, Color, %menu_color%
-    ; Menu, MyMenuBar, Add, &Settings, :SettingsMenu
 
     Gui, Menu, MyMenuBar
     Gui, Add, Button, gExit, Exit This Example
@@ -529,32 +527,71 @@ contextMenuHandler:
     ;--------------------------------------------
 showSettings() {
 
-    Gui 2:Add, Text, x33 y32 w50 h30 +0x200, All
-    Gui 2:Add, Edit, x116 y40 w104 h21 +Number, 14
-    Gui 2:Add, UpDown, x204 y39 w18 h21, 14
-    Gui 2:Add, Text, x32 y81 w82 h30 +0x200, Tree
-    Gui 2:Add, Edit, x116 y87 w88 h21 +Number, 15
-    Gui 2:Add, UpDown, x204 y86 w18 h21, 15
-    Gui 2:Add, Text, x33 y131 w82 h30 +0x200, Code
-    Gui 2:Add, Edit, x116 y134 w88 h21 +Number, 16
-    Gui 2:Add, UpDown, x202 y134 w18 h21, 16
-    Gui 2:Add, GroupBox, x18 y16 w235 h161, Font
-    Gui 2:Add, GroupBox, x263 y17 w247 h156, Background Color
-    Gui 2:Add, Text, x282 y80 w31 h23 +0x200, Tree
-    Gui 2:Add, Text, x282 y119 w61 h23 +0x200, Code
-    Gui 2:Add, Text, x282 y50 w50 h23 +0x200, All
-    Gui 2:Add, ComboBox, x324 y48 w120, ComboBox
-    Gui 2:Add, ComboBox, x325 y84 w120, ComboBox
-    Gui 2:Add, ComboBox, x324 y117 w120, ComboBox
+    ;------
+    ; Font
+    ;------
+    Gui 2:Add, GroupBox, x+5 y+10 w140 h140 , Font
+
+    Gui 2:Add, Text, xm+20 ym+40 +0x200, All
+    Gui 2:Add, Edit, xm+50 ym+35 w60 +Number, 14
+    Gui 2:Add, UpDown,  , 14
+
+    Gui 2:Add, Text, xm+20 ym+70 w60 +0x200, Tree
+    Gui 2:Add, Edit, xm+50 ym+65 w60 +Number, 15
+    Gui 2:Add, UpDown, , 15
+
+    Gui 2:Add, Text, xm+20 ym+100 w60 +0x200, Code
+    Gui 2:Add, Edit, xm+50 ym+95 w60 +Number, 16
+    Gui 2:Add, UpDown, , 16
+
+    ;-----------------
+    ; background color
+    ;-----------------
+    Gui 2:Add, GroupBox, w140 h140 x+50 ys section, Background Color
+
+    Gui 2:Add, Text, w50 xs15 ys36 +0x200, All
+    Gui 2:Add, Edit, w60 xs45 ys31, 3e4b28
+
+    Gui 2:Add, Text, w50 xs15 ys66 +0x200, Tree
+    Gui 2:Add, Edit, w60 xs45 ys61, FFFFFF
+
+    Gui 2:Add, Text, w50 xs15 ys96 +0x200, Code
+    Gui 2:Add, Edit, w60 xs45 ys91, ABFECD
+
+    ;-----------------
+    ; foreground color
+    ;-----------------
+    Gui 2:Add, GroupBox, w140 h140 x+50 ys section, Foreground Color
+
+    Gui 2:Add, Text, w50 xs15 ys36 +0x200, All
+    Gui 2:Add, Edit, w60 xs45 ys31, 3e4b28
+
+    Gui 2:Add, Text, w50 xs15 ys66 +0x200, Tree
+    Gui 2:Add, Edit, w60 xs45 ys61, FFFFFF
+
+    Gui 2:Add, Text, w50 xs15 ys96 +0x200, Code
+    Gui 2:Add, Edit, w60 xs45 ys91, ABFECD
+
+    ;-----------------
+    ; colored block
+    ;-----------------
+    Gui 2:Add, Progress, w50 h20 cABFECD , 100
+
+    ;-----------------
+    ; 
+    ;-----------------
     Gui 2:Add, CheckBox, x42 y300 w120 h23 +Checked, Save on exit
 
-    Gui 2:Show, w620 h420, Window
+    Gui 2:Show, x1300 w490 h420, Settings
     Return
 
-2GuiEscape:
-2GuiClose:
-    Gui, 2:Destroy
-    Return
+    2GuiEscape:
+        Reload
+        return
+
+    2GuiClose:
+        Gui, 2:Destroy
+        Return
 }
     ;--------------------------------------------
     ; resize when ctrl+left or ctrl+right pressed
