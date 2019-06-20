@@ -38,12 +38,13 @@ global path
 global itemLevels
 global levels_LastIndex
 global scriptNameNoExt
-global TreeViewWidth
+global TreeViewWidth, treeviewWidthStep
 global ListBoxWidth
 global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
 global LVX, LVY,LVWidth, LVHeight
 global from_line_number, to_line_number
 global gui_offset
+global letterColor, fontSize, fontColor
 
 initialize()
 mainProcess()
@@ -261,11 +262,20 @@ setup() {
     ; read last saved values
     IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
     IniRead, valueOfTreeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
+    IniRead, valueOfFontsize, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
+    IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
+    IniRead, valueOfwindow_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
+    IniRead, valueOfcontrol_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
 
     TreeViewWidth := valueOfTreeviewWidth ; 400
     ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
     LVX := TreeViewWidth + 10
     search2_x := TreeViewWidth + 10
+
+    if (valueOfFontsize >=6 and valueOfFontsize<=20)
+        fontSize := valueOfFontsize
+    else
+        fontSize := 10
 
     ; Create an ImageList and put some standard system icons into it:
     ; ImageListID := IL_Create(300)
@@ -278,14 +288,25 @@ setup() {
     VSCODE_HEAD := "3E3E3E"
     VSCODE_SELECTED_MENUITEM := "114970"
 
-    window_color := VSCODE_HEAD
-    control_color := VSCODE_EDIT_WIN
-    menu_color := VSCODE_LETTERS
+    if (valueOfFontcolor <> "")
+        fontColor := valueOfFontcolor
+    else
+        fontColor := VSCODE_LETTERS
 
-    Gui, Font, c%VSCODE_LETTERS%
+    if (valueOfwindow_color <> "")
+        window_color := valueOfwindow_color
+    else
+        window_color := VSCODE_HEAD
+    
+    if (valueOfcontrol_color <> "")
+        control_color := valueOfcontrol_color
+    else
+        control_color := VSCODE_EDIT_WIN
 
+    Gui, Font, c%fontColor%
     Gui, Color, %window_color%, %control_color%
     ; Gui, Color, 1d1f21, 282a2e
+    Gui, font, s%fontSize%
 
     Gui, +Resize +Border
     Gui, Add, Text, x5 y10 , Search for routine:
@@ -298,11 +319,9 @@ setup() {
     Gui, Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
     ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
 
-    Gui, font, s12
     Gui, Add, ListBox, r100 vMyListBox  w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in Notepad++
-    Gui, font, c%VSCODE_LETTERS%
 
-    Gui, add, StatusBar
+    Gui, add, StatusBar, Background c%window_color%
 
     Menu, MyContextMenu, Add, Fold all `tF3, contextMenuHandler
     Menu, MyContextMenu, Add, Unfold all `tF4, contextMenuHandler
@@ -438,6 +457,15 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
         IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
         IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
     }
+
+    if (treeviewWidthStep > 0)
+        IniWrite, %treeviewWidthStep%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
+
+    if (treeviewWidth > 0)
+        IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
+
+    if (fontSize > 0)
+        IniWrite, %fontSize%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
 
     ; if filenames are non blank save also.
     if (fileRoutines <> "")
@@ -599,24 +627,20 @@ showSettings() {
 resizeTreeview(type) {
     global
     WinGetPos, winX, winY, winWidth, winHeight
+    IniRead, treeviewWidthStep, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
     
     ControlGetPos, X, Y, Width, Height, SysTreeView321
     ControlGetPos, LVX, LVY, LVWidth, LVHeight, ListBox1
-    width1 := Width
 
     ; msgbox, % "winWidth=" winWidth "`tWidth=" Width ; 1006
 
     if (type="+") {
-        winWidth += 100
-        width1 += 100
-        TreeViewWidth += 100
-        width2 := winWidth - width1 - 30
+        winWidth += treeviewWidthStep
+        TreeViewWidth += treeviewWidthStep
     }
     if (type="-") {
-        winWidth -= 100
-        width1 -= 100
-        TreeViewWidth -= 100
-        width2 := winWidth - width1 - 30
+        winWidth -= treeviewWidthStep
+        TreeViewWidth -= treeviewWidthStep
     }
 
     LVX := TreeViewWidth + 10
@@ -935,8 +959,7 @@ loadListbox(routineName) {
     GuiControl, -Redraw, MyListBox
     GuiControl,,MyListBox, |
     GuiControl,,MyListBox, %sourceCode%
-    ; Gui, Font, s10, Segoe UI
-    Gui, Font, s10, Courier New
+    Gui, Font, s%fontSize%, Courier New
     GuiControl, Font, MyListBox
     GuiControl, +Redraw, MyListBox
 }
