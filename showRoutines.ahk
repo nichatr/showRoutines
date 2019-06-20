@@ -10,10 +10,10 @@
     ;   A_Args[1] = routine calls file = outfile.txt
     ;   A_Args[2] = source code file   = outfile.cblle.txt
     ;   A_Args[3] = path where above files created = z:\bussup\txt\\
-    ;   A_Args[4] = use existing files or select = *yes|*no|*select (default)
-    ;               *no = try to load above files
-    ;               *yes = use existing file found in showRoutines.ini
-    ;               *select = open file selector
+    ;   A_Args[4] = use existing files or select = *NEW|*OLD|*SELECT (default)
+    ;               *NEW = try to load above files
+    ;               *OLD = use existing file found in showRoutines.ini
+    ;               *SELECT = open file selector
     ;
     ;--------------------------------------------------------------------------------------
     ; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
@@ -203,10 +203,10 @@ initialize() {
 
     if (user = "SYSTEM_WORK") {
 
-        ; use existing files(*yes/*no):
+        ; use existing files(*NEW/*OLD):
         ;   load the files either from showRoutines.ini or from arguments.
 
-        if (trim(A_Args[4]) = "*YES" or trim(A_Args[4]) = "*NO") {
+        if (trim(A_Args[4]) = "*NEW" or trim(A_Args[4]) = "*OLD") {
 
             IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
             IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
@@ -220,21 +220,25 @@ initialize() {
         ; use existing files(*no):
         ;   move file.txt & file.cblle.txt from ieffect folder to .\data
 
-        if (trim(A_Args[4]) = "*NO") {
+        if (trim(A_Args[4]) = "*NEW") {
             pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
-
-            Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
-            FileMove, %pathIeffect%%fileRoutines% , %path% , 1
-            if (ErrorLevel <> 0) {
-                msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
+            if (!FileExist(pathIeffect)) {
+                msgbox, "Folder " . %pathIeffect% . " doesn't exist. Press enter and select file"
+                fileRoutines := ""      ; clear in order next to show file selector!
+            } else {
+                Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
+                FileMove, %pathIeffect%%fileRoutines% , %path% , 1
+                if (ErrorLevel <> 0) {
+                    msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
+                }
+                Progress, Off
+                Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder " . path
+                FileMove, %pathIeffect%%fileCode% ,  %path% , 1
+                if (ErrorLevel <> 0) {
+                    msgbox, % "Cannot move file " . pathIeffect . fileCode . " to folder " . path
+                }
+                Progress, Off
             }
-            Progress, Off
-            Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder " . path
-            FileMove, %pathIeffect%%fileCode% ,  %path% , 1
-            if (ErrorLevel <> 0) {
-                msgbox, % "Cannot move file " . pathIeffect . fileCode . " to folder " . path
-            }
-            Progress, Off
         }
         
         ; use existing files(*select) or ini file has not corresponding entry: open file selector
@@ -344,6 +348,7 @@ setup() {
 
     Gui, Menu, MyMenuBar
     Gui, Add, Button, gExit, Exit This Example
+    Menu, Tray, Icon, shell32.dll, 85
     return
 }
     ;-----------------------------------------------------------
