@@ -348,7 +348,7 @@ setup() {
 
     Gui, Menu, MyMenuBar
     Gui, Add, Button, gExit, Exit This Example
-    Menu, Tray, Icon, shell32.dll, 85
+    Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
     return
 }
     ;-----------------------------------------------------------
