@@ -307,10 +307,8 @@ setup() {
     else
         control_color := VSCODE_EDIT_WIN
 
-    Gui, Font, c%fontColor%
+    Gui, Font, c%fontColor% s%fontSize%, Courier New
     Gui, Color, %window_color%, %control_color%
-    ; Gui, Color, 1d1f21, 282a2e
-    Gui, font, s%fontSize%
 
     Gui, +Resize +Border
     Gui, Add, Text, x5 y10 , Search for routine:
@@ -964,8 +962,6 @@ loadListbox(routineName) {
     GuiControl, -Redraw, MyListBox
     GuiControl,,MyListBox, |
     GuiControl,,MyListBox, %sourceCode%
-    Gui, Font, s%fontSize%, Courier New
-    GuiControl, Font, MyListBox
     GuiControl, +Redraw, MyListBox
 }
     ;-------------------------------------------------------
