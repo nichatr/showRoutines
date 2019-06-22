@@ -4,7 +4,7 @@ showSettings()
 return
 
 showSettings() {
-    static font_size, font_color, tree_step, window_color, control_color
+    static font_size, font_color, tree_step, window_color, control_color, treeviewWidth
 
     IniRead, font_size, showRoutines.ini, font, size
     IniRead, font_color, showRoutines.ini, font, color
@@ -96,16 +96,25 @@ showSettings() {
         
         Goto, show
 
+        ; Load the default values (again from ini file).
     2ButtonDefault:
-        ; gui 2:Submit, NoHide
-        font_size := 9
-        font_color := "C4C4C4"
-        window_color := "3E3E3E"
-        control_color := "232323"
-        tree_step := 100
+    {
+        IniRead, treeviewWidth, showRoutines.ini, default, treeviewWidth
+        IniRead, font_size, showRoutines.ini, default, fontsize
+        IniRead, font_color, showRoutines.ini, default, fontcolor
+        IniRead, tree_step, showRoutines.ini, default, treeviewWidthStep
+        IniRead, window_color, showRoutines.ini, default, windowcolor
+        IniRead, control_color, showRoutines.ini, default, controlcolor
+
+        ; font_size := 9
+        ; font_color := "C4C4C4"
+        ; window_color := "3E3E3E"
+        ; control_color := "232323"
+        ; tree_step := 100
+
         Gui, 2:Destroy
-        
         Goto, Loop
+    }
 
     2ButtonCancel:
         Gui, 2:Destroy
