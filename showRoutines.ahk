@@ -461,9 +461,6 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
         IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
     }
 
-    if (treeviewWidthStep > 0)
-        IniWrite, %treeviewWidthStep%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
-
     if (treeviewWidth > 0)
         IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
 
@@ -554,66 +551,60 @@ contextMenuHandler:
         processSameLevel(TV_GetSelection(), "Expand")
     return
     ;--------------------------------------------
-    ;
+    ; show 2nd window with editable settings
     ;--------------------------------------------
 showSettings() {
+
+    static fontsize
+    static treestep
+
+    IniRead, fontsize, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
+    IniRead, fontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
 
     ;------
     ; Font
     ;------
-    Gui 2:Add, GroupBox, x+5 y+10 w140 h140 , Font
+    Gui 2:Add, GroupBox, x+5 y+10 w160 h100 , Font
 
-    Gui 2:Add, Text, xm+20 ym+40 +0x200, All
-    Gui 2:Add, Edit, xm+50 ym+35 w60 +Number, 14
-    Gui 2:Add, UpDown,  , 14
+    Gui 2:Add, Text, xm+20 ym+40 +0x200, Size
+    Gui 2:Add, Edit, vfontsize xm+50 ym+35 w40 +Number, 9
+    Gui 2:Add, UpDown, Range7-20, 9
 
-    Gui 2:Add, Text, xm+20 ym+70 w60 +0x200, Tree
-    Gui 2:Add, Edit, xm+50 ym+65 w60 +Number, 15
-    Gui 2:Add, UpDown, , 15
+    Gui 2:Add, Text, xm+20 ym+70 w60 +0x200, Color
+    Gui 2:Add, Edit, vfontcolor xm+50 ym+65 w50, C4C4C4
 
-    Gui 2:Add, Text, xm+20 ym+100 w60 +0x200, Code
-    Gui 2:Add, Edit, xm+50 ym+95 w60 +Number, 16
-    Gui 2:Add, UpDown, , 16
+    Gui 2:Add, Progress, w25 h20 xs110 ys61 cC4C4C4, 100
 
     ;-----------------
     ; background color
     ;-----------------
-    Gui 2:Add, GroupBox, w140 h140 x+50 ys section, Background Color
+    Gui 2:Add, GroupBox, w170 h100 x+50 ys section, Background Color
 
-    Gui 2:Add, Text, w50 xs15 ys36 +0x200, All
-    Gui 2:Add, Edit, w60 xs45 ys31, 3e4b28
+    Gui 2:Add, Text, w50 xs15 ys36 +0x200, Window
+    Gui 2:Add, Edit, w50 xs60 ys31, 3E3E3E
+    Gui 2:Add, Progress, w25 h20 xs120 ys31 c3E3E3E, 100
 
-    Gui 2:Add, Text, w50 xs15 ys66 +0x200, Tree
-    Gui 2:Add, Edit, w60 xs45 ys61, FFFFFF
-
-    Gui 2:Add, Text, w50 xs15 ys96 +0x200, Code
-    Gui 2:Add, Edit, w60 xs45 ys91, ABFECD
-
-    ;-----------------
-    ; foreground color
-    ;-----------------
-    Gui 2:Add, GroupBox, w140 h140 x+50 ys section, Foreground Color
-
-    Gui 2:Add, Text, w50 xs15 ys36 +0x200, All
-    Gui 2:Add, Edit, w60 xs45 ys31, 3e4b28
-
-    Gui 2:Add, Text, w50 xs15 ys66 +0x200, Tree
-    Gui 2:Add, Edit, w60 xs45 ys61, FFFFFF
-
-    Gui 2:Add, Text, w50 xs15 ys96 +0x200, Code
-    Gui 2:Add, Edit, w60 xs45 ys91, ABFECD
+    Gui 2:Add, Text, w50 xs15 ys66 +0x200, Controls
+    Gui 2:Add, Edit, w50 xs60 ys61, 232323
+    Gui 2:Add, Progress, w25 h20 xs120 ys61 c232323, 100
 
     ;-----------------
-    ; colored block
+    ; other settings
     ;-----------------
-    Gui 2:Add, Progress, w50 h20 cABFECD , 100
+    Gui 2:Add, Text,  xm+5 yp+70 +0x200, Tree width change step
+    Gui 2:Add, Edit, vtreestep w50 xp+120 yp-5 +Number, 100
+    Gui 2:Add, UpDown, Range10-200, 100
 
     ;-----------------
     ; 
     ;-----------------
-    Gui 2:Add, CheckBox, x42 y300 w120 h23 +Checked, Save on exit
+    Gui, 2:Add, Button, x100 y200 w80, Save
+    Gui, 2:Add, Button, x200 y200 w80, Cancel
 
-    Gui 2:Show, x1300 w490 h420, Settings
+    Gui 2:+Resize
+
+    show:
+    Gui 2:Show, x300 y540 w400 h250, Settings
     Return
 
     2GuiEscape:
@@ -621,6 +612,22 @@ showSettings() {
         return
 
     2GuiClose:
+        Gui, 2:Destroy
+        Return
+    
+    2ButtonSave:
+        gui 2:Submit, NoHide
+        if (fontsize < 7 or fontsize > 20) {
+            msgbox, % "Font size must be between 6 and 20"
+            gosub show
+        } else {
+        msgbox, % "saved..."
+        Gui, 2:Destroy
+        }
+        return
+
+    2ButtonCancel:
+        msgbox, % "cancelled"
         Gui, 2:Destroy
         Return
 }
