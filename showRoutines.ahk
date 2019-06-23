@@ -333,9 +333,6 @@ setup() {
     Menu, FileMenu, Add, &Open file, MenuHandler
     Menu, FileMenu, Icon, &Open file, shell32.dll, 4
 
-    Menu, FileMenu, Add, &Settings, MenuHandler
-    Menu, FileMenu, Icon, &Settings, shell32.dll, 317
-
     Menu, FileMenu, Add, Save position, MenuHandler
     Menu, FileMenu, Disable, Save position
 
@@ -345,7 +342,11 @@ setup() {
     Menu, FileMenu, Add, &Exit, MenuHandler
     Menu, FileMenu, Icon, &Exit, shell32.dll, 123
 
+    Menu, SettingsMenu, Add, &Settings, MenuHandler
+    Menu, SettingsMenu, Icon, &Settings, shell32.dll, 317
+
     Menu, MyMenuBar, Add, &File, :FileMenu
+    Menu, MyMenuBar, Add, &Settings, :SettingsMenu
 
     Gui, Menu, MyMenuBar
     Gui, Add, Button, gExit, Exit This Example
@@ -559,12 +560,16 @@ contextMenuHandler:
     ;--------------------------------------------
 showSettings() {
     static font_size, font_color, tree_step, window_color, control_color
+    win_title := "Settings"
 
     IniRead, font_size, showRoutines.ini, font, size
     IniRead, font_color, showRoutines.ini, font, color
     IniRead, tree_step, showRoutines.ini, position, treeviewWidthStep
     IniRead, window_color, showRoutines.ini, backgroundColor, window
     IniRead, control_color, showRoutines.ini, backgroundColor, control
+
+    if (WinExist(win_title))
+        Gui, 2:Destroy
 
     Loop:
     ;------
@@ -610,17 +615,9 @@ showSettings() {
 
     show:
         Gui 2:+Resize -SysMenu +ToolWindow
-        Gui 2:Show, x300 y540 w400 h250, Settings
+        Gui 2:Show, x300 y540 w400 h250, %win_title%
         Return
 
-    2GuiEscape:
-        Reload
-        return
-
-    2GuiClose:
-        Gui, 2:Destroy
-        Return
-    
     2ButtonSave:
         gui 2:Submit, NoHide
         
@@ -644,8 +641,7 @@ showSettings() {
             IniWrite, %window_color%, showRoutines.ini, backgroundColor, window
             IniWrite, %control_color%, showRoutines.ini, backgroundColor, control
 
-            Gui, 2:Destroy
-            return
+            Goto, 2GuiClose
         }
         
         Goto, show
@@ -664,6 +660,10 @@ showSettings() {
         Goto, Loop
     }
 
+    2GuiEscape:
+        ;Reload
+
+    2GuiClose:
     2ButtonCancel:
         Gui, 2:Destroy
         Return
