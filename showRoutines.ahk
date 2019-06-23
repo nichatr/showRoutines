@@ -384,19 +384,38 @@ MyTreeView:
     
     ; doubleclick an item: open code in Notepad++ and position to selected routine.
     if (A_GuiEvent = "DoubleClick") {
-        TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
-        statement := findRoutineFirstStatement(SelectedItemText)
+        statements := []
+        routineName := ""
+        sourceCode := ""
+        IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
+
+        TV_GetText(routineName, TV_GetSelection())   ; get item text
+        statements := findRoutineFirstStatement(routineName)
+        statement := statements[1]
+
+        if (showOnlyRoutine == "false")
+            RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
+        else {
+            filename := path . "tempfile" . ".cblle"
+            FileDelete, %filename%
+            count := statements[2] - statements[1]
+            line_number := statements[1]
+
+            while (line_number <= statements[2]) {
+                sourceCode .= allcode[line_number] . (line_number < statements[2] ? "`n" : "")
+                line_number ++
+            }
+            FileAppend, %sourceCode%, %filename%
+            RunWait, notepad++.exe -lcobol -nosession -ro "%filename%"
+        }
 
         WinGetPos, X_main, Y_main, Width_main, Height_main, A
         actWin := WinExist("A")
         GetClientSize(actWin, Width_main, Height_main)
 
-        RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
-        ; RunWait, runNotepad.bat "%fullFileCode%", A_WorkingDir
-
-        Sleep, 100
-        ; position besides main window
-        WinMove, ahk_class Notepad++, , X_main + Width_main , Y_main
+        
+        Sleep, 300      ; wait to open
+        WinMove, ahk_class Notepad++, , X_main + Width_main , Y_main    ; position besides main window
     }
 
     ; spacebar an item: load the routine code.
@@ -559,7 +578,7 @@ contextMenuHandler:
     ; show 2nd window with editable settings
     ;--------------------------------------------
 showSettings() {
-    static font_size, font_color, tree_step, window_color, control_color
+    static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine
     win_title := "Settings"
 
     IniRead, font_size, showRoutines.ini, font, size
@@ -567,6 +586,7 @@ showSettings() {
     IniRead, tree_step, showRoutines.ini, position, treeviewWidthStep
     IniRead, window_color, showRoutines.ini, backgroundColor, window
     IniRead, control_color, showRoutines.ini, backgroundColor, control
+    IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
 
     if (WinExist(win_title))
         Gui, 2:Destroy
@@ -602,9 +622,12 @@ showSettings() {
     ;-----------------
     ; other settings
     ;-----------------
-    Gui 2:Add, Text,  xm+5 yp+70 +0x200, Tree width change step
-    Gui 2:Add, Edit, vtree_step w50 xp+120 yp-5 +Number, %tree_step%
+    Gui 2:Add, Text,  xm+5 yp+70 +0x200, Tree width +/-
+    Gui 2:Add, Edit, vtree_step w50 xp+80 yp-5 +Number, %tree_step%
     Gui 2:Add, UpDown, Range10-200, %tree_step%
+
+    checked := showOnlyRoutine == "false" ? "" : "Checked"
+    Gui 2:Add, Checkbox, vshowOnlyRoutine %checked% xp120 yp+5 , Show only routine
 
     ;-----------------
     ; 
@@ -968,15 +991,17 @@ populateCode() {
     ; find the statement in the code that routine begins.
     ;-----------------------------------------------------------------------
 findRoutineFirstStatement(routineName) {
-    from_line_number := 1
+    statements := [1, 1]
     
     if (routineName <> "") {
         calledId := searchRoutine(routineName)
-        if (calledId > 0)
-            from_line_number := substr(allRoutines[calledId].startStmt, 1, 4)
+        if (calledId > 0) {
+            statements[1] := substr(allRoutines[calledId].startStmt, 1, 4)
+            statements[2] := substr(allRoutines[calledId].endStmt, 1, 4)
+        }
     }
     
-    return from_line_number
+    return statements
 }
     ;-----------------------------------------------------------------------
     ; load listbox with the routine code (source)
