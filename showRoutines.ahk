@@ -44,7 +44,7 @@ global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
 global LVX, LVY,LVWidth, LVHeight
 global from_line_number, to_line_number
 global gui_offset
-global letterColor, fontSize, fontColor
+global letterColor, fontSize, fontColor, codeEditor
 
 initialize()
 mainProcess()
@@ -272,6 +272,7 @@ setup() {
     IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
     IniRead, valueOfwindow_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
     IniRead, valueOfcontrol_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
+    IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
 
     TreeViewWidth := valueOfTreeviewWidth ; 400
     ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
@@ -318,7 +319,7 @@ setup() {
     Gui, Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
     ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
 
-    Gui, Add, ListBox, r100 vMyListBox w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in Notepad++
+    Gui, Add, ListBox, r100 vMyListBox w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in default editor
     Gui, add, StatusBar, Background c%control_color%
     ; Gui, add, StatusBar, Background c%window_color%
 
@@ -382,7 +383,7 @@ MyTreeView:
         loadListbox(SelectedItemText)              ; load routine code
     }
     
-    ; doubleclick an item: open code in Notepad++ and position to selected routine.
+    ; doubleclick an item: open code in default editor and position to selected routine.
     if (A_GuiEvent = "DoubleClick") {
         statements := []
         routineName := ""
@@ -394,7 +395,10 @@ MyTreeView:
         statement := statements[1]
 
         if (showOnlyRoutine == "false")
-            RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
+            if (codeEditor == "Notepad++")
+                RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
+            else
+                RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --goto "%fullFileCode%:%statement%"
         else {
             filename := path . "tempfile" . ".cblle"
             FileDelete, %filename%
@@ -406,7 +410,11 @@ MyTreeView:
                 line_number ++
             }
             FileAppend, %sourceCode%, %filename%
-            RunWait, notepad++.exe -lcobol -nosession -ro "%filename%"
+            ; msgbox, %filename%
+            if (codeEditor == "Notepad++")
+                RunWait, notepad++.exe -lcobol -nosession -ro "%filename%"
+            else
+                RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" "%filename%"
         }
 
         WinGetPos, X_main, Y_main, Width_main, Height_main, A
@@ -415,6 +423,7 @@ MyTreeView:
 
         
         Sleep, 300      ; wait to open
+        ; WinMove, A, , X_main + Width_main , Y_main    ; position besides main window
         WinMove, ahk_class Notepad++, , X_main + Width_main , Y_main    ; position besides main window
     }
 
@@ -654,7 +663,7 @@ showSettings() {
             Goto, show
         } else {
             Progress, zh0 fs10, % "Settings saved"
-            Sleep, 500
+            Sleep, 200
             Progress, off
             
             IniWrite, %font_size%, showRoutines.ini, font, size

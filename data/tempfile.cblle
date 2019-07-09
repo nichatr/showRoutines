@@ -1,8 +1,17 @@
- 0850.00        0900-RESTART SECTION.                                                     160407 
- 0851.00       **********************                                                     160407 
- 0852.00        0900-START.                                                               160407 
- 0853.00       *                                                                          160407 
- 0854.00       * Place any additional restart processing in here.                         160407 
- 0855.00       *                                                                          160407 
- 0856.00        0900-EXIT.                                                                160407 
- 0857.00            EXIT.                                                                 160407 
+       X400-ZCHD-IO SECTION.                                                     151104
+      *************************                                                  151104
+       X400-START.                                                               151104
+                                                                                 151104
+           MOVE O-K                 TO ZCHD-STATUZ                               151104
+           MOVE ZCHDREC             TO ZCHD-FORMAT                               151104
+           CALL 'ZCHDIO'         USING ZCHD-PARAMS                               151104
+                                                                                 151104
+           IF  ZCHD-STATUZ       NOT = O-K                                       151104
+           AND ZCHD-STATUZ       NOT = MRNF                                      151104
+              MOVE ZCHD-PARAMS      TO SYSR-PARAMS                               151104
+              MOVE ZCHD-STATUZ      TO SYSR-STATUZ                               151104
+              PERFORM 9000-FATAL-ERROR                                           151104
+           END-IF                                                                151104
+           .                                                                     151104
+       X400-EXIT.                                                                151104
+           EXIT.                                                                 151104
