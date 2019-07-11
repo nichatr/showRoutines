@@ -8,7 +8,7 @@
     ;--------------------------------------------------------------------------------------
     ; parameters:
     ;   A_Args[1] = routine calls file = outfile.txt
-    ;   A_Args[2] = source code file   = outfile.cblle.txt
+    ;   A_Args[2] = source code file   = outfile.cbl
     ;   A_Args[3] = path where above files created = z:\bussup\txt\\
     ;   A_Args[4] = use existing files or select = *NEW|*OLD|*SELECT (default)
     ;               *NEW = try to load above files
@@ -149,14 +149,14 @@ fileSelector(homePath, filter) {
     }
     
     SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-    FoundPos := InStr(FileName, ".cblle.txt" , CaseSensitive:=false)
+    FoundPos := InStr(FileName, ".cbl.txt" , CaseSensitive:=false)
     if (foundPos > 0) {
         Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
         NameNoExt := SubStr(FileName, 1, foundPos-1)
     }
 
     fileRoutines := FileName
-    fileCode := NameNoExt . ".cblle.txt"
+    fileCode := NameNoExt . ".cbl"
     return true
 
     ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
@@ -200,7 +200,7 @@ initialize() {
     if (user ="SYSTEM_HOME") {
         ; fileSelector(path, "(*.txt)")
         fileRoutines := "B9Y36.txt"
-        fileCode := "B9Y36.cblle.txt"
+        fileCode := "B9Y36.cbl"
     }
 
     if (user = "SYSTEM_WORK") {
@@ -220,7 +220,7 @@ initialize() {
         }
 
         ; use existing files(*no):
-        ;   move file.txt & file.cblle.txt from ieffect folder to .\data
+        ;   move file.txt & file.cbl.txt from ieffect folder to .\data
 
         if (trim(A_Args[4]) = "*NEW") {
             pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
@@ -234,10 +234,17 @@ initialize() {
                     msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
                 }
                 Progress, Off
-                Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder " . path
-                FileMove, %pathIeffect%%fileCode% ,  %path% , 1
+                
+                ; cut .txt from filename.cbl.txt
+                OLDfileCode := fileCode
+                FoundPos := InStr(fileCode, ".cbl.txt" , CaseSensitive:=false)
+                if (foundPos > 0) {
+                    fileCode := SubStr(fileCode, 1, foundPos-1) . ".cbl"
+                }
+                Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
+                FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite
                 if (ErrorLevel <> 0) {
-                    msgbox, % "Cannot move file " . pathIeffect . fileCode . " to folder " . path
+                    msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
                 }
                 Progress, Off
             }
@@ -395,12 +402,12 @@ MyTreeView:
         statement := statements[1]
 
         if (showOnlyRoutine == "false")
-            if (codeEditor == "Notepad++")
+            if (codeEditor == "notepad++")
                 RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
             else
-                RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --goto "%fullFileCode%:%statement%"
+                RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --new-window --goto "%fullFileCode%:%statement%"
         else {
-            filename := path . "tempfile" . ".cblle"
+            filename := path . "tempfile" . ".cbl"
             FileDelete, %filename%
             count := statements[2] - statements[1]
             line_number := statements[1]
@@ -411,20 +418,22 @@ MyTreeView:
             }
             FileAppend, %sourceCode%, %filename%
             ; msgbox, %filename%
-            if (codeEditor == "Notepad++")
+            if (codeEditor == "notepad++")
                 RunWait, notepad++.exe -lcobol -nosession -ro "%filename%"
             else
-                RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" "%filename%"
+                RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --new-window "%filename%"
         }
 
         WinGetPos, X_main, Y_main, Width_main, Height_main, A
         actWin := WinExist("A")
         GetClientSize(actWin, Width_main, Height_main)
 
-        
-        Sleep, 300      ; wait to open
-        ; WinMove, A, , X_main + Width_main , Y_main    ; position besides main window
-        WinMove, ahk_class Notepad++, , X_main + Width_main , Y_main    ; position besides main window
+        Sleep, 300  ; wait to open
+        ; position besides main window
+        if (codeEditor == "notepad++")
+            WinMove, ahk_class notepad++, , X_main + Width_main , Y_main
+        ; else
+        ;     WinMove, ahk_exe Code.exe, , X_main + Width_main , Y_main
     }
 
     ; spacebar an item: load the routine code.
@@ -587,7 +596,7 @@ contextMenuHandler:
     ; show 2nd window with editable settings
     ;--------------------------------------------
 showSettings() {
-    static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine
+    static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, MyRadioGroup, checked1, checked2
     win_title := "Settings"
 
     IniRead, font_size, showRoutines.ini, font, size
@@ -596,6 +605,15 @@ showSettings() {
     IniRead, window_color, showRoutines.ini, backgroundColor, window
     IniRead, control_color, showRoutines.ini, backgroundColor, control
     IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
+    
+    IniRead, codeEditor, showRoutines.ini, general, codeEditor
+    if (codeEditor == "code") {
+        checked1 := "checked1"
+        checked2 := "checked0"
+    } else {
+        checked1 := "checked0"
+        checked2 := "checked1"
+    }
 
     if (WinExist(win_title))
         Gui, 2:Destroy
@@ -604,66 +622,80 @@ showSettings() {
     ;------
     ; Font
     ;------
-    Gui 2:Add, GroupBox, x+5 y+10 w160 h100 , Font
+    Gui, 2:Add, GroupBox, x+5 y+10 w160 h100 , Font
 
-    Gui 2:Add, Text, xm+20 ym+40 +0x200, Size
-    Gui 2:Add, Edit, vfont_size xm+50 ym+35 w40 +Number, %font_size%
-    Gui 2:Add, UpDown, Range7-20, %font_size%
+    Gui, 2:Add, Text, xm+20 ym+40 +0x200, Size
+    Gui, 2:Add, Edit, vfont_size xm+50 ym+35 w40 +Number, %font_size%
+    Gui, 2:Add, UpDown, Range7-20, %font_size%
 
-    Gui 2:Add, Text, xm+20 ym+70 w60 +0x200, Color
-    Gui 2:Add, Edit, vfont_color xm+50 ym+65 w50, %font_color%
+    Gui, 2:Add, Text, xm+20 ym+70 w60 +0x200, Color
+    Gui, 2:Add, Edit, vfont_color xm+50 ym+65 w50, %font_color%
 
-    Gui 2:Add, Progress, w25 h20 xs110 ys61 c%font_color%, 100
+    Gui, 2:Add, Progress, w25 h20 xs110 ys61 c%font_color%, 100
 
     ;-----------------
     ; background color
     ;-----------------
-    Gui 2:Add, GroupBox, w170 h100 x+50 ys section, Background Color
+    Gui, 2:Add, GroupBox, w170 h100 x+50 ys section, Background Color
 
-    Gui 2:Add, Text, w50 xs15 ys36 +0x200, Window
-    Gui 2:Add, Edit, vwindow_color w50 xs60 ys31, %window_color%
-    Gui 2:Add, Progress, w25 h20 xs120 ys31 c%window_color%, 100
+    Gui, 2:Add, Text, w50 xs15 ys36 +0x200, Window
+    Gui, 2:Add, Edit, vwindow_color w50 xs60 ys31, %window_color%
+    Gui, 2:Add, Progress, w25 h20 xs120 ys31 c%window_color%, 100
 
-    Gui 2:Add, Text, w50 xs15 ys66 +0x200, Controls
-    Gui 2:Add, Edit, vcontrol_color w50 xs60 ys61, %control_color%
-    Gui 2:Add, Progress, w25 h20 xs120 ys61 c%control_color%, 100
+    Gui, 2:Add, Text, w50 xs15 ys66 +0x200, Controls
+    Gui, 2:Add, Edit, vcontrol_color w50 xs60 ys61, %control_color%
+    Gui, 2:Add, Progress, w25 h20 xs120 ys61 c%control_color%, 100
 
     ;-----------------
     ; other settings
     ;-----------------
-    Gui 2:Add, Text,  xm+5 yp+70 +0x200, Tree width +/-
-    Gui 2:Add, Edit, vtree_step w50 xp+80 yp-5 +Number, %tree_step%
-    Gui 2:Add, UpDown, Range10-200, %tree_step%
+    Gui, 2:Add, Text,  xm+5 yp+60 +0x200 section, Tree width +/-
+    Gui, 2:Add, Edit, vtree_step w50 xp+80 yp-5 +Number, %tree_step%
+    Gui, 2:Add, UpDown, Range10-200, %tree_step%
+    
+    Gui, 2:Add, Text, xm+5 yp+40, Code editor
+    Gui, 2:Add, Radio, Group g2Check vMyRadioGroup %checked1% xp+80 yp, vscode
+    Gui, 2:Add, Radio, g2Check %checked2% xp+70 yp, notepad++
 
     checked := showOnlyRoutine == "false" ? "" : "Checked"
-    Gui 2:Add, Checkbox, vshowOnlyRoutine %checked% xp120 yp+5 , Show only routine
+    Gui, 2:Add, Checkbox, vshowOnlyRoutineFlag %checked% xs200 ys, Show only selected routine
 
-    ;-----------------
-    ; 
-    ;-----------------
-    Gui, 2:Add, Button, x70 y200 w80, Save
-    Gui, 2:Add, Button, x160 y200 w80 default, Cancel
-    Gui, 2:Add, Button, x250 y200 w80, Default
+    ;---------------------------------------------
+    ; buttons to save, cancel, load default values
+    ;---------------------------------------------
+    Gui, 2:Add, Button, x70 y220 w80, Save
+    Gui, 2:Add, Button, x160 y220 w80 default, Cancel
+    Gui, 2:Add, Button, x250 y220 w80, Default
 
-    show:
-        Gui 2:+Resize -SysMenu +ToolWindow
-        Gui 2:Show, x300 y540 w400 h250, %win_title%
+    2show:
+        Gui, 2:+Resize -SysMenu +ToolWindow
+        showSubGui(400, 250, win_title)
+        ; Gui, 2:Show, x300 y540 w400 h250, %win_title%
+        Return
+
+    2Check:
+        gui, submit, nohide
+        ; GuiControlGet, MyRadioGroup
+        if (MyRadioGroup = 1)
+            codeEditor := "code"
+        if (MyRadioGroup = 2)
+            codeEditor := "notepad++"
         Return
 
     2ButtonSave:
-        gui 2:Submit, NoHide
+        Gui, 2:Submit, NoHide
         
         if (font_size < 7 or font_size > 20) {
             msgbox, % "Font size must be between 6 and 20"
-            Goto, show
+            Goto, 2show
         } else
         
         if (tree_step < 10 or tree_step > 200) {
             msgbox, % "Step must be between 10 and 200"
-            Goto, show
+            Goto, 2show
         } else {
             Progress, zh0 fs10, % "Settings saved"
-            Sleep, 200
+            ; Sleep, 200
             Progress, off
             
             IniWrite, %font_size%, showRoutines.ini, font, size
@@ -672,11 +704,16 @@ showSettings() {
                 IniWrite, %tree_step%, showRoutines.ini, position, treeviewWidthStep
             IniWrite, %window_color%, showRoutines.ini, backgroundColor, window
             IniWrite, %control_color%, showRoutines.ini, backgroundColor, control
+            
+            showOnlyRoutine := showOnlyRoutineFlag ? "true" : "false"
+            IniWrite, %showOnlyRoutine%, showRoutines.ini, general, showOnlyRoutine
+
+            IniWrite, %codeEditor%, showRoutines.ini, general, codeEditor
 
             Goto, 2GuiClose
         }
         
-        Goto, show
+        Goto, 2show
 
         ; Load the default values (again from ini file).
     2ButtonDefault:
@@ -687,6 +724,7 @@ showSettings() {
         IniRead, tree_step, showRoutines.ini, default, treeviewWidthStep
         IniRead, window_color, showRoutines.ini, default, windowcolor
         IniRead, control_color, showRoutines.ini, default, controlcolor
+        IniRead, codeEditor, showRoutines.ini, default, codeEditor
 
         Gui, 2:Destroy
         Goto, Loop
@@ -699,6 +737,13 @@ showSettings() {
     2ButtonCancel:
         Gui, 2:Destroy
         Return
+}
+
+showSubGui(subGui_W, subGui_H, subGui_Title) {
+    WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+    newX := targetX + (targetWidth - subGui_W) / 2
+    newY := targetY + (targetHeight - subGui_H) / 2
+    Gui, 2:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, %subGui_Title%
 }
     ;--------------------------------------------
     ; resize when ctrl+left or ctrl+right pressed
@@ -988,7 +1033,7 @@ searchRoutine(routineName) {
     return 0
 }
     ;-----------------------------------------------------------------------
-    ; read mpmdl001.cblle file and populate array with all code
+    ; read mpmdl001.cbl file and populate array with all code
     ;-----------------------------------------------------------------------
 populateCode() {
     Loop, Read, %fullFileCode%
