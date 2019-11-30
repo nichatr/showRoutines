@@ -76,7 +76,6 @@ showGui() {
         valueOfX := -7
     if (valueOfY < 0)
         valueOfY := 0
-
     Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
     return
 }
@@ -999,7 +998,7 @@ processRoutine(currRoutine, parentID=0) {
 
         ; search array allRoutines[] for the current routine item.
         calledId := searchRoutine(currRoutine.calls[A_Index])
-        if (calledId > 0) {
+        if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
             processRoutine(allRoutines[calledId], itemId)     ; write children
         }
     }
