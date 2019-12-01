@@ -11,8 +11,8 @@ CBTREE command with the required cobol program
 3. convert program source to txt using command CVTSRC
 4. copy both files to IFS folder.
 5. run batch program: **showRoutines.bat** using STRPCO command.
-   1. exexcute autohotkey.exe showRoutines.ahk %1 %2 %3
-   2. for the 3 parameters see below.
+   - exexcute **autohotkey.exe showRoutines.ahk %1 %2 %3**
+   - for the 3 parameters see below.
 
 <center> <h2>In showRoutines.ahk</h2> </center>
 
