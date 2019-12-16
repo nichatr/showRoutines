@@ -33,6 +33,20 @@ CBTREE command with the required cobol program
 
 #### functions
 
+```javascript
+  initialize()
+  mainProcess()
+  return
+  mainProcess() {
+      setup()
+      populateRoutines()
+      populateCode()
+      loadTreeview()
+      updateStatusBar()
+      showGui()
+  }
+```
+
 - fileSelector()
 
   - input= home directory, filter
@@ -50,6 +64,21 @@ CBTREE command with the required cobol program
   - runs every time a new file must be processed
   - initialize all variables
   - populate data structures
+
+- populateRoutines()
+
+  - read text file with routine calls
+  - for each line:
+    - parseLine()
+    - searchRoutine()
+    - if not found: createRoutineItem()
+    - else: updateRoutineItem()
+  - at end object allRoutines holds each routine and the routines that calls.
+
+- loadTreeview()
+
+  - aaaa
+  - bbb
 
 - showGui()
 
