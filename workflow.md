@@ -77,8 +77,13 @@ CBTREE command with the required cobol program
 
 - loadTreeview()
 
-  - aaaa
-  - bbb
+  - processRoutine(allRoutines[1]) // it is always MAIN
+
+- processRoutine(currRoutine)
+
+  - addToTreeview(currRoutine)
+  - for each called in currRoutine:
+    - processRoutine(called)
 
 - showGui()
 
