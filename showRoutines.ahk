@@ -43,7 +43,7 @@ global ListBoxWidth
 global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
 global LVX, LVY,LVWidth, LVHeight
 global from_line_number, to_line_number
-global gui_offset
+global gui_offset, gui_height, gui_width
 global letterColor, fontSize, fontColor, codeEditor
 
 initialize()
@@ -444,10 +444,11 @@ MyTreeView:
     }
 
 GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizing of window.
-    {
+  {
     if (A_EventInfo = 1)  ; The window has been minimized. No action needed.
         return
-
+    gui_height := A_GuiHeight
+    gui_width := A_GuiWidth
     ; Otherwise, the window has been resized or maximized. Resize the controls to match.
     GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
     
@@ -455,7 +456,7 @@ GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizin
     ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
 
     return
-    }
+  }
     ;----------------------------------------------------------------
     ; Launched in response to a right-click or press of the Apps key.
     ;----------------------------------------------------------------
@@ -1084,6 +1085,8 @@ loadListbox(routineName) {
     GuiControl, -Redraw, MyListBox
     GuiControl,,MyListBox, |
     GuiControl,,MyListBox, %sourceCode%
+    ; msgbox, %  gui_height . "`n" . gui_offset
+    GuiControl, Move, MyListBox, % "H" . (gui_height - gui_offset +5 ) ; width = total - treeview - (3 X 5) margins.
     GuiControl, +Redraw, MyListBox
 }
     ;-------------------------------------------------------
