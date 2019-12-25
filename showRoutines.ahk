@@ -790,7 +790,7 @@ processAll(mode) {
     }
 
     GuiControl, +Redraw, MyTreeView
-    TV_Modify(selectedItemId, VisFirst)     ;re-select old item & make it visible!
+    TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
 }
     ;-----------------------------------------------------------
     ; hide/show all children nodes.
@@ -823,7 +823,7 @@ processChildren(currentItemID, mode) {
 
     
     GuiControl, +Redraw, MyTreeView
-    TV_Modify(selectedItemId, VisFirst)     ;re-select old item
+    TV_Modify(selectedItemId, "VisFirst")     ;re-select old item
 }
     ;-----------------------------------------------------------
     ; hide/show all nodes with same level as selected node.
@@ -866,7 +866,7 @@ processSameLevel(currentItemID, mode) {
 
     GuiControl, +Redraw, MyTreeView
 
-    TV_Modify(selectedItemId, VisFirst)     ;re-select old item & make it visible!
+    TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
 }
     ;-----------------------------------------------------------
     ; search the text entered in MyEdit_routine control
