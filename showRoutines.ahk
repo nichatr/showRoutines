@@ -91,11 +91,11 @@ updateStatusBar(currentRoutine := "MAIN") {
     global searchText
 
     ^left::     ;{ <-- decrease treeview
-    resizeTreeview("-")
+    changeTreeviewWidth("-")
     return
 
     ^right::    ;{ <-- increase treeview
-    resizeTreeview("+")
+    changeTreeviewWidth("+")
     return
 
     F1::        ;{ <-- find next
@@ -450,13 +450,19 @@ GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizin
     gui_height := A_GuiHeight
     gui_width := A_GuiWidth
     ; Otherwise, the window has been resized or maximized. Resize the controls to match.
-    GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
+    resizeTreeview()
+    ; GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
     
-    GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset + 10) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
+    GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset + 5) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
     ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
 
     return
   }
+
+resizeTreeview() {
+  if (gui_height > 0 and gui_width > 0)
+    GuiControl, Move, MyTreeView, % "H" . (gui_height - gui_offset) . " W" . TreeViewWidth
+}
     ;----------------------------------------------------------------
     ; Launched in response to a right-click or press of the Apps key.
     ;----------------------------------------------------------------
@@ -748,7 +754,7 @@ showSubGui(subGui_W, subGui_H, subGui_Title) {
     ;--------------------------------------------
     ; resize when ctrl+left or ctrl+right pressed
     ;--------------------------------------------
-resizeTreeview(type) {
+changeTreeviewWidth(type) {
     global
     WinGetPos, winX, winY, winWidth, winHeight
     IniRead, treeviewWidthStep, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
@@ -788,6 +794,11 @@ processAll(mode) {
             break
         TV_Modify(ItemID, mode)
     }
+
+
+    ; if no selected item, select root.
+    if (selectedItemId = 0)
+      selectedItemId := itemLevels[1, 1]
 
     GuiControl, +Redraw, MyTreeView
     TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
