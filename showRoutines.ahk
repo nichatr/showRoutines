@@ -491,35 +491,35 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
     ; but if it is minimized skip this step.
   actWin := WinExist("A")
   WinGet, isMinimized , MinMax, actWin
-if (isMinimized <> -1) {
-	WinGetPos, winX, winY, winWidth, winHeight, A
-	
-        ; save X, Y that are absolute values.
-	IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
-	IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
-	
-        ; save absolute values of W,H.
-	IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
-	IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
-	
-	GetClientSize(actWin, winWidth, winHeight)
-	
-        ; save client values of W,H (used by winmove)
-	IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
-	IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
-  }
+  if (isMinimized <> -1) {
+    WinGetPos, winX, winY, winWidth, winHeight, A
+    
+          ; save X, Y that are absolute values.
+    IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+    IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
+    
+          ; save absolute values of W,H.
+    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
+    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
+    
+    GetClientSize(actWin, winWidth, winHeight)
+    
+          ; save client values of W,H (used by winmove)
+    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
+    }
 
-if (treeviewWidth > 0)
-	IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
+  if (treeviewWidth > 0)
+  	IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
 
-if (fontSize > 0)
-	IniWrite, %fontSize%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
+  if (fontSize > 0)
+	  IniWrite, %fontSize%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
 
     ; if filenames are non blank save also.
-if (fileRoutines <> "")
-	IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
-if (fileCode <> "")
-	IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
+  if (fileRoutines <> "")
+    IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
+  if (fileCode <> "")
+    IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 
   ExitApp
 
@@ -535,21 +535,21 @@ GetClientSize(hWnd, ByRef w := "", ByRef h := "")
     ; Handle menu bar actions
     ;-----------------------------------------------------------
 MenuHandler:
-if (A_ThisMenuItem = "&Open file") {
-	if (!fileSelector(path, "(*.txt)"))
-		return
-	Gui, Destroy
-	mainProcess()
-	return
-  }
-if (A_ThisMenuItem = "&Settings") {
-	showSettings()
-	return
-  }
-if (A_ThisMenuItem = "&Exit") {
-	Gui, Destroy
-	ExitApp
-  }
+  if (A_ThisMenuItem = "&Open file") {
+    if (!fileSelector(path, "(*.txt)"))
+      return
+    Gui, Destroy
+    mainProcess()
+    return
+    }
+  if (A_ThisMenuItem = "&Settings") {
+    showSettings()
+    return
+    }
+  if (A_ThisMenuItem = "&Exit") {
+    Gui, Destroy
+    ExitApp
+    }
 
   return
 
@@ -561,13 +561,13 @@ Exit:
     ;-----------------------------------------------------------
 contextMenuHandler:
 
-if (A_ThisMenuItem = "Show routine code `tLeft click") {
+  if (A_ThisMenuItem = "Show routine code `tLeft click") {
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
         ; msgbox, % SelectedItemText . "----" . TV_GetSelection()
         ; loadListbox(SelectedItemText)              ; load routine code
   }
-if (A_ThisMenuItem = "Find next `tF1") {
+  if (A_ThisMenuItem = "Find next `tF1") {
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
@@ -578,7 +578,7 @@ if (A_ThisMenuItem = "Find next `tF1") {
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
         ; searchItemInRoutine(searchText, "next")
   }
-if (A_ThisMenuItem = "Find previous `tF2") {
+  if (A_ThisMenuItem = "Find previous `tF2") {
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
@@ -586,19 +586,19 @@ if (A_ThisMenuItem = "Find previous `tF2") {
         ; return
   }
 
-if (A_ThisMenuItem = "Fold all (F3)")
-	processAll("-Expand")
-if (A_ThisMenuItem = "Unfold all (F4)")
-	processAll("Expand")
-if (A_ThisMenuItem = "Fold recursively (F5)")
-	processChildren(TV_GetSelection(), "-Expand")
-if (A_ThisMenuItem = "Unfold recursively (F6)")
-	processChildren(TV_GetSelection(), "Expand")
-if (A_ThisMenuItem = "Fold same level (F7)")
-	processSameLevel(TV_GetSelection(), "-Expand")
-if (A_ThisMenuItem = "Unfold same level (F8)")
-	processSameLevel(TV_GetSelection(), "Expand")
-  return
+  if (A_ThisMenuItem = "Fold all (F3)")
+    processAll("-Expand")
+  if (A_ThisMenuItem = "Unfold all (F4)")
+    processAll("Expand")
+  if (A_ThisMenuItem = "Fold recursively (F5)")
+    processChildren(TV_GetSelection(), "-Expand")
+  if (A_ThisMenuItem = "Unfold recursively (F6)")
+    processChildren(TV_GetSelection(), "Expand")
+  if (A_ThisMenuItem = "Fold same level (F7)")
+    processSameLevel(TV_GetSelection(), "-Expand")
+  if (A_ThisMenuItem = "Unfold same level (F8)")
+    processSameLevel(TV_GetSelection(), "Expand")
+    return
     ;--------------------------------------------
     ; show 2nd window with editable settings
     ;--------------------------------------------
