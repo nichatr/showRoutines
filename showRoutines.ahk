@@ -30,26 +30,26 @@
   ; cpyf qtemp/cbtreef5  dcommon/cbtreef5 *replace
   ; CVTDBF FROMFILE(DCOMMON/CBTREEF5) TOSTMF('/output/bussup/txt/cbtreef5') TOFMT(*FIXED) FIXED(*CRLF (*DBF) (*DBF) *SYSVAL *COMMA)
   ;--------------------------------------------------------------------------------------
-global allRoutines  ; array of class "routine"
-global allCode      ; array of source code to show
-global tmpRoutine 
-global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
-global fullFileCode, fileCode         ; text file with source code.
-global path
-global itemLevels
-global levels_LastIndex
-global scriptNameNoExt
-global TreeViewWidth, treeviewWidthStep
-global ListBoxWidth
-global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
-global LVX, LVY,LVWidth, LVHeight
-global from_line_number, to_line_number
-global gui_offset, gui_height, gui_width
-global letterColor, fontSize, fontColor, codeEditor
+  global allRoutines  ; array of class "routine"
+  global allCode      ; array of source code to show
+  global tmpRoutine 
+  global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
+  global fullFileCode, fileCode         ; text file with source code.
+  global path
+  global itemLevels
+  global levels_LastIndex
+  global scriptNameNoExt
+  global TreeViewWidth, treeviewWidthStep
+  global ListBoxWidth
+  global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
+  global LVX, LVY,LVWidth, LVHeight
+  global from_line_number, to_line_number
+  global gui_offset, gui_height, gui_width
+  global letterColor, fontSize, fontColor, codeEditor
 
 initialize()
 mainProcess()
-return
+  return
 
 mainProcess() {
   setup()
@@ -58,7 +58,7 @@ mainProcess() {
   loadTreeview()
   updateStatusBar()
   showGui()
-}
+  }
 
 showGui() {
   global
@@ -79,12 +79,12 @@ showGui() {
     valueOfY := 0
   Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
   return
-}
+  }
 
 updateStatusBar(currentRoutine := "MAIN") {
   SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
   . " | File:" . fileCode . " | Current routine:" . currentRoutine)
-}
+  }
   ;---------------------------------------
   ; define shortcut keys
   ;---------------------------------------
@@ -160,7 +160,7 @@ fileSelector(homePath, filter) {
 	
   ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
   ; ExitApp
-}
+  }
     ;-----------------------------------------------------------
     ; find system script is running.
     ;-----------------------------------------------------------
@@ -170,7 +170,7 @@ getSystem() {
 		return "SYSTEM_WORK"
 	Else
 		return "SYSTEM_HOME"
-}
+  }
   ;--------------------------------------------------
   ; check arguments, check run system, set filename,
   ; move/rename files if needed.
@@ -258,7 +258,7 @@ initialize() {
 				ExitApp
 		}
 	}
-}
+  }
     ;--------------------------------------------
     ; set environment, populate data structures
     ;--------------------------------------------
@@ -360,12 +360,12 @@ setup() {
 	Gui, Add, Button, gExit, Exit This Example
 	Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
 	return
-}
+  }
     ;-----------------------------------------------------------
     ; Handle enter key. 
     ;-----------------------------------------------------------
 ButtonOK: 
-{
+  {
 	GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
 	if (searchText <> "")
 		searchItemInRoutine(searchText, "next")
@@ -376,12 +376,12 @@ ButtonOK:
 		GuiControl, Choose, MyListBox, item
 	}
 	return
-}
+  }
     ;-----------------------------------------------------------
     ; Handle user actions (such as clicking). 
     ;-----------------------------------------------------------
 MyTreeView:
-{
+  {
 	global currentRoutine
 	
     ; click an item: load routine code
@@ -442,10 +442,10 @@ MyTreeView:
 	}
 	
 	return
-}
+  }
 
 GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizing of window.
-{
+  {
 	if (A_EventInfo = 1)  ; The window has been minimized. No action needed.
 		return
 	gui_height := A_GuiHeight
@@ -458,39 +458,39 @@ GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizin
     ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
 	
 	return
-}
+  }
 
 resizeTreeview() {
 	if (gui_height > 0 and gui_width > 0)
 		GuiControl, Move, MyTreeView, % "H" . (gui_height - gui_offset) . " W" . TreeViewWidth
-}
+  }
     ;----------------------------------------------------------------
     ; Launched in response to a right-click or press of the Apps key.
     ;----------------------------------------------------------------
 GuiContextMenu:
-{
+  {
 	if (A_GuiControl <> "MyTreeView")  ; This check is optional. It displays the menu only for clicks inside the TreeView.
 		return
     ; Show the menu at the provided coordinates, A_GuiX and A_GuiY. These should be used
     ; because they provide correct coordinates even if the user pressed the Apps key:
 	Menu, MyContextMenu, Show, %A_GuiX%, %A_GuiY%
 	return
-}
+  }
 
     ;----------------------------------------------------------------
     ; on app close save to INI file last position & size.
     ;----------------------------------------------------------------
 GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
 
-if (fileRoutines = "ERROR")
-	return
-if (fileCode = "ERROR")
-	return
+  if (fileRoutines = "ERROR")
+    return
+  if (fileCode = "ERROR")
+    return
 
     ; on exit save position & size of window
     ; but if it is minimized skip this step.
-actWin := WinExist("A")
-WinGet, isMinimized , MinMax, actWin
+  actWin := WinExist("A")
+  WinGet, isMinimized , MinMax, actWin
 if (isMinimized <> -1) {
 	WinGetPos, winX, winY, winWidth, winHeight, A
 	
@@ -507,7 +507,7 @@ if (isMinimized <> -1) {
         ; save client values of W,H (used by winmove)
 	IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
 	IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
-}
+  }
 
 if (treeviewWidth > 0)
 	IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
@@ -521,15 +521,15 @@ if (fileRoutines <> "")
 if (fileCode <> "")
 	IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 
-ExitApp
+  ExitApp
 
 GetClientSize(hWnd, ByRef w := "", ByRef h := "")
-{
+  {
 	VarSetCapacity(rect, 16)
 	DllCall("GetClientRect", "ptr", hWnd, "ptr", &rect)
 	w := NumGet(rect, 8, "int")
 	h := NumGet(rect, 12, "int")
-}
+  }
 
     ;-----------------------------------------------------------
     ; Handle menu bar actions
@@ -541,20 +541,20 @@ if (A_ThisMenuItem = "&Open file") {
 	Gui, Destroy
 	mainProcess()
 	return
-}
+  }
 if (A_ThisMenuItem = "&Settings") {
 	showSettings()
 	return
-}
+  }
 if (A_ThisMenuItem = "&Exit") {
 	Gui, Destroy
 	ExitApp
-}
+  }
 
-return
+  return
 
 Exit:
-ExitApp
+  ExitApp
 
     ;-----------------------------------------------------------
     ; Handle context menu actions
@@ -566,7 +566,7 @@ if (A_ThisMenuItem = "Show routine code `tLeft click") {
         ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
         ; msgbox, % SelectedItemText . "----" . TV_GetSelection()
         ; loadListbox(SelectedItemText)              ; load routine code
-}
+  }
 if (A_ThisMenuItem = "Find next `tF1") {
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
@@ -577,14 +577,14 @@ if (A_ThisMenuItem = "Find next `tF1") {
         ; msgbox, % SelectedItemText . "-----" . A_EventInfo
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
         ; searchItemInRoutine(searchText, "next")
-}
+  }
 if (A_ThisMenuItem = "Find previous `tF2") {
         ; doesn't work!!!
         ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
         ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
         ; searchItemInRoutine(searchText, "previous")
         ; return
-}
+  }
 
 if (A_ThisMenuItem = "Fold all (F3)")
 	processAll("-Expand")
@@ -598,7 +598,7 @@ if (A_ThisMenuItem = "Fold same level (F7)")
 	processSameLevel(TV_GetSelection(), "-Expand")
 if (A_ThisMenuItem = "Unfold same level (F8)")
 	processSameLevel(TV_GetSelection(), "Expand")
-return
+  return
     ;--------------------------------------------
     ; show 2nd window with editable settings
     ;--------------------------------------------
@@ -744,14 +744,13 @@ showSettings() {
 	2ButtonCancel:
 	Gui, 2:Destroy
 	Return
-}
-
+  }
 showSubGui(subGui_W, subGui_H, subGui_Title) {
 	WinGetPos, targetX, targetY, targetWidth, targetHeight, A
 	newX := targetX + (targetWidth - subGui_W) / 2
 	newY := targetY + (targetHeight - subGui_H) / 2
 	Gui, 2:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, %subGui_Title%
-}
+  }
     ;--------------------------------------------
     ; resize when ctrl+left or ctrl+right pressed
     ;--------------------------------------------
@@ -778,7 +777,7 @@ changeTreeviewWidth(type) {
 	WinMove, , , , , %winWidth%
 	
 	return
-}
+  }
     ;-----------------------------------------------------------
     ; hide/show all nodes.
     ;-----------------------------------------------------------
@@ -803,7 +802,7 @@ processAll(mode) {
 	
 	GuiControl, +Redraw, MyTreeView
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
-}
+  }
     ;-----------------------------------------------------------
     ; hide/show all children nodes.
     ;-----------------------------------------------------------
@@ -836,7 +835,7 @@ processChildren(currentItemID, mode) {
 	
 	GuiControl, +Redraw, MyTreeView
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item
-}
+  }
     ;-----------------------------------------------------------
     ; hide/show all nodes with same level as selected node.
     ;-----------------------------------------------------------
@@ -879,7 +878,7 @@ processSameLevel(currentItemID, mode) {
 	GuiControl, +Redraw, MyTreeView
 	
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
-}
+  }
     ;-----------------------------------------------------------
     ; search the text entered in MyEdit_routine control
     ;-----------------------------------------------------------
@@ -945,7 +944,7 @@ searchItemInRoutine(searchText, direction) {
 			break
 		}        
 	}
-}
+  }
     ;-----------------------------------------------------------
     ; search the text entered in MyEdit_code control
     ;-----------------------------------------------------------
@@ -968,7 +967,7 @@ searchItemInCode(searchText, direction) {
 	}
 	return 0
     ; msgbox, % "Not found"
-}
+  }
     ;---------------------------------------------------------------------
     ; recursively write routines array to a text file for testing.
     ;---------------------------------------------------------------------
@@ -992,7 +991,7 @@ loadTreeview() {
     ; first item is always = "MAIN" (the parent routine of all)
 	currRoutine := allRoutines[1]
 	processRoutine(currRoutine)
-}
+  }
     ;---------------------------------------------------------------------
     ; recursively write routines array to a text file for testing.
     ; currRoutine = item in allRoutines[]
@@ -1016,7 +1015,7 @@ processRoutine(currRoutine, parentID=0) {
 		}
 	}
 	currentLevel --
-}
+  }
     ;---------------------------------------
     ; add a node to treeview
     ;---------------------------------------
@@ -1032,7 +1031,7 @@ addToTreeview(routineName, currentLevel, parentRoutine) {
 	itemLevels[levels_LastIndex, 3] := routineName
 	
 	return currentId
-}
+  }
     ;---------------------------------------------------------------------
     ; search if parameter exists in allRoutines array.
     ;---------------------------------------------------------------------
@@ -1043,7 +1042,7 @@ searchRoutine(routineName) {
 		}
 	}
 	return 0
-}
+  }
     ;-----------------------------------------------------------------------
     ; read mpmdl001.cbl file and populate array with all code
     ;-----------------------------------------------------------------------
@@ -1052,7 +1051,7 @@ populateCode() {
 	{
 		allCode.push(A_LoopReadLine)
 	}
-}
+  }
     ;-----------------------------------------------------------------------
     ; find the statement in the code that routine begins.
     ;-----------------------------------------------------------------------
@@ -1068,7 +1067,7 @@ findRoutineFirstStatement(routineName) {
 	}
 	
 	return statements
-}
+  }
     ;-----------------------------------------------------------------------
     ; load listbox with the routine code (source)
     ;-----------------------------------------------------------------------
@@ -1100,7 +1099,7 @@ loadListbox(routineName) {
     ; msgbox, %  gui_height . "`n" . gui_offset
 	GuiControl, Move, MyListBox, % "H" . (gui_height - gui_offset +5 ) ; width = total - treeview - (3 X 5) margins.
 	GuiControl, +Redraw, MyListBox
-}
+  }
     ;-------------------------------------------------------
     ; read cbtreef5.txt file and populate routines array
     ;-------------------------------------------------------
@@ -1126,7 +1125,7 @@ populateRoutines() {
 		
         ; break
 	}
-}
+  }
     ;---------------------------------------------------------------------
     ; creates an array item with the caller and called routine.
     ;---------------------------------------------------------------------
@@ -1147,7 +1146,7 @@ createRoutineItem(tmpRoutine) {
 		routine1.calls.push(tmpRoutine.ROUCALLED)
 	
 	allRoutines.push(routine1)
-}
+  }
     ;---------------------------------------------------------------------
     ; creates an array item with the caller and called routine.
     ;---------------------------------------------------------------------
@@ -1157,7 +1156,7 @@ updateRoutineItem(caller, tmpRoutine) {
 	
 	allRoutines[caller].calls.push(tmpRoutine.ROUCALLED)
 	return True
-}
+  }
     ;---------------------------------------------------------------------
     ; parse line into separate fields.
     ;---------------------------------------------------------------------
@@ -1171,7 +1170,7 @@ parseLine(inputLine) {
 	tmpRoutine.ROUCALLER   := trim(array1[5])
 	tmpRoutine.ROUCALLED   := trim(array1[6])
 	return tmpRoutine
-}
+  }
     ;---------------------------------------------------------------------
     ; routines data model.
     ;---------------------------------------------------------------------
@@ -1182,4 +1181,4 @@ class routine {
 	endStmt := ""
 	callingStmt := ""
 	calls := []
-}
+  }
