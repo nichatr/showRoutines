@@ -400,10 +400,16 @@ MyTreeView:
 		TV_GetText(routineName, TV_GetSelection())   ; get item text
 		statements := findRoutineFirstStatement(routineName)
 		statement := statements[1]
+    		
+		WinGetPos, X_main, Y_main, Width_main, Height_main, A
+		actWin := WinExist("A")
+		GetClientSize(actWin, Width_main, Height_main)
+    x := X_main + Width_main
+    y := Y_main
 		
 		if (showOnlyRoutine == "false")
 			if (codeEditor == "notepad++")
-				RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% "%fullFileCode%"
+				RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% -x%x% -y%y% "%fullFileCode%"
 		else
 			RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --new-window --goto "%fullFileCode%:%statement%"
 		else {
@@ -419,19 +425,16 @@ MyTreeView:
 			FileAppend, %sourceCode%, %filename%
             ; msgbox, %filename%
 			if (codeEditor == "notepad++")
-				RunWait, notepad++.exe -lcobol -nosession -ro "%filename%"
+				RunWait, notepad++.exe -lcobol -nosession -ro -x%x% -y%y% "%filename%"
 			else
 				RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --new-window "%filename%"
 		}
+
 		
-		WinGetPos, X_main, Y_main, Width_main, Height_main, A
-		actWin := WinExist("A")
-		GetClientSize(actWin, Width_main, Height_main)
-		
-		Sleep, 300  ; wait to open
+		; Sleep, 300  ; wait to open
         ; position besides main window
-		if (codeEditor == "notepad++")
-			WinMove, ahk_class notepad++, , X_main + Width_main , Y_main
+		; if (codeEditor == "notepad++")
+		; 	WinMove, ahk_class notepad++, , X_main + Width_main , Y_main
         ; else
         ;     WinMove, ahk_exe Code.exe, , X_main + Width_main , Y_main
 	}
