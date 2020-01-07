@@ -46,6 +46,7 @@
   global from_line_number, to_line_number
   global gui_offset, gui_height, gui_width
   global letterColor, fontSize, fontColor, codeEditor
+  global ExportSelected, nodesToExport
 
 initialize()
 mainProcess()
@@ -80,6 +81,12 @@ showGui() {
   Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
   return
   }
+  ;---------------------------------------------------------------------
+  ; show help window
+  ;---------------------------------------------------------------------
+showHelp() {
+  msgbox, help Screen
+  }
 
 updateStatusBar(currentRoutine := "MAIN") {
   SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
@@ -99,14 +106,8 @@ updateStatusBar(currentRoutine := "MAIN") {
   changeTreeviewWidth("+")
   return
 
-  F1::        ;{ <-- find next
-  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-  searchItemInRoutine(searchText, "next")
-  return
-
-  F2::        ;{ <-- find previous
-  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-  searchItemInRoutine(searchText, "previous")
+  F1::
+  showHelp()  ;{ <-- help
   return
 
   F3::       ;{ <-- fold all routines 
@@ -133,6 +134,70 @@ updateStatusBar(currentRoutine := "MAIN") {
 
   F8::        ;{ <-- unfold same level
   processSameLevel(TV_GetSelection(), "Expand")
+  return
+
+  F9::        ;{ <-- find next
+  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+  if (searchText <> "")
+    searchItemInRoutine(searchText, "next")
+  return
+
+  F10::        ;{ <-- find previous
+  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+  if (searchText <> "")
+    searchItemInRoutine(searchText, "previous")
+  return
+
+  F11::       ;{ <-- Toggle bookmark for export
+  toggleBookmark()
+  return
+
+  +F1::
+  processLevel(2)
+  return
+
+  +F2::
+  processLevel(3)
+  return
+
+  +F3::
+  processLevel(4)
+  return
+
+  +F4::
+  processLevel(5)
+  return
+
+  +F5::
+  processLevel(6)
+  return
+
+  +F6::
+  processLevel(7)
+  return
+
+  +F7::
+  processLevel(8)
+  return
+
+  +F8::
+  processLevel(9)
+  return
+
+  +F9::
+  processLevel(10)
+  return
+
+  +F10::
+  processLevel(11)
+  return
+
+  +F11::
+  processLevel(12)
+  return
+
+  +F12::
+  processLevel(13)
   return
 
 #IfWinActive
@@ -268,6 +333,7 @@ setup() {
 	allCode := []
 	tmpRoutine  := {}
 	itemLevels := []
+  nodesToExport := []
 	levels_LastIndex := 0
 	fullFileRoutines := path . fileRoutines
 	fullFileCode := path . fileCode
@@ -330,14 +396,21 @@ setup() {
 	Gui, add, StatusBar, Background c%control_color%
     ; Gui, add, StatusBar, Background c%window_color%
 	
+  ; define the context menu.
 	Menu, MyContextMenu, Add, Fold all `tF3, contextMenuHandler
 	Menu, MyContextMenu, Add, Unfold all `tF4, contextMenuHandler
 	Menu, MyContextMenu, Add, Fold recursively `tF5, contextMenuHandler
 	Menu, MyContextMenu, Add, Unfold recursively `tF6, contextMenuHandler
 	Menu, MyContextMenu, Add, Fold same level `tF7, contextMenuHandler
 	Menu, MyContextMenu, Add, Unfold same level `tF8, contextMenuHandler
-	
-    ; menu bar
+  Menu, MyContextMenu, Add, Fold level 2..13 `tshift F1..F12, contextMenuHandler
+  Menu, MyContextMenu, Disable, Fold level 2..13 `tshift F1..F12
+  Menu, MyContextMenu, Add, 
+  Menu, MyContextMenu, Add, Toggle bookmark for export `tF11, contextMenuHandler
+  Menu, MyContextMenu, Add, Search next `tF9, contextMenuHandler
+  Menu, MyContextMenu, Add, Search previous `tF10, contextMenuHandler
+
+  ; file submenu
 	Menu, FileMenu, Add, &Open file, MenuHandler
 	Menu, FileMenu, Icon, &Open file, shell32.dll, 4
 	
@@ -350,11 +423,33 @@ setup() {
 	Menu, FileMenu, Add, &Exit, MenuHandler
 	Menu, FileMenu, Icon, &Exit, shell32.dll, 123
 	
+  ; edit submenu
+  Menu, EditMenu, Add, Toggle bookmark for export `tF11, contextMenuHandler
+  Menu, EditMenu, Add
+  Menu, EditMenu, Add, Search next `tF9, contextMenuHandler
+  Menu, EditMenu, Add, Search previous `tF10, contextMenuHandler
+
+  ; view submenu
+  Menu, ViewMenu, Add, Fold all `tF3, contextMenuHandler
+  Menu, ViewMenu, Add, Unfold all `tF4, contextMenuHandler
+  Menu, ViewMenu, Add, Fold recursively `tF5, contextMenuHandler
+  Menu, ViewMenu, Add, Unfold recursively `tF6, contextMenuHandler
+  Menu, ViewMenu, Add, Fold same level `tF7, contextMenuHandler
+  Menu, ViewMenu, Add, Unfold same level `tF8, contextMenuHandler
+
+  ; settings submenu
 	Menu, SettingsMenu, Add, &Settings, MenuHandler
 	Menu, SettingsMenu, Icon, &Settings, shell32.dll, 317
 	
+  ; help submenu
+  Menu, HelpMenu, Add, &Help `tF1, MenuHandler
+
+  ; define the menu bar.
 	Menu, MyMenuBar, Add, &File, :FileMenu
+  Menu, MyMenuBar, Add, &Edit, :EditMenu
+  Menu, MyMenuBar, Add, &View, :ViewMenu
 	Menu, MyMenuBar, Add, &Settings, :SettingsMenu
+  Menu, MyMenuBar, Add, &Help, :HelpMenu
 	
 	Gui, Menu, MyMenuBar
 	Gui, Add, Button, gExit, Exit This Example
@@ -549,6 +644,61 @@ MenuHandler:
     showSettings()
     return
     }
+      
+  if (A_ThisMenuItem = "&Help `tF1") {
+    showHelp()
+    return
+  }
+
+
+  +F1::
+  processLevel(2)
+  return
+
+  +F2::
+  processLevel(3)
+  return
+
+  +F3::
+  processLevel(4)
+  return
+
+  +F4::
+  processLevel(5)
+  return
+
+  +F5::
+  processLevel(6)
+  return
+
+  +F6::
+  processLevel(7)
+  return
+
+  +F7::
+  processLevel(8)
+  return
+
+  +F8::
+  processLevel(9)
+  return
+
+  +F9::
+  processLevel(10)
+  return
+
+  +F10::
+  processLevel(11)
+  return
+
+  +F11::
+  processLevel(12)
+  return
+
+  +F12::
+  processLevel(13)
+  return
+
   if (A_ThisMenuItem = "&Exit") {
     Gui, Destroy
     ExitApp
@@ -570,37 +720,42 @@ contextMenuHandler:
         ; msgbox, % SelectedItemText . "----" . TV_GetSelection()
         ; loadListbox(SelectedItemText)              ; load routine code
   }
-  if (A_ThisMenuItem = "Find next `tF1") {
-        ; doesn't work!!!
-        ; TV_GetText(SelectedItemText, TV_GetSelection())   ; get item text
-        ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        ; searchItemInRoutine(searchText, "next")
-	
-        ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
-        ; msgbox, % SelectedItemText . "-----" . A_EventInfo
-        ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        ; searchItemInRoutine(searchText, "next")
-  }
-  if (A_ThisMenuItem = "Find previous `tF2") {
-        ; doesn't work!!!
-        ; TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
-        ; GuiControl, , MyEdit_routine , %SelectedItemText%   ; put it into search field
-        ; searchItemInRoutine(searchText, "previous")
-        ; return
-  }
 
   if (A_ThisMenuItem = "Fold all (F3)")
     processAll("-Expand")
+  
   if (A_ThisMenuItem = "Unfold all (F4)")
     processAll("Expand")
+  
   if (A_ThisMenuItem = "Fold recursively (F5)")
     processChildren(TV_GetSelection(), "-Expand")
+  
   if (A_ThisMenuItem = "Unfold recursively (F6)")
     processChildren(TV_GetSelection(), "Expand")
+  
   if (A_ThisMenuItem = "Fold same level (F7)")
     processSameLevel(TV_GetSelection(), "-Expand")
+  
   if (A_ThisMenuItem = "Unfold same level (F8)")
     processSameLevel(TV_GetSelection(), "Expand")
+  
+  if (A_ThisMenuItem = "Search next `tF9") {
+    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+    if (searchText <> "")
+      searchItemInRoutine(searchText, "next")
+    return
+  }
+  if (A_ThisMenuItem = "Search previous `tF10") {
+    GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+    if (searchText <> "")
+     searchItemInRoutine(searchText, "previous")
+    return
+  }
+   
+  if (A_ThisMenuItem = "Toggle bookmark for export `tF11") {
+    toggleBookmark()
+  }
+
     return
     ;--------------------------------------------
     ; show 2nd window with editable settings
@@ -843,6 +998,7 @@ processChildren(currentItemID, mode) {
     ; hide/show all nodes with same level as selected node.
     ;-----------------------------------------------------------
 processSameLevel(currentItemID, mode) {
+
 	current_index := 0
 	selected_index := 0
 	selected_level := 0
@@ -882,6 +1038,37 @@ processSameLevel(currentItemID, mode) {
 	
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
   }
+
+  ;-----------------------------------------------------------
+  ; show specific level
+  ;-----------------------------------------------------------
+processLevel(selected_level) {
+  global
+  current_index := 0
+  GuiControl, -Redraw, MyTreeView
+  TV_Modify(itemLevels[1, 1], "Expand")
+
+  ; find all nodes with same level and fold.
+  Loop {
+    current_index += 1
+      
+    if (current_index > levels_LastIndex)    ; if end of array items, exit
+      Break
+      
+    if (itemLevels[current_index, 2] >= selected_level)
+      TV_Modify(itemLevels[current_index, 1], "-Expand")
+    else
+      TV_Modify(itemLevels[current_index, 1], "Expand")
+  }
+
+  GuiControl, +Redraw, MyTreeView
+  TV_Modify(itemLevels[1, 1], "VisFirst")
+  currentLevel := selected_level
+  updateStatusbar()
+  }
+
+
+
     ;-----------------------------------------------------------
     ; search the text entered in MyEdit_routine control
     ;-----------------------------------------------------------
@@ -1034,6 +1221,182 @@ addToTreeview(routineName, currentLevel, parentRoutine) {
 	itemLevels[levels_LastIndex, 3] := routineName
 	
 	return currentId
+  }
+ ;---------------------------------------------------------------------
+  ; toggle on/off bookmark
+  ;---------------------------------------------------------------------
+toggleBookmark() {
+  selectedNode := TV_GetSelection()
+  
+  if (selectedNode = "") 
+    return
+
+  ; if already exists in bookmarks: remove and unbold
+  Loop, % nodesToExport.MaxIndex() {
+    if (selectedNode = nodesToExport[A_Index]) {
+      nodesToExport.RemoveAt(A_Index)
+      TV_Modify(selectedNode, "-Bold")
+      return
+    }
+  }
+
+  ; if doesn't exist in bookmarks: add and bold
+  nodesToExport.push(selectedNode)
+  TV_Modify(selectedNode, "Bold")
+
+  ; if more than 2 items are bookmarked: remove first
+  if (nodesToExport.MaxIndex() > 2) {
+    TV_Modify(nodesToExport[1], "-Bold")
+    nodesToExport.RemoveAt(1)
+  }
+
+  }
+  ;-------------------------------------------------------------------------------
+  ; export nodes to text file
+  ; (returns the created string)
+  ;-------------------------------------------------------------------------------
+exportNodes() {
+  global
+  exportedRoutines := []
+  exportedString := ""
+
+  if (nodesToExport.MaxIndex() = 0)
+    return ""
+
+  ; set first node.
+  bookmark1 := nodesToExport[1]
+  index1 := findBookmark(bookmark1)
+
+  ; set last node: 
+  if (nodesToExport.MaxIndex() > 1) {
+    bookmark2 := nodesToExport[2]
+    index2 := findBookmark(bookmark2)
+    }
+  else {  ; if not set find last sub node of the selected node.
+    index2 := findLastSubnode(index1)
+    bookmark2 := itemLevels[index2, 1]
+  }
+  
+  if (index1 = 0 or index2 = 0)
+    return ""
+
+  ; swap bookmarks so the first is processed first.
+  current_Index := index1
+  if (index1 > index2) {
+    tempBookmark := bookmark1
+    bookmark1 := bookmark2
+    bookmark2 := tempBookmark
+    current_Index := index2
+  }
+
+  itemID := bookmark1
+
+  ; make starting node as having level 1:
+  ; offset := itemLevels[current_Index, 2] - 1
+  offset := 0
+
+  Loop {
+    exportRoutine(itemLevels[current_Index, 3], itemLevels[current_Index, 2] - offset)
+    if (itemLevels[current_Index,1] = bookmark2)   ; stop when reaching the ending node.
+      break
+    current_Index++
+  } until (current_Index > itemLevels.MaxIndex())   ; stop when reaching end of array.
+
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; return the index inside itemLevels of a bookmark
+  ;-------------------------------------------------------------------------------
+findBookmark(bookmark) {
+  Loop, % itemLevels.MaxIndex() {
+    if (bookmark = itemLevels[A_Index, 1])
+      return A_Index
+  }
+  return 0
+  }
+  ;-------------------------------------------------------------------------------
+  ; find the itemID of the last sub node of a bookmark
+  ;-------------------------------------------------------------------------------
+findLastSubnode(index) {
+  if (index < 1 or index > itemLevels.MaxIndex())
+    return 0
+
+  currentLevel := itemLevels[index, 2]
+
+  Loop, % itemLevels.MaxIndex() - index {
+    index++
+    if (currentLevel >= itemLevels[index, 2])
+      return --index
+  }
+  return index
+  }
+  ;-------------------------------------------------------------------------------
+  ; export treview to text file
+  ; (returns the created string)
+  ;-------------------------------------------------------------------------------
+exportTreeview() {
+  if (allRoutines.MaxIndex() <= 0)    ; no called routines
+    return ""
+  
+  exportedRoutines := []
+  exportedString := ""
+
+  ; first item is always = "MAIN" (the parent routine of all)
+  currRoutine := allRoutines[1]
+  if (MaxLevel < 2 or MaxLevel > 999)
+    MaxLevel := 999
+
+  processRoutine_for_Export(currRoutine, MaxLevel)
+
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; process one routine
+  ;-------------------------------------------------------------------------------
+processRoutine_for_Export(currRoutine, MaxLevel=999) {
+  static currentLevel
+  currentLevel ++
+  if (currentLevel > MaxLevel) {
+    currentLevel --
+    return
+  }
+
+  exportRoutine(currRoutine.routineName, currentLevel)
+
+  Loop, % currRoutine.calls.MaxIndex() {
+
+    ; search array allRoutines[] for the current routine item.
+    calledId := searchRoutine(currRoutine.calls[A_Index])
+    if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
+        processRoutine_for_Export(allRoutines[calledId], MaxLevel)     ; write children
+      }
+    }
+    currentLevel --
+  }
+  ;-------------------------------------------------------------------------------
+  ; export one routine to text file
+  ;-------------------------------------------------------------------------------
+exportRoutine(routineName, currentLevel) {
+  prefix := "`n"
+  count:= currentLevel - 1
+
+  Loop, %count%
+    prefix .= "  "
+
+  if (count > 0)
+    prefix .= "->"
+  
+  oneLine := prefix . " " . routineName
+
+  exportedRoutines.push(oneLine)
   }
     ;---------------------------------------------------------------------
     ; search if parameter exists in allRoutines array.
