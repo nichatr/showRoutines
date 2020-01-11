@@ -42,10 +42,16 @@
   global TreeViewWidth, treeviewWidthStep
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
+  global exportedRoutines, exportDescriptions
+  global MaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
+  global winX, winY ; main window position
+  global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
   global from_line_number, to_line_number
   global gui_offset, gui_height, gui_width
   global letterColor, fontSize, fontColor, codeEditor
+  global currentLevel   ; holds the fold level or 0 if none.
+  global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
   global ExportSelected, nodesToExport
 
 initialize()
@@ -63,22 +69,23 @@ mainProcess() {
 
 showGui() {
   global
-	
-  SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
-  ; read last saved win position & size
-  IniRead, valueOfX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
-  IniRead, valueOfY, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
-  IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
-  IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
+	OnMessage(0x232, "Move_window") ; to move children guis with the parent
+  ; SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
+  ; ; read last saved win position & size
+  ; IniRead, valueOfX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+  ; IniRead, valueOfY, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
+  ; IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+  ; IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
   
-  IniRead, actualHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
-  gui_offset := actualHeight - valueOfHeight
+  ; IniRead, actualHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
+  ; gui_offset := actualHeight - valueOfHeight
 	
-  if (valueOfX < -7)
-    valueOfX := -7
-  if (valueOfY < 0)
-    valueOfY := 0
-  Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
+  ; if (valueOfX < -7)
+  ;   valueOfX := -7
+  ; if (valueOfY < 0)
+  ;   valueOfY := 0
+  Gui, 1:Show, X%winX% Y%winY% W%winWidth% H%winHeight%, %fileCode%
+  ; Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
   return
   }
   ;---------------------------------------------------------------------
@@ -87,154 +94,313 @@ showGui() {
 showHelp() {
   msgbox, help Screen
   }
+  ;---------------------------------------------------------------------
+  ; show export window
+  ;---------------------------------------------------------------------
+showExport() {
+  inputFilename := fileRoutines
+  outputFormat := "txt"
 
-updateStatusBar(currentRoutine := "MAIN") {
-  SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
-  . " | File:" . fileCode . " | Current routine:" . currentRoutine)
+  Gui, 3:Destroy
+  subGui3_W := 420
+  subGui3_H := 180
+  WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+  newX := targetX + (targetWidth - subGui3_W) / 2
+  newY := targetY + (targetHeight - subGui3_H) / 2
+
+  Gui, 3:+AlwaysOnTop -Caption +Owner1
+  Gui, 3:Add,GroupBox,xm+5 y+10 w%subGui3_W% h%subGui3_H%, Export
+  
+  ; filename
+  Gui, 3:Add,Text,xm+20 yp+40, Exported filename
+  Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, exported_%inputFilename%
+  ; Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %scriptDir%\data\%inputFilename%
+
+  ; max level
+  Gui, 3:Add,Text,xm+20 yp+35, Max level to export
+  Gui, 3:Add,Edit, vMaxLevel xp+100 yp-5 w40 +Number
+  Gui, 3:Add, UpDown, Range2-999, 999
+
+  ; include descriptions?
+  Checked1 := exportDescriptions == "true" ? "Checked" : ""
+  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xm+20 yp+35 %Checked1% ,   Include routines descriptions
+
+  ; output format
+  Gui, 3:Add, Text, xm+20 yp+30, Output format
+  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup Checked xp+80 yp, txt
+  Gui, 3:Add, Radio, g3Check xp+50 yp, json
+  Gui, 3:Add, Radio, g3Check xp+50 yp, xml
+
+  ; Export, Close buttons
+  Gui, 3:Add, button, xm+60 ym+190 g3ExportAll, Export All
+  Gui, 3:Add, button, xp+100 ym+190 g3ExportSelected vExportSelected, Export Selected
+  Gui, 3:Add, button, xp+130 g3Close, Close
+
+  ; if (firstNode<>0 and lastNode<>0)
+  ;   GuiControl, 3:Enable, ExportSelected
+  ; else
+  ;   GuiControl, 3:Disable, ExportSelected
+
+  ; show window
+  Gui, 3:show, x%newX% y%newY%, Gui 3
+  HWND_GUI3 := WinExist(A)
+  return
   }
-  ;---------------------------------------
-  ; define shortcut keys
-  ;---------------------------------------
-#IfWinActive ahk_class AutoHotkeyGUI
-  global searchText
 
-  ^left::     ;{ <-- decrease treeview
-  changeTreeviewWidth("-")
+  ; checkbox <include descriptions> handler
+3IncludeDescriptions:
+  Gui, 3:Submit, NoHide
+
+  if (includeDescriptions = 1)  ; checked
+    exportDescriptions := "true"
+  else
+    exportDescriptions := "false"
   return
 
-  ^right::    ;{ <-- increase treeview
-  changeTreeviewWidth("+")
+  ; radiogroup <exrpot type> handler
+3Check:
+  Gui, 3:Submit, NoHide
+
+  if (MyRadioGroup = 1)
+    outputFormat := "txt"
+    outputFormat := "txt"
+
+  if (MyRadioGroup = 2)
+    outputFormat := "json"
+  if (MyRadioGroup = 3)
+    outputFormat := "xml"
+  Return
+
+  ; button <export all> handler
+3ExportAll:
+  Gui, 3:Submit, NoHide
+  if (MaxLevel < 2 or MaxLevel > 999) {
+    MsgBox, max level must be between 2 and 999
+    return
+  }
+  if (trim(ExportedFilename) = "") {
+    MsgBox, filename cannot be empty
+    return
+  }
+
+  exportedString := exportTreeview()
+  
+  if (exportedString <> "") {
+    filename := ".\data\exported_" . ExportedFilename
+    if FileExist(filename)
+      FileDelete, %filename%
+    FileAppend, %exportedString%, %filename%
+    openNotepad(filename)
+  } else
+    MsgBox, No bookmark to export.
+  goto 3Close
+
+  ; button <export selected> handler
+3ExportSelected:
+  Gui, 3:Submit, NoHide
+  exportedString := exportNodes()
+  
+  if (exportedString <> "") {
+    filename := ".\data\exported_" . fileRoutines
+    if FileExist(filename)
+      FileDelete, %filename%
+    FileAppend, %exportedString%, %filename%
+    openNotepad(filename)
+  } else
+    MsgBox, No bookmark to export.
+  goto 3Close
+
+  ; <close> handler
+3Escape:
+3GuiEscape:
+3Close:
+  Gui, 3:Destroy
   return
 
-  F1::
-  showHelp()  ;{ <-- help
-  return
-
-  F3::       ;{ <-- fold all routines 
-  processAll("-Expand")
-  return
-
-  F4::        ;{ <-- unfold all routines 
-  processAll("Expand")
-  return
-
-  F5::        ;{ <-- fold recursively current routine
-  processChildren(TV_GetSelection(), "-Expand")
-  return
-
-  F6::        ;{ <-- unfold recursively current routine
-  processChildren(TV_GetSelection(), "Expand")
-  return
-
-  F7::        ;{ <-- fold same level
-  selected_itemID := TV_GetSelection()
-  processSameLevel(selected_itemID, "-Expand")
-  ; processSameLevel(TV_GetSelection(), "-Expand")
-  return
-
-  F8::        ;{ <-- unfold same level
-  processSameLevel(TV_GetSelection(), "Expand")
-  return
-
-  F9::        ;{ <-- find next
-  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-  if (searchText <> "")
-    searchItemInRoutine(searchText, "next")
-  return
-
-  F10::        ;{ <-- find previous
-  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-  if (searchText <> "")
-    searchItemInRoutine(searchText, "previous")
-  return
-
-  F11::       ;{ <-- Toggle bookmark for export
-  toggleBookmark()
-  return
-
-  +F1::
-  processLevel(2)
-  return
-
-  +F2::
-  processLevel(3)
-  return
-
-  +F3::
-  processLevel(4)
-  return
-
-  +F4::
-  processLevel(5)
-  return
-
-  +F5::
-  processLevel(6)
-  return
-
-  +F6::
-  processLevel(7)
-  return
-
-  +F7::
-  processLevel(8)
-  return
-
-  +F8::
-  processLevel(9)
-  return
-
-  +F9::
-  processLevel(10)
-  return
-
-  +F10::
-  processLevel(11)
-  return
-
-  +F11::
-  processLevel(12)
-  return
-
-  +F12::
-  processLevel(13)
-  return
-
-#IfWinActive
-  ;------------------------------------------------------------------
-  ; get file selection from user, using given path and file filter.
-  ; populates global fields: fullFileRoutines, fullFileCode
-  ;------------------------------------------------------------------
-fileSelector(homePath, filter) {
-	FileSelectFile, fullFileRoutines, 1, %homePath% , Select routines file, %filter%
+ ;--------------------------------------------
+  ; show window with editable settings
+  ;--------------------------------------------
+showSettings() {
+	static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, MyRadioGroup, checked1, checked2
+	win_title := "Settings"
 	
-	if (ErrorLevel = 1) {    ; cancelled by user
-		return False
+	IniRead, font_size, showRoutines.ini, font, size
+	IniRead, font_color, showRoutines.ini, font, color
+	IniRead, tree_step, showRoutines.ini, position, treeviewWidthStep
+	IniRead, window_color, showRoutines.ini, backgroundColor, window
+	IniRead, control_color, showRoutines.ini, backgroundColor, control
+	IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
+	
+	IniRead, codeEditor, showRoutines.ini, general, codeEditor
+	if (codeEditor == "code") {
+		checked1 := "checked1"
+		checked2 := "checked0"
+	} else {
+		checked1 := "checked0"
+		checked2 := "checked1"
 	}
 	
-	SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-	FoundPos := InStr(FileName, ".cbl.txt" , CaseSensitive:=false)
-	if (foundPos > 0) {
-		Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
-		NameNoExt := SubStr(FileName, 1, foundPos-1)
+	if (WinExist(win_title))
+		Gui, 4:Destroy
+	
+	Loop:
+    ;------
+    ; Font
+    ;------
+  Gui, 4:Add, GroupBox, x+5 y+10 w160 h100 , Font
+	
+	Gui, 4:Add, Text, xm+20 ym+40 +0x200, Size
+	Gui, 4:Add, Edit, vfont_size xm+50 ym+35 w40 +Number, %font_size%
+	Gui, 4:Add, UpDown, Range7-20, %font_size%
+	
+	Gui, 4:Add, Text, xm+20 ym+70 w60 +0x200, Color
+	Gui, 4:Add, Edit, vfont_color xm+50 ym+65 w50, %font_color%
+	
+	Gui, 4:Add, Progress, w25 h20 xs110 ys61 c%font_color%, 100
+	
+    ;-----------------
+    ; background color
+    ;-----------------
+	Gui, 4:Add, GroupBox, w170 h100 x+50 ys section, Background Color
+	
+	Gui, 4:Add, Text, w50 xs15 ys36 +0x200, Window
+	Gui, 4:Add, Edit, vwindow_color w50 xs60 ys31, %window_color%
+	Gui, 4:Add, Progress, w25 h20 xs120 ys31 c%window_color%, 100
+	
+	Gui, 4:Add, Text, w50 xs15 ys66 +0x200, Controls
+	Gui, 4:Add, Edit, vcontrol_color w50 xs60 ys61, %control_color%
+	Gui, 4:Add, Progress, w25 h20 xs120 ys61 c%control_color%, 100
+	
+    ;-----------------
+    ; other settings
+    ;-----------------
+	Gui, 4:Add, Text,  xm+5 yp+60 +0x200 section, Tree width +/-
+	Gui, 4:Add, Edit, vtree_step w50 xp+80 yp-5 +Number, %tree_step%
+	Gui, 4:Add, UpDown, Range10-200, %tree_step%
+	
+	Gui, 4:Add, Text, xm+5 yp+40, Code editor
+	Gui, 4:Add, Radio, Group g4check vMyRadioGroup %checked1% xp+80 yp, vscode
+	Gui, 4:Add, Radio, g4check %checked2% xp+70 yp, notepad++
+	
+	checked := showOnlyRoutine == "false" ? "" : "Checked"
+	Gui, 4:Add, Checkbox, vshowOnlyRoutineFlag %checked% xs200 ys, Show only selected routine
+	
+    ;---------------------------------------------
+    ; buttons to save, cancel, load default values
+    ;---------------------------------------------
+	Gui, 4:Add, Button, x70 y220 w80, Save
+	Gui, 4:Add, Button, x160 y220 w80 default, Cancel
+	Gui, 4:Add, Button, x250 y220 w80, Default
+	
+	4show:
+	Gui, 4:+Resize -SysMenu +ToolWindow
+	showSubGui(400, 250, win_title)
+        ; Gui, 4:Show, x300 y540 w400 h250, %win_title%
+	Return
+	
+	4Check:
+	gui, 4:submit, nohide
+        ; GuiControlGet, MyRadioGroup
+	if (MyRadioGroup = 1)
+		codeEditor := "code"
+	if (MyRadioGroup = 2)
+		codeEditor := "notepad++"
+	Return
+	
+	4ButtonSave:
+	Gui, 4:Submit, NoHide
+	
+	if (font_size < 7 or font_size > 20) {
+		msgbox, % "Font size must be between 6 and 20"
+		Goto, 4show
+	} else
+		
+	if (tree_step < 10 or tree_step > 200) {
+		msgbox, % "Step must be between 10 and 200"
+		Goto, 4show
+	} else {
+		Progress, zh0 fs10, % "Settings saved"
+            ; Sleep, 200
+		Progress, off
+		
+		IniWrite, %font_size%, showRoutines.ini, font, size
+		IniWrite, %font_color%, showRoutines.ini, font, color
+		if (tree_step > 0)
+			IniWrite, %tree_step%, showRoutines.ini, position, treeviewWidthStep
+		IniWrite, %window_color%, showRoutines.ini, backgroundColor, window
+		IniWrite, %control_color%, showRoutines.ini, backgroundColor, control
+		
+		showOnlyRoutine := showOnlyRoutineFlag ? "true" : "false"
+		IniWrite, %showOnlyRoutine%, showRoutines.ini, general, showOnlyRoutine
+		
+		IniWrite, %codeEditor%, showRoutines.ini, general, codeEditor
+		
+		Goto, 4GuiClose
 	}
 	
-	fileRoutines := FileName
-	fileCode := NameNoExt . ".cbl"
-	return true
+	Goto, 4show
 	
-  ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
-  ; ExitApp
+        ; Load the default values (again from ini file).
+	4ButtonDefault:
+	{
+		IniRead, treeviewWidth, showRoutines.ini, default, treeviewWidth
+		IniRead, font_size, showRoutines.ini, default, fontsize
+		IniRead, font_color, showRoutines.ini, default, fontcolor
+		IniRead, tree_step, showRoutines.ini, default, treeviewWidthStep
+		IniRead, window_color, showRoutines.ini, default, windowcolor
+		IniRead, control_color, showRoutines.ini, default, controlcolor
+		IniRead, codeEditor, showRoutines.ini, default, codeEditor
+		
+		Gui, 4:Destroy
+		Goto, Loop
+	}
+	
+	2GuiEscape:
+        ;Reload
+	
+	4GuiClose:
+	4ButtonCancel:
+	Gui, 4:Destroy
+	Return
   }
-    ;-----------------------------------------------------------
-    ; find system script is running.
-    ;-----------------------------------------------------------
-getSystem() {
-	StringLower, user, A_UserName
-	if (user = "nu72oa")
-		return "SYSTEM_WORK"
-	Else
-		return "SYSTEM_HOME"
+
+  ;--------------------------------------------
+  ; show window with editable settings
+  ;--------------------------------------------
+showSubGui(subGui_W, subGui_H, subGui_Title) {
+	WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+	newX := targetX + (targetWidth - subGui_W) / 2
+	newY := targetY + (targetHeight - subGui_H) / 2
+	Gui, 4:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, %subGui_Title%
+  }
+  ;---------------------------------------------------------------------
+  ; open exported routines in editor beside main window
+  ;---------------------------------------------------------------------
+openNotepad(filename) {
+  x := targetX + targetWidth - 10
+  y := targetY
+  RunWait, notepad++.exe -nosession -ro  -x%x% -y%y% "%filename%"
+  }
+  ;---------------------------------------------------------------------
+  ; move secondary windows
+  ;---------------------------------------------------------------------
+Move_window() {
+  global
+  IfWinExist, Gui 2 
+    {
+    WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+    newX := targetX + (targetWidth - subGui2_W) / 2
+    newY := targetY + (targetHeight - subGui2_H) / 2
+    Gui, 2:show, x%newX% y%newY%, Gui 2
+    }
+  
+  IfWinExist, Gui 3 
+    {
+    WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+    newX := targetX + (targetWidth - subGui3_W) / 2
+    newY := targetY + (targetHeight - subGui3_H) / 2
+    Gui, 3:show, x%newX% y%newY%, Gui 3
+    }
   }
   ;--------------------------------------------------
   ; check arguments, check run system, set filename,
@@ -339,19 +505,25 @@ setup() {
 	fullFileCode := path . fileCode
 	
     ; read last saved values
-	IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
-	IniRead, valueOfTreeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
+	IniRead, TreeViewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
+  IniRead, winX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+  IniRead, winY, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
+  IniRead, winWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+  IniRead, winHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight  
+
 	IniRead, valueOfFontsize, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
 	IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
 	IniRead, valueOfwindow_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
 	IniRead, valueOfcontrol_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
 	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
 	
-	TreeViewWidth := valueOfTreeviewWidth ; 400
-	ListBoxWidth := valueOfHeight - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
+  if (TreeViewWidth = 0)
+    TreeViewWidth := 600
+
+	ListBoxWidth := winWidth - TreeViewWidth - 30    ; 1000 - TreeViewWidth - 30
 	LVX := TreeViewWidth + 10
+
 	search2_x := TreeViewWidth + 10
-	
 	if (valueOfFontsize >=6 and valueOfFontsize<=20)
 		fontSize := valueOfFontsize
 	else
@@ -378,22 +550,22 @@ setup() {
 	else
 		control_color := VSCODE_EDIT_WIN
 	
-	Gui, Font, c%fontColor% s%fontSize%, Courier New
-	Gui, Color, %window_color%, %control_color%
+	Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
+	Gui, 1:Color, %window_color%, %control_color%
 	
-	Gui, +Resize +Border
-	Gui, Add, Text, x5 y10 , Search for routine:
-	Gui, Add, Edit, r1 vMyEdit_routine x+5 y5 w150
-	Gui, Add, Text, x%search2_x% y10 , Search inside code:
-	Gui, Add, Edit, r1 vMyEdit_code x+5 y5 w150
+	Gui, 1:+Resize +Border
+	Gui, 1:Add, Text, x5 y10 , Search for routine:
+	Gui, 1:Add, Edit, r1 vMyEdit_routine x+5 y5 w150
+	Gui, 1:Add, Text, x%search2_x% y10 , Search inside code:
+	Gui, 1:Add, Edit, r1 vMyEdit_code x+5 y5 w150
 	
-	Gui, Add, Button, x+1 Hidden Default, OK    ; hidden button to catch enter key! x+1 = show on same line with textbox
+	Gui, 1:Add, Button, x+1 Hidden Default, OK    ; hidden button to catch enter key! x+1 = show on same line with textbox
 	
-	Gui, Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
+	Gui, 1:Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
     ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
 	
-	Gui, Add, ListBox, r100 vMyListBox w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in default editor
-	Gui, add, StatusBar, Background c%control_color%
+	Gui, 1:Add, ListBox, r100 vMyListBox w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in default editor
+	Gui, 1:add, StatusBar, Background c%control_color%
     ; Gui, add, StatusBar, Background c%window_color%
 	
   ; define the context menu.
@@ -417,8 +589,8 @@ setup() {
 	Menu, FileMenu, Add, Save position, MenuHandler
 	Menu, FileMenu, Disable, Save position
 	
-	Menu, FileMenu, Add, Save tree as..., MenuHandler
-	Menu, FileMenu, Icon, Save tree as..., shell32.dll, 259
+	Menu, FileMenu, Add, Export tree as..., MenuHandler
+	Menu, FileMenu, Icon, Export tree as..., shell32.dll, 259
 	
 	Menu, FileMenu, Add, &Exit, MenuHandler
 	Menu, FileMenu, Icon, &Exit, shell32.dll, 123
@@ -451,27 +623,124 @@ setup() {
 	Menu, MyMenuBar, Add, &Settings, :SettingsMenu
   Menu, MyMenuBar, Add, &Help, :HelpMenu
 	
-	Gui, Menu, MyMenuBar
-	Gui, Add, Button, gExit, Exit This Example
+	Gui, 1:Menu, MyMenuBar
+	Gui, 1:Add, Button, gExit, Exit This Example
 	Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
 	return
   }
-    ;-----------------------------------------------------------
-    ; Handle enter key. 
-    ;-----------------------------------------------------------
-ButtonOK: 
-  {
-	GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-	if (searchText <> "")
-		searchItemInRoutine(searchText, "next")
-	else {
-		GuiControlGet, searchText, ,MyEdit_code  ;get search text from input field
-		if (searchText <> "")
-			item = searchItemInCode(searchText, "next")
-		GuiControl, Choose, MyListBox, item
-	}
-	return
-  }
+  ;---------------------------------------
+  ; define shortcut keys
+  ;---------------------------------------
+#IfWinActive ahk_class AutoHotkeyGUI
+  global searchText
+
+  ^left::     ;{ <-- decrease treeview
+  changeTreeviewWidth("-")
+  return
+
+  ^right::    ;{ <-- increase treeview
+  changeTreeviewWidth("+")
+  return
+
+  F1::
+  showHelp()  ;{ <-- help
+  return
+
+  F2::
+  showExport()  ;{ <-- export
+  return
+
+  F3::       ;{ <-- fold all routines 
+  processAll("-Expand")
+  return
+
+  F4::        ;{ <-- unfold all routines 
+  processAll("Expand")
+  return
+
+  F5::        ;{ <-- fold recursively current routine
+  processChildren(TV_GetSelection(), "-Expand")
+  return
+
+  F6::        ;{ <-- unfold recursively current routine
+  processChildren(TV_GetSelection(), "Expand")
+  return
+
+  F7::        ;{ <-- fold same level
+  selected_itemID := TV_GetSelection()
+  processSameLevel(selected_itemID, "-Expand")
+  ; processSameLevel(TV_GetSelection(), "-Expand")
+  return
+
+  F8::        ;{ <-- unfold same level
+  processSameLevel(TV_GetSelection(), "Expand")
+  return
+
+  F9::        ;{ <-- find next
+  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+  if (searchText <> "")
+    searchItemInRoutine(searchText, "next")
+  return
+
+  F10::        ;{ <-- find previous
+  GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+  if (searchText <> "")
+    searchItemInRoutine(searchText, "previous")
+  return
+
+  F11::       ;{ <-- Toggle bookmark for export
+  toggleBookmark()
+  return
+
+  +F1::
+  processLevel(2)
+  return
+
+  +F2::
+  processLevel(3)
+  return
+
+  +F3::
+  processLevel(4)
+  return
+
+  +F4::
+  processLevel(5)
+  return
+
+  +F5::
+  processLevel(6)
+  return
+
+  +F6::
+  processLevel(7)
+  return
+
+  +F7::
+  processLevel(8)
+  return
+
+  +F8::
+  processLevel(9)
+  return
+
+  +F9::
+  processLevel(10)
+  return
+
+  +F10::
+  processLevel(11)
+  return
+
+  +F11::
+  processLevel(12)
+  return
+
+  +F12::
+  processLevel(13)
+  return
+
+#IfWinActive
     ;-----------------------------------------------------------
     ; Handle user actions (such as clicking). 
     ;-----------------------------------------------------------
@@ -541,30 +810,58 @@ MyTreeView:
 	
 	return
   }
-
-GuiSize:  ; Expand/shrink the ListBox and TreeView in response to user's resizing of window.
+  ;-----------------------------------------------------------
+  ; set status bar text
+  ;-----------------------------------------------------------
+updateStatusBar(currentRoutine := "MAIN") {
+  SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
+  . " | File:" . fileCode . " | Current routine:" . currentRoutine)
+  }
+  ;---------------------------------------------------------------------
+  ; Expand/shrink the TreeView in response to user's resizing of window.
+  ;---------------------------------------------------------------------
+GuiSize:
   {
 	if (A_EventInfo = 1)  ; The window has been minimized. No action needed.
 		return
+
 	gui_height := A_GuiHeight
 	gui_width := A_GuiWidth
-    ; Otherwise, the window has been resized or maximized. Resize the controls to match.
-	resizeTreeview()
-    ; GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
+  gui_offset := 60
+
+  ; Otherwise, the window has been resized or maximized. Resize the controls to match.
+  GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
 	
-	GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset + 5) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
-    ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
+	GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset ) . " W" . (A_GuiWidth - TreeViewWidth - 10) ; width = total - treeview - (3 X 5) margins.
+  ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
 	
 	return
   }
-
-resizeTreeview() {
-	if (gui_height > 0 and gui_width > 0)
-		GuiControl, Move, MyTreeView, % "H" . (gui_height - gui_offset) . " W" . TreeViewWidth
+    ;----------------------------------------------------------------
+    ; on app close save to INI file last position & size.
+    ;----------------------------------------------------------------
+GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
+  exitApplication()
+  return
+  ;-----------------------------------------------------------
+  ; Handle enter key (such as clicking). 
+  ;-----------------------------------------------------------
+ButtonOK: 
+  {
+	GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
+	if (searchText <> "")
+		searchItemInRoutine(searchText, "next")
+	else {
+		GuiControlGet, searchText, ,MyEdit_code  ;get search text from input field
+		if (searchText <> "")
+			item = searchItemInCode(searchText, "next")
+		GuiControl, Choose, MyListBox, item
+	}
+	return
   }
-    ;----------------------------------------------------------------
-    ; Launched in response to a right-click or press of the Apps key.
-    ;----------------------------------------------------------------
+  ;----------------------------------------------------------------
+  ; Launched in response to a right-click or press of the Apps key.
+  ;----------------------------------------------------------------
 GuiContextMenu:
   {
 	if (A_GuiControl <> "MyTreeView")  ; This check is optional. It displays the menu only for clicks inside the TreeView.
@@ -575,60 +872,6 @@ GuiContextMenu:
 	return
   }
 
-    ;----------------------------------------------------------------
-    ; on app close save to INI file last position & size.
-    ;----------------------------------------------------------------
-GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
-
-  if (fileRoutines = "ERROR")
-    return
-  if (fileCode = "ERROR")
-    return
-
-    ; on exit save position & size of window
-    ; but if it is minimized skip this step.
-  actWin := WinExist("A")
-  WinGet, isMinimized , MinMax, actWin
-  if (isMinimized <> -1) {
-    WinGetPos, winX, winY, winWidth, winHeight, A
-    
-          ; save X, Y that are absolute values.
-    IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
-    IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
-    
-          ; save absolute values of W,H.
-    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
-    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
-    
-    GetClientSize(actWin, winWidth, winHeight)
-    
-          ; save client values of W,H (used by winmove)
-    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
-    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
-    }
-
-  if (treeviewWidth > 0)
-  	IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
-
-  if (fontSize > 0)
-	  IniWrite, %fontSize%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
-
-    ; if filenames are non blank save also.
-  if (fileRoutines <> "")
-    IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
-  if (fileCode <> "")
-    IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-
-  ExitApp
-
-GetClientSize(hWnd, ByRef w := "", ByRef h := "")
-  {
-	VarSetCapacity(rect, 16)
-	DllCall("GetClientRect", "ptr", hWnd, "ptr", &rect)
-	w := NumGet(rect, 8, "int")
-	h := NumGet(rect, 12, "int")
-  }
-
     ;-----------------------------------------------------------
     ; Handle menu bar actions
     ;-----------------------------------------------------------
@@ -636,82 +879,38 @@ MenuHandler:
   if (A_ThisMenuItem = "&Open file") {
     if (!fileSelector(path, "(*.txt)"))
       return
-    Gui, Destroy
+    Gui, 1:Destroy
     mainProcess()
     return
-    }
+  }
+
+  if (A_ThisMenuItem = "Export tree as...") {
+    showExport()
+    return
+  }
+  
   if (A_ThisMenuItem = "&Settings") {
     showSettings()
     return
-    }
+  }
       
   if (A_ThisMenuItem = "&Help `tF1") {
     showHelp()
     return
   }
 
-
-  +F1::
-  processLevel(2)
-  return
-
-  +F2::
-  processLevel(3)
-  return
-
-  +F3::
-  processLevel(4)
-  return
-
-  +F4::
-  processLevel(5)
-  return
-
-  +F5::
-  processLevel(6)
-  return
-
-  +F6::
-  processLevel(7)
-  return
-
-  +F7::
-  processLevel(8)
-  return
-
-  +F8::
-  processLevel(9)
-  return
-
-  +F9::
-  processLevel(10)
-  return
-
-  +F10::
-  processLevel(11)
-  return
-
-  +F11::
-  processLevel(12)
-  return
-
-  +F12::
-  processLevel(13)
-  return
-
   if (A_ThisMenuItem = "&Exit") {
-    Gui, Destroy
-    ExitApp
-    }
+    exitApplication()
+  }
 
   return
 
 Exit:
   ExitApp
 
-    ;-----------------------------------------------------------
-    ; Handle context menu actions
-    ;-----------------------------------------------------------
+  ;-----------------------------------------------------------
+  ; Handle context menu actions
+  ;-----------------------------------------------------------
 contextMenuHandler:
 
   if (A_ThisMenuItem = "Show routine code `tLeft click") {
@@ -756,162 +955,72 @@ contextMenuHandler:
     toggleBookmark()
   }
 
+  return
+  ;---------------------------------------------------------------------
+  ; Exit the application  
+  ;---------------------------------------------------------------------
+exitApplication() {
+  saveSettings()
+  Gui, 1:Destroy
+  ExitApp
+  }
+  ;---------------------------------------------------------------------
+  ; save settings to ini  
+  ;---------------------------------------------------------------------
+saveSettings() {
+  
+  if (fileRoutines = "ERROR")
     return
-    ;--------------------------------------------
-    ; show 2nd window with editable settings
-    ;--------------------------------------------
-showSettings() {
-	static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, MyRadioGroup, checked1, checked2
-	win_title := "Settings"
-	
-	IniRead, font_size, showRoutines.ini, font, size
-	IniRead, font_color, showRoutines.ini, font, color
-	IniRead, tree_step, showRoutines.ini, position, treeviewWidthStep
-	IniRead, window_color, showRoutines.ini, backgroundColor, window
-	IniRead, control_color, showRoutines.ini, backgroundColor, control
-	IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
-	
-	IniRead, codeEditor, showRoutines.ini, general, codeEditor
-	if (codeEditor == "code") {
-		checked1 := "checked1"
-		checked2 := "checked0"
-	} else {
-		checked1 := "checked0"
-		checked2 := "checked1"
-	}
-	
-	if (WinExist(win_title))
-		Gui, 2:Destroy
-	
-	Loop:
-    ;------
-    ; Font
-    ;------
-		Gui, 2:Add, GroupBox, x+5 y+10 w160 h100 , Font
-	
-	Gui, 2:Add, Text, xm+20 ym+40 +0x200, Size
-	Gui, 2:Add, Edit, vfont_size xm+50 ym+35 w40 +Number, %font_size%
-	Gui, 2:Add, UpDown, Range7-20, %font_size%
-	
-	Gui, 2:Add, Text, xm+20 ym+70 w60 +0x200, Color
-	Gui, 2:Add, Edit, vfont_color xm+50 ym+65 w50, %font_color%
-	
-	Gui, 2:Add, Progress, w25 h20 xs110 ys61 c%font_color%, 100
-	
-    ;-----------------
-    ; background color
-    ;-----------------
-	Gui, 2:Add, GroupBox, w170 h100 x+50 ys section, Background Color
-	
-	Gui, 2:Add, Text, w50 xs15 ys36 +0x200, Window
-	Gui, 2:Add, Edit, vwindow_color w50 xs60 ys31, %window_color%
-	Gui, 2:Add, Progress, w25 h20 xs120 ys31 c%window_color%, 100
-	
-	Gui, 2:Add, Text, w50 xs15 ys66 +0x200, Controls
-	Gui, 2:Add, Edit, vcontrol_color w50 xs60 ys61, %control_color%
-	Gui, 2:Add, Progress, w25 h20 xs120 ys61 c%control_color%, 100
-	
-    ;-----------------
-    ; other settings
-    ;-----------------
-	Gui, 2:Add, Text,  xm+5 yp+60 +0x200 section, Tree width +/-
-	Gui, 2:Add, Edit, vtree_step w50 xp+80 yp-5 +Number, %tree_step%
-	Gui, 2:Add, UpDown, Range10-200, %tree_step%
-	
-	Gui, 2:Add, Text, xm+5 yp+40, Code editor
-	Gui, 2:Add, Radio, Group g2Check vMyRadioGroup %checked1% xp+80 yp, vscode
-	Gui, 2:Add, Radio, g2Check %checked2% xp+70 yp, notepad++
-	
-	checked := showOnlyRoutine == "false" ? "" : "Checked"
-	Gui, 2:Add, Checkbox, vshowOnlyRoutineFlag %checked% xs200 ys, Show only selected routine
-	
-    ;---------------------------------------------
-    ; buttons to save, cancel, load default values
-    ;---------------------------------------------
-	Gui, 2:Add, Button, x70 y220 w80, Save
-	Gui, 2:Add, Button, x160 y220 w80 default, Cancel
-	Gui, 2:Add, Button, x250 y220 w80, Default
-	
-	2show:
-	Gui, 2:+Resize -SysMenu +ToolWindow
-	showSubGui(400, 250, win_title)
-        ; Gui, 2:Show, x300 y540 w400 h250, %win_title%
-	Return
-	
-	2Check:
-	gui, submit, nohide
-        ; GuiControlGet, MyRadioGroup
-	if (MyRadioGroup = 1)
-		codeEditor := "code"
-	if (MyRadioGroup = 2)
-		codeEditor := "notepad++"
-	Return
-	
-	2ButtonSave:
-	Gui, 2:Submit, NoHide
-	
-	if (font_size < 7 or font_size > 20) {
-		msgbox, % "Font size must be between 6 and 20"
-		Goto, 2show
-	} else
-		
-	if (tree_step < 10 or tree_step > 200) {
-		msgbox, % "Step must be between 10 and 200"
-		Goto, 2show
-	} else {
-		Progress, zh0 fs10, % "Settings saved"
-            ; Sleep, 200
-		Progress, off
-		
-		IniWrite, %font_size%, showRoutines.ini, font, size
-		IniWrite, %font_color%, showRoutines.ini, font, color
-		if (tree_step > 0)
-			IniWrite, %tree_step%, showRoutines.ini, position, treeviewWidthStep
-		IniWrite, %window_color%, showRoutines.ini, backgroundColor, window
-		IniWrite, %control_color%, showRoutines.ini, backgroundColor, control
-		
-		showOnlyRoutine := showOnlyRoutineFlag ? "true" : "false"
-		IniWrite, %showOnlyRoutine%, showRoutines.ini, general, showOnlyRoutine
-		
-		IniWrite, %codeEditor%, showRoutines.ini, general, codeEditor
-		
-		Goto, 2GuiClose
-	}
-	
-	Goto, 2show
-	
-        ; Load the default values (again from ini file).
-	2ButtonDefault:
-	{
-		IniRead, treeviewWidth, showRoutines.ini, default, treeviewWidth
-		IniRead, font_size, showRoutines.ini, default, fontsize
-		IniRead, font_color, showRoutines.ini, default, fontcolor
-		IniRead, tree_step, showRoutines.ini, default, treeviewWidthStep
-		IniRead, window_color, showRoutines.ini, default, windowcolor
-		IniRead, control_color, showRoutines.ini, default, controlcolor
-		IniRead, codeEditor, showRoutines.ini, default, codeEditor
-		
-		Gui, 2:Destroy
-		Goto, Loop
-	}
-	
-	2GuiEscape:
-        ;Reload
-	
-	2GuiClose:
-	2ButtonCancel:
-	Gui, 2:Destroy
-	Return
+  if (fileCode = "ERROR")
+    return
+
+  ; on exit save position & size of window
+  ; but if it is minimized skip this step.
+  actWin := WinExist("A")
+  WinGet, isMinimized , MinMax, actWin
+  if (isMinimized <> -1) {
+    WinGetPos, winX, winY, winWidth, winHeight, A
+    
+    ; save X, Y that are absolute values.
+    IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+    IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
+    
+    ; save absolute values of W,H.
+    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
+    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
+    
+    GetClientSize(actWin, winWidth, winHeight)
+    
+    ; save client values of W,H (used by winmove)
+    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
+    }
+
+  if (treeviewWidth > 0)
+  	IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
+
+  if (fontSize > 0)
+	  IniWrite, %fontSize%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
+
+  ; if filenames are non blank save also.
+  if (fileRoutines <> "")
+    IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
+  if (fileCode <> "")
+    IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
   }
-showSubGui(subGui_W, subGui_H, subGui_Title) {
-	WinGetPos, targetX, targetY, targetWidth, targetHeight, A
-	newX := targetX + (targetWidth - subGui_W) / 2
-	newY := targetY + (targetHeight - subGui_H) / 2
-	Gui, 2:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, %subGui_Title%
+  ;---------------------------------------------------------------------
+  ; get actual gui size 
+  ;---------------------------------------------------------------------
+GetClientSize(hWnd, ByRef w := "", ByRef h := "")
+  {
+	VarSetCapacity(rect, 16)
+	DllCall("GetClientRect", "ptr", hWnd, "ptr", &rect)
+	w := NumGet(rect, 8, "int")
+	h := NumGet(rect, 12, "int")
   }
-    ;--------------------------------------------
-    ; resize when ctrl+left or ctrl+right pressed
-    ;--------------------------------------------
+  ;--------------------------------------------
+  ; resize when ctrl+left or ctrl+right pressed
+  ;--------------------------------------------
 changeTreeviewWidth(type) {
 	global
 	WinGetPos, winX, winY, winWidth, winHeight
@@ -1547,4 +1656,39 @@ class routine {
 	endStmt := ""
 	callingStmt := ""
 	calls := []
+  }
+  ;-----------------------------------------------------------
+  ; find system script is running.
+  ;-----------------------------------------------------------
+getSystem() {
+	StringLower, user, A_UserName
+	if (user = "nu72oa")
+		return "SYSTEM_WORK"
+	Else
+		return "SYSTEM_HOME"
+  }
+  ;------------------------------------------------------------------
+  ; get file selection from user, using given path and file filter.
+  ; populates global fields: fullFileRoutines, fullFileCode
+  ;------------------------------------------------------------------
+fileSelector(homePath, filter) {
+	FileSelectFile, fullFileRoutines, 1, %homePath% , Select routines file, %filter%
+	
+	if (ErrorLevel = 1) {    ; cancelled by user
+		return False
+	}
+	
+	SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
+	FoundPos := InStr(FileName, ".cbl.txt" , CaseSensitive:=false)
+	if (foundPos > 0) {
+		Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
+		NameNoExt := SubStr(FileName, 1, foundPos-1)
+	}
+	
+	fileRoutines := FileName
+	fileCode := NameNoExt . ".cbl"
+	return true
+	
+  ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
+  ; ExitApp
   }
