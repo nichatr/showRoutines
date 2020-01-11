@@ -50,6 +50,9 @@
   global from_line_number, to_line_number
   global gui_offset, gui_height, gui_width
   global letterColor, fontSize, fontColor, codeEditor
+  global subGui2_W, subGui2_H
+  global subGui3_W, subGui3_H
+  global subGui4_W, subGui4_H
   global currentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
   global ExportSelected, nodesToExport
@@ -102,6 +105,8 @@ showExport() {
   outputFormat := "txt"
 
   Gui, 3:Destroy
+  global subGui3_W, subGui3_H
+
   subGui3_W := 420
   subGui3_H := 180
   WinGetPos, targetX, targetY, targetWidth, targetHeight, A
@@ -293,9 +298,9 @@ showSettings() {
 	Gui, 4:Add, Button, x250 y220 w80, Default
 	
 	4show:
-	Gui, 4:+Resize -SysMenu +ToolWindow
+	Gui, 4:+AlwaysOnTop -Caption +Owner1
+  ; Gui, 4:+Resize -SysMenu +ToolWindow
 	showSubGui(400, 250, win_title)
-        ; Gui, 4:Show, x300 y540 w400 h250, %win_title%
 	Return
 	
 	4Check:
@@ -371,7 +376,9 @@ showSubGui(subGui_W, subGui_H, subGui_Title) {
 	WinGetPos, targetX, targetY, targetWidth, targetHeight, A
 	newX := targetX + (targetWidth - subGui_W) / 2
 	newY := targetY + (targetHeight - subGui_H) / 2
-	Gui, 4:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, %subGui_Title%
+  subGui4_W := subGui_W
+  subGui4_H := subGui_H
+	Gui, 4:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, Gui 4 ; %subGui_Title%
   }
   ;---------------------------------------------------------------------
   ; open exported routines in editor beside main window
@@ -400,6 +407,14 @@ Move_window() {
     newX := targetX + (targetWidth - subGui3_W) / 2
     newY := targetY + (targetHeight - subGui3_H) / 2
     Gui, 3:show, x%newX% y%newY%, Gui 3
+    }
+  
+  IfWinExist, Gui 4 
+    {
+    WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+    newX := targetX + (targetWidth - subGui4_W) / 2
+    newY := targetY + (targetHeight - subGui4_H) / 2
+    Gui, 4:show, x%newX% y%newY%, Gui 4
     }
   }
   ;--------------------------------------------------
