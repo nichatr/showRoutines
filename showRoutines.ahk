@@ -53,7 +53,7 @@
   global subGui2_W, subGui2_H
   global subGui3_W, subGui3_H
   global subGui4_W, subGui4_H
-  global currentLevel   ; holds the fold level or 0 if none.
+  global gCurrentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
   global ExportSelected, nodesToExport
 
@@ -73,22 +73,9 @@ mainProcess() {
 showGui() {
   global
 	OnMessage(0x232, "Move_window") ; to move children guis with the parent
-  ; SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
-  ; ; read last saved win position & size
-  ; IniRead, valueOfX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
-  ; IniRead, valueOfY, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
-  ; IniRead, valueOfWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
-  ; IniRead, valueOfHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
-  
-  ; IniRead, actualHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
-  ; gui_offset := actualHeight - valueOfHeight
-	
-  ; if (valueOfX < -7)
-  ;   valueOfX := -7
-  ; if (valueOfY < 0)
-  ;   valueOfY := 0
+  processLevel(2)
+  updateStatusbar()
   Gui, 1:Show, X%winX% Y%winY% W%winWidth% H%winHeight%, %fileCode%
-  ; Gui, Show, X%valueOfX% Y%valueOfY% W%valueOfWidth% H%valueOfHeight%, %fileCode%
   return
   }
   ;---------------------------------------------------------------------
@@ -871,7 +858,7 @@ updateStatusBar(currentRoutine := "MAIN") {
   routine2 := itemLevels[index2, 3]
   bookmarks := routine1 <> "" ? ("[" . routine1 . "]" . (routine2 <> "" ? "---" . "[" . routine2 . "]" : "")) : (routine2 <> ? "[" . routine2 . "]" : "")
 
-  SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Bookmarks:" . bookmarks)
+  SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Current level: " . gCurrentLevel . " | Bookmarks:" . bookmarks)
 
   ; SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
   ; . " | File:" . fileCode . " | Current routine:" . currentRoutine)
@@ -1128,6 +1115,8 @@ processAll(mode) {
 	
 	GuiControl, +Redraw, MyTreeView
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
+  gCurrentLevel := 999
+  updateStatusbar()
   }
     ;-----------------------------------------------------------
     ; hide/show all children nodes.
@@ -1161,6 +1150,8 @@ processChildren(currentItemID, mode) {
 	
 	GuiControl, +Redraw, MyTreeView
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item
+  gCurrentLevel := 999
+  updateStatusbar()
   }
     ;-----------------------------------------------------------
     ; hide/show all nodes with same level as selected node.
@@ -1205,6 +1196,8 @@ processSameLevel(currentItemID, mode) {
 	GuiControl, +Redraw, MyTreeView
 	
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
+  gCurrentLevel := 999
+  updateStatusbar()
   }
 
   ;-----------------------------------------------------------
@@ -1231,15 +1224,12 @@ processLevel(selected_level) {
 
   GuiControl, +Redraw, MyTreeView
   TV_Modify(itemLevels[1, 1], "VisFirst")
-  currentLevel := selected_level
+  gCurrentLevel := selected_level
   updateStatusbar()
   }
-
-
-
-    ;-----------------------------------------------------------
-    ; search the text entered in MyEdit_routine control
-    ;-----------------------------------------------------------
+  ;-----------------------------------------------------------
+  ; search the text entered in MyEdit_routine control
+  ;-----------------------------------------------------------
 searchItemInRoutine(searchText, direction) {
 	
 	global
