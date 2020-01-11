@@ -95,8 +95,43 @@ showGui() {
   ; show help window
   ;---------------------------------------------------------------------
 showHelp() {
-  msgbox, help Screen
+  Gui, 2:Destroy
+  subGui2_W := 420
+  subGui2_H := 220
+  WinGetPos, targetX, targetY, targetWidth, targetHeight, A
+  newX := targetX + (targetWidth - subGui2_W) / 2
+  newY := targetY + (targetHeight - subGui2_H) / 2
+
+  Gui, 2:+AlwaysOnTop -Caption +Owner1
+  Gui, 2:Add,GroupBox,xm+5 y+20 w%subGui2_W% h%subGui2_H%, Function keys
+  Gui, 2:Add,Text,xm+10 yp+20 w400,
+    (
+      
+    F1 = show help 
+    F2 = export tree 
+
+    F3/F4 = fold/unfold all 
+    F5/F6 = fold/unfold current node recursively 
+    F7/F8 = fold/unfold current level
+    shift F1..F12 = fold level 2..13
+
+    F9/F10 = search next/previous
+    F11 = toggle bookmark for export
+
+    ctrl right cursor = increase tree width
+    ctrl left cursor = decrease tree width
+
+    )
+  Gui, 2:Add, button, xm+10 y+20 g2Close,Close
+  Gui, 2:show, x%newX% y%newY%, Gui 2
+  HWND_GUI2 := WinExist(A)
+  return
   }
+2Escape:
+2GuiEscape:
+2Close:
+  Gui, 2:Destroy
+  return
   ;---------------------------------------------------------------------
   ; show export window
   ;---------------------------------------------------------------------
@@ -360,7 +395,7 @@ showSettings() {
 		Goto, Loop
 	}
 	
-	2GuiEscape:
+	4GuiEscape:
         ;Reload
 	
 	4GuiClose:
@@ -829,8 +864,17 @@ MyTreeView:
   ; set status bar text
   ;-----------------------------------------------------------
 updateStatusBar(currentRoutine := "MAIN") {
-  SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
-  . " | File:" . fileCode . " | Current routine:" . currentRoutine)
+  ; first find the routine names from the bookmarks
+  index1 := findBookmark(nodesToExport[1])
+  routine1 := itemLevels[index1, 3]
+  index2 := findBookmark(nodesToExport[2])
+  routine2 := itemLevels[index2, 3]
+  bookmarks := routine1 <> "" ? ("[" . routine1 . "]" . (routine2 <> "" ? "---" . "[" . routine2 . "]" : "")) : (routine2 <> ? "[" . routine2 . "]" : "")
+
+  SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Bookmarks:" . bookmarks)
+
+  ; SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Statements:" . allCode.MaxIndex()
+  ; . " | File:" . fileCode . " | Current routine:" . currentRoutine)
   }
   ;---------------------------------------------------------------------
   ; Expand/shrink the TreeView in response to user's resizing of window.
@@ -1360,6 +1404,7 @@ toggleBookmark() {
     if (selectedNode = nodesToExport[A_Index]) {
       nodesToExport.RemoveAt(A_Index)
       TV_Modify(selectedNode, "-Bold")
+      updateStatusbar()
       return
     }
   }
@@ -1373,7 +1418,7 @@ toggleBookmark() {
     TV_Modify(nodesToExport[1], "-Bold")
     nodesToExport.RemoveAt(1)
   }
-
+  updateStatusbar()
   }
   ;-------------------------------------------------------------------------------
   ; export nodes to text file
