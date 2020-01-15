@@ -32,6 +32,7 @@
   ;--------------------------------------------------------------------------------------
   global allRoutines  ; array of class "routine"
   global allCode      ; array of source code to show
+  global currThread ; keeps all routines in the current thread in order to avoid circular dependencies
   global tmpRoutine 
   global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
   global fullFileCode, fileCode         ; text file with source code.
@@ -1347,21 +1348,28 @@ loadTreeview() {
     ;---------------------------------------------------------------------
 processRoutine(currRoutine, parentID=0) {
 	static currentLevel
+
+  ; check if new routine exists in this thread: if it exists don't process it again.
+  threadIndex := searchArray(currRoutine.routineName)
+  if (threadIndex > 0)
+    return
+  
+  currentLevel ++
+  currThread.push(currRoutine.routineName)  ; add new routine to this thread.
 	currentLevel ++
-	
 	itemId := addToTreeview(currRoutine.routineName, currentLevel, parentID)
-	
-    ; itemId := TV_Add(currRoutine.routineName, parentID, "Icon4 Expand")
-    ; itemId := TV_Add(currRoutine.routineName "(" . currentLevel . ")", parentID, "Icon4 Expand")
 	
 	Loop, % currRoutine.calls.MaxIndex() {
 		
         ; search array allRoutines[] for the current routine item.
 		calledId := searchRoutine(currRoutine.calls[A_Index])
+
 		if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
 			processRoutine(allRoutines[calledId], itemId)     ; write children
 		}
 	}
+
+  value := currThread.pop()
 	currentLevel --
   }
     ;---------------------------------------
@@ -1567,6 +1575,17 @@ searchRoutine(routineName) {
 		}
 	}
 	return 0
+  }
+  ;-------------------------------------------------------------------------------
+  ; search if parameter exists in the parameter array.
+  ;-------------------------------------------------------------------------------
+searchArray(searchfor) {
+  Loop, % currThread.MaxIndex() {
+      if (searchfor = currThread[A_Index]) {
+          return A_index
+      }
+  }
+  return 0
   }
     ;-----------------------------------------------------------------------
     ; read mpmdl001.cbl file and populate array with all code
