@@ -214,7 +214,7 @@ showExport() {
   exportedString := exportTreeview()
   
   if (exportedString <> "") {
-    filename := ".\data\exported_" . ExportedFilename
+    filename := ".\data\" . ExportedFilename
     if FileExist(filename)
       FileDelete, %filename%
     FileAppend, %exportedString%, %filename%
@@ -229,7 +229,7 @@ showExport() {
   exportedString := exportNodes()
   
   if (exportedString <> "") {
-    filename := ".\data\exported_" . fileRoutines
+    filename := ".\data\" . ExportedFilename
     if FileExist(filename)
       FileDelete, %filename%
     FileAppend, %exportedString%, %filename%
@@ -1510,6 +1510,7 @@ exportTreeview() {
     return ""
   
   exportedRoutines := []
+  currThread  := [] 
   exportedString := ""
 
   ; first item is always = "MAIN" (the parent routine of all)
@@ -1530,11 +1531,18 @@ exportTreeview() {
   ;-------------------------------------------------------------------------------
 processRoutine_for_Export(currRoutine, MaxLevel=999) {
   static currentLevel
+    
+  ; check if new routine exists in this thread: if it exists don't process it again.
+  threadIndex := searchArray(currRoutine.routineName)
+  if (threadIndex > 0)
+    return
+
   currentLevel ++
   if (currentLevel > MaxLevel) {
     currentLevel --
     return
   }
+  currThread.push(currRoutine.routineName)  ; add new routine to this thread.
 
   exportRoutine(currRoutine.routineName, currentLevel)
 
@@ -1546,6 +1554,8 @@ processRoutine_for_Export(currRoutine, MaxLevel=999) {
         processRoutine_for_Export(allRoutines[calledId], MaxLevel)     ; write children
       }
     }
+
+    value := currThread.pop() ; at end remove current routine from thread
     currentLevel --
   }
   ;-------------------------------------------------------------------------------
