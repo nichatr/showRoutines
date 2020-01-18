@@ -56,7 +56,7 @@
   global subGui4_W, subGui4_H
   global gCurrentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
-  global ExportSelected, nodesToExport
+  global ExportSelected, nodesToExport, ExportWhatYouSee
 
 initialize()
 mainProcess()
@@ -67,6 +67,7 @@ mainProcess() {
   populateRoutines()
   populateCode()
   loadTreeview()
+  saveRoutines(".\data\allRoutines.txt", header, true)
   updateStatusBar()
   showGui()
   }
@@ -160,14 +161,15 @@ showExport() {
   Gui, 3:Add, Radio, g3Check xp+50 yp, xml
 
   ; Export, Close buttons
-  Gui, 3:Add, button, xm+60 ym+190 g3ExportAll, Export All
-  Gui, 3:Add, button, xp+100 ym+190 g3ExportSelected vExportSelected, Export Selected
+  Gui, 3:Add, button, xm+60 ym+190 w50 g3ExportAll, All
+  Gui, 3:Add, button, xp+50 ym+190 w50 g3ExportSelected vExportSelected, Selected
+  Gui, 3:Add, button, xp+50 ym+190 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
   Gui, 3:Add, button, xp+130 g3Close, Close
 
-  ; if (firstNode<>0 and lastNode<>0)
-  ;   GuiControl, 3:Enable, ExportSelected
-  ; else
-  ;   GuiControl, 3:Disable, ExportSelected
+  if (nodesToExport.MaxIndex()>0)
+    GuiControl, 3:Enable, ExportSelected
+  else
+    GuiControl, 3:Disable, ExportSelected
 
   ; show window
   Gui, 3:show, x%newX% y%newY%, Gui 3
@@ -175,7 +177,9 @@ showExport() {
   return
   }
 
+  ;---------------------------------------------------------------------
   ; checkbox <include descriptions> handler
+  ;---------------------------------------------------------------------
 3IncludeDescriptions:
   Gui, 3:Submit, NoHide
 
@@ -185,7 +189,9 @@ showExport() {
     exportDescriptions := "false"
   return
 
+  ;---------------------------------------------------------------------
   ; radiogroup <exrpot type> handler
+  ;---------------------------------------------------------------------
 3Check:
   Gui, 3:Submit, NoHide
 
@@ -199,7 +205,9 @@ showExport() {
     outputFormat := "xml"
   Return
 
-  ; button <export all> handler
+  ;---------------------------------------------------------------------
+  ; button <All> handler
+  ;---------------------------------------------------------------------
 3ExportAll:
   Gui, 3:Submit, NoHide
   if (MaxLevel < 2 or MaxLevel > 999) {
@@ -212,38 +220,49 @@ showExport() {
   }
 
   exportedString := exportTreeview()
-  
-  if (exportedString <> "") {
-    filename := ".\data\" . ExportedFilename
-    if FileExist(filename)
-      FileDelete, %filename%
-    FileAppend, %exportedString%, %filename%
-    openNotepad(filename)
-  } else
-    MsgBox, No bookmark to export.
+  saveExportedString(exportedString)
   goto 3Close
 
-  ; button <export selected> handler
+  ;---------------------------------------------------------------------
+  ; button <Selected> handler
+  ;---------------------------------------------------------------------
 3ExportSelected:
   Gui, 3:Submit, NoHide
   exportedString := exportNodes()
-  
-  if (exportedString <> "") {
-    filename := ".\data\" . ExportedFilename
-    if FileExist(filename)
-      FileDelete, %filename%
-    FileAppend, %exportedString%, %filename%
-    openNotepad(filename)
-  } else
-    MsgBox, No bookmark to export.
+  saveExportedString(exportedString)
   goto 3Close
 
+  ;---------------------------------------------------------------------
+  ; button <WhatYouSee> handler
+  ;---------------------------------------------------------------------
+3ExportWhatYouSee:
+  Gui, 3:Submit, NoHide
+  Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!
+  exportedString := exportWhatYouSee()
+  saveExportedString(exportedString)
+  goto 3Close
+
+  ;---------------------------------------------------------------------
   ; <close> handler
+  ;---------------------------------------------------------------------
 3Escape:
 3GuiEscape:
 3Close:
   Gui, 3:Destroy
   return
+  ;---------------------------------------------------------------------
+  ; save created export into file and open it.
+  ;---------------------------------------------------------------------
+saveExportedString(exportedString) {
+  if (exportedString <> "") {
+    filename := ".\data\" . ExportedFilename
+    if FileExist(filename)
+      FileDelete, %filename%
+    FileAppend, %exportedString%, %filename%
+    openNotepad(filename)
+  } else
+    MsgBox, No bookmark to export.
+}
 
  ;--------------------------------------------
   ; show window with editable settings
@@ -1356,7 +1375,6 @@ processRoutine(currRoutine, parentID=0) {
   
   currentLevel ++
   currThread.push(currRoutine.routineName)  ; add new routine to this thread.
-	currentLevel ++
 	itemId := addToTreeview(currRoutine.routineName, currentLevel, parentID)
 	
 	Loop, % currRoutine.calls.MaxIndex() {
@@ -1502,6 +1520,64 @@ findLastSubnode(index) {
   return index
   }
   ;-------------------------------------------------------------------------------
+  ; export what you see (not folded nodes) to text file
+  ; (returns the created string)
+  ;-------------------------------------------------------------------------------
+exportWhatYouSee() {
+  global
+  if (allRoutines.MaxIndex() <= 0)    ; no called routines
+    return ""
+
+  exportedRoutines := []
+  exportedString := ""
+
+  ItemID := TV_GetNext()  ; get first item (root)
+  if (ItemID=0)
+    return
+  
+  ; export root node.
+  currentLevel := 1
+  exportRoutine(allRoutines[1].routineName, currentLevel)
+  ItemID := TV_GetNext(ItemID, "F")
+  
+  ; loop through treeview and select only unfolded nodes (with "expanded" attribute).
+  Loop
+  {
+    if not ItemID  ; exit if end of tree.
+      break
+    
+    currentIndex := searchItemId(itemID)
+    if (currentIndex = 0)
+      break
+
+    currentRoutine := itemLevels[currentIndex, 3]
+    currentLevel := itemLevels[currentIndex, 2]
+
+    exportRoutine(currentRoutine, currentLevel)
+
+    if (TV_Get(ItemID, "Expanded"))
+      ItemID := TV_GetNext(ItemID, "F")
+
+    ; if folded, find next node with level <= current node's level.
+    else {
+      ItemID := 0
+      while (currentIndex < itemLevels.MaxIndex()) {
+        currentIndex ++
+        if (itemLevels[currentIndex, 2] <= currentLevel) {
+          ItemID := itemLevels[currentIndex, 1]
+          break
+        }
+      }
+    }
+  }
+
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
   ; export treview to text file
   ; (returns the created string)
   ;-------------------------------------------------------------------------------
@@ -1592,6 +1668,17 @@ searchRoutine(routineName) {
 searchArray(searchfor) {
   Loop, % currThread.MaxIndex() {
       if (searchfor = currThread[A_Index]) {
+          return A_index
+      }
+  }
+  return 0
+  }
+  ;-------------------------------------------------------------------------------
+  ; search if parameter (itemId) exists in itemLevels array.
+  ;-------------------------------------------------------------------------------
+searchItemId(itemID) {
+  Loop, % itemLevels.MaxIndex() {
+      if (itemID = itemLevels[A_Index, 1]) {
           return A_index
       }
   }
@@ -1771,3 +1858,34 @@ fileSelector(homePath, filter) {
   ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
   ; ExitApp
   }
+  ;---------------------------------------------------------------------
+  ; save array of routines to text file.
+  ; not used (only for test)
+  ;---------------------------------------------------------------------
+saveRoutines(filename, header, delete) {
+  if (delete) {
+    if FileExist(filename)
+      FileDelete, %filename%
+  }
+  FileAppend, `n%header% `n , %filename%
+
+  Loop, % allRoutines.MaxIndex() {
+    currentRoutine := allRoutines[A_Index]
+    row := substr(currentRoutine.routineName . "                              ",1,30) . "`t: "
+
+    Loop, % currentRoutine.calls.MaxIndex() {
+      row .= currentRoutine.calls[A_Index] . " "
+      }
+    row .= "`n"
+    FileAppend, %row%, %filename%
+  }
+
+  ; return
+  row := "`n`nseq - node  - level - routine`n"
+  row .= "-----------------------------------`n"
+
+  Loop, % itemLevels.MaxIndex() {
+    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . "`n"
+  }
+    FileAppend, %row%, %filename%
+  } 
