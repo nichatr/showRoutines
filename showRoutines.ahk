@@ -9,7 +9,7 @@
   ;--------------------------------------------------------------------------------------
   ; parameters:
   ;   A_Args[1] = routine calls file = outfile.txt
-  ;   A_Args[2] = source code file   = outfile.cbl
+  ;   A_Args[2] = source code file   = outfile.XXXXX (XXXXX=RPGLE/CBLLE/CBL)
   ;   A_Args[3] = path where above files created = z:\bussup\txt\\
   ;   A_Args[4] = use existing files or select = *NEW|*OLD|*SELECT (default)
   ;               *NEW = try to load above files
@@ -486,9 +486,8 @@ initialize() {
 	
     ; set default filenames when run from my home.
 	if (user ="SYSTEM_HOME") {
-    ; fileSelector(path, "(*.txt)")
-		fileRoutines := "B9Y36.txt"
-		fileCode := "B9Y36.cbl"
+      IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
+			IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 	}
 	
   ; otherwise get filenames from params.
@@ -509,7 +508,7 @@ initialize() {
 		}
 		
     ; use existing files(*no):
-    ;   move file.txt & file.cbl.txt from ieffect folder to .\data
+    ;   move file.txt & file.XXXXX.txt (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
 		
 		if (trim(A_Args[4]) = "*NEW") {
 			pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
@@ -524,12 +523,15 @@ initialize() {
 				}
 				Progress, Off
 				
-        ; cut .txt from filename.cbl.txt
+        ; cut .txt from filename.XXXXX.txt (XXXXX=rpgle/cblle/cbl)
 				OLDfileCode := fileCode
-				FoundPos := InStr(fileCode, ".cbl.txt" , CaseSensitive:=false)
-				if (foundPos > 0) {
-					fileCode := SubStr(fileCode, 1, foundPos-1) . ".cbl"
-				}
+        fileCode := RegExReplace(fileCode, ".txt$", Replacement = "")
+
+				; FoundPos := InStr(fileCode, ".cbl.txt" , CaseSensitive:=false)
+				; if (foundPos > 0) {
+				; 	fileCode := SubStr(fileCode, 1, foundPos-1) . ".cbl"
+				; }
+
 				Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
 				FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite
 				if (ErrorLevel <> 0) {
@@ -1688,6 +1690,10 @@ searchItemId(itemID) {
     ; read mpmdl001.cbl file and populate array with all code
     ;-----------------------------------------------------------------------
 populateCode() {
+    
+  ; set encoding to windows-1253 otherwise greek text is not shown correctly.
+  FileEncoding, CP1253
+  
 	Loop, Read, %fullFileCode%
 	{
 		allCode.push(A_LoopReadLine)
