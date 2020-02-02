@@ -18,7 +18,7 @@
   ;               *NEW = try to load above files
   ;               *OLD = use existing file found in showRoutines.ini
   ;               *SELECT = open file selector
-  ;   A_Args[5] = "" show gui, "batch": load and export to html without showing gui.
+  ;   A_Args[5] = "*DISPLAY" show gui, "*EXPORT": load and export to html without showing gui.
   ;
   ;--------------------------------------------------------------------------------------
   ; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
@@ -599,7 +599,7 @@ initialize() {
 				ExitApp
 		}
     
-    if (trim(A_Args[5]) = "batch") {
+    if (trim(A_Args[5]) = "*EXPORT") {
       exportInBatch := true
     }
 	}
