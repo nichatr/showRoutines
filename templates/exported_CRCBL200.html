@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Workflow of CRCBL200</title>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+
+    <link
+      href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
+      rel="stylesheet"
+      integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
+      crossorigin="anonymous"
+    />
+    <link
+      rel="stylesheet"
+      href="../zTree/css/zTreeStyle/zTreeStyle.css"
+      type="text/css"
+    />
+
+    <script
+      src="https://code.jquery.com/jquery-3.4.1.min.js"
+      integrity="sha256-CSXorXvZcTkaix6Yvo6HppcZGetbYMGWSFlBw8HfCJo="
+      crossorigin="anonymous"
+    ></script>
+
+    <script
+      type="text/javascript"
+      src="../zTree/js/jquery.ztree.all.min.js"
+    ></script>
+
+    <script type="text/javascript">
+      var setting = {
+        view: {
+          showIcon: false, // showIconForTree
+          expandSpeed: ''
+        },
+        data: {
+          key: {
+            title: 't'
+          },
+          simpleData: {
+            enable: true
+          }
+        }
+      };
+
+      var zNodes = [
+        {
+          id: 100375872,
+          name:
+            'CRCBL200--------------------------------BL- \u0391\u03bd\u03b1\u03c0\u03c1\u03bf\u03c3\u03b1\u03c1\u03bc\u03bf\u03b3\u03ad\u03c2 (\u03c0\u03b1\u03bb\u03b1\u03b9\u03cc CANAP1)                ',
+          open: 'true',
+          pId: 0
+        },
+        {
+          id: 100375424,
+          name:
+            'CLINSCOV3-----------------------------\u0391\u039d\u0391\u03a0\u03a1\u039f\u03a3\u0391\u03a1\u039c\u039f\u0393\u0397 \u0397\u039c\u0395\u03a1/\u039d\u0399\u03a9\u039d INSURABILITY              ',
+          open: 'true',
+          pId: '100375872'
+        },
+        {
+          id: 100374192,
+          name:
+            'RLINSCOV3---------------------------\u039a\u0391\u03a4\u0391\u03a3\u03a4.\u0395\u039b\u0395\u0393\u03a7\u03a9\u039d \u03a3\u03a5\u039c\u0392.\u0393\u0399\u0391 \u0391\u039d\u0391\u03a0\u03a1/\u0393\u0397 & UPDAT LCOVER-A ',
+          open: 'true',
+          pId: '100375424'
+        },
+        {
+          id: 100374416,
+          name:
+            'RDFPELA2--------------------------READER \u03a4\u039f\u03a5 \u0391\u03a1\u03a7\u0395\u0399\u039f\u03a5 FPELAT-\u039c\u0395 \u039a\u03a9\u0394\u0399\u039a\u039f \u0391\u039d\u03a4\u0399\u039a\u0391\u03a4\u0391\u03a3\u03a4\u0391\u03a3\u0397\u03a3',
+          open: 'true',
+          pId: '100374192'
+        },
+        {
+          id: 100375984,
+          name:
+            'RCVTSPL-----------------------------reader \u03c4\u03bf\u03c5 FXPDF - convert \u03b1\u03c1\u03c7\u03b5\u03b9\u03bf\u03c5 \u03c3\u03b5 pdf',
+          open: 'true',
+          pId: '100375424'
+        },
+        {
+          id: 100375536,
+          name:
+            'RDELINS-----------------------------\u0394\u0399\u0391\u0393\u03a1\u0391\u03a6\u0397 \u0395\u0393\u0393\u03a1\u0391\u03a6\u03a9\u039d \u0391\u03a0\u039f FINSUR \u03a3\u03a5\u0393\u039a\u0395/\u039d\u039f\u03a5 \u039c\u0397\u039d\u0391&\u0395\u03a4\u039f\u03a5\u03a3 ',
+          open: 'true',
+          pId: '100375424'
+        },
+        {
+          id: 100375648,
+          name:
+            'CYPCLR--------------------------------CLEAR \u0391\u03a1\u03a7\u0395\u0399\u03a9\u039d \u0391\u039d\u0391\u03a0/\u0393\u0397\u03a3 \u03a5\u03a0\u0395\u03a1\u039a\u0391\u03a1\u03a4\u0391\u03a3                 ',
+          open: 'true',
+          pId: '100375872'
+        },
+        {
+          id: 100375312,
+          name:
+            'RRCBL010------------------------------BL- \u0394\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b9\u03b1 \u03b7\u03bc\u03b5\u03c1\u03ae\u03c3\u03b9\u03c9\u03bd \u03b1\u03bd\u03b1\u03c0\u03c1\u03bf\u03c3\u03b1\u03c1\u03bc\u03bf\u03b3\u03ce\u03bd \u0391\u03c4\u03bf\u03bc\u03b9\u03ba\u03ce\u03bd  ',
+          open: 'true',
+          pId: '100375872'
+        },
+        {
+          id: 100374864,
+          name:
+            'RRCBL011------------------------------BL- \u0394\u03b7\u03bc\u03b9\u03bf\u03c5\u03c1\u03b3\u03b9\u03b1 \u03b7\u03bc\u03b5\u03c1\u03ae\u03c3\u03b9\u03c9\u03bd \u03b1\u03bd\u03b1\u03c0\u03c1\u03bf\u03c3\u03b1\u03c1\u03bc\u03bf\u03b3\u03ce\u03bd UL        ',
+          open: 'true',
+          pId: '100375872'
+        },
+        {
+          id: 100375088,
+          name:
+            'CLYPMOV-------------------------------\u03b1\u03bd\u03b1\u03c0\u03c1\u03bf\u03c3\u03b1\u03c1\u03bc\u03bf\u03b3\u03b5\u03c2 \u03ba\u03b1\u03bb\u03c5\u03c8\u03b5\u03c9\u03bd \u03c3\u03c5\u03bc\u03b2\u03bf\u03bb\u03b1\u03b9\u03c9\u03bd                ',
+          open: 'true',
+          pId: '100375872'
+        },
+        {
+          id: 100373520,
+          name:
+            'RLYPMOV-----------------------------\u03b1\u03bd\u03b1\u03c0\u03c1\u03bf\u03c3\u03b1\u03c1\u03bc\u03bf\u03b3\u03b5\u03c2 \u03ba\u03b1\u03bb\u03c5\u03c8\u03b5\u03c9\u03bd \u03c3\u03c5\u03bc\u03b2\u03bf\u03bb\u03b1\u03b9\u03c9\u03bd                ',
+          open: 'true',
+          pId: '100375088'
+        },
+        {
+          id: 100374080,
+          name:
+            'CMOVMB----------------------------\u039c\u0395\u03a4\u0391\u03a6\u039f\u03a1\u0391 \u0391\u03a0\u039f MASTER \u03a3\u0395 WORK B \u03a7\u03a9\u03a1\u0399\u03a3 \u03a0\u0391\u039b\u0391\u0399\u039f\u03a4\u0397\u03a4\u0391    ',
+          open: 'true',
+          pId: '100373520'
+        },
+        {
+          id: 100375760,
+          name:
+            'RLSTA1MB------------------------\u039c\u0395\u03a4\u0391\u03a6\u039f\u03a1\u0391 REC \u0391\u03a0\u039f \u0395\u039d\u0391 FILE \u03a3\u0395 \u0391\u039b\u039b\u039f \u03a7\u03a9\u03a1\u0399\u03a3 \u03a0\u0391\u039b\u0391\u0399\u039f\u03a4\u0397\u03a4\u0391',
+          open: 'true',
+          pId: '100374080'
+        },
+        {
+          id: 100374528,
+          name:
+            'RCHKLHX---------------------------\u03b5\u03bb\u03b5\u03b3\u03c7\u03bf\u03c2/\u03b5\u03c5\u03c1\u03b5\u03c3\u03b7 \u03b1\u03bd \u03bc\u03b9\u03b1 \u03ba\u03b1\u03bb\u03c5\u03c8\u03b7 \u03bb\u03b7\u03b3\u03b5\u03b9 \u03ae \u03c0\u03b1\u03c1\u03b1\u03c4\u03b5\u03b9\u03bd\u03b5\u03c4\u03b1\u03b9 ',
+          open: 'true',
+          pId: '100373520'
+        },
+        {
+          id: 100373856,
+          name:
+            'RDLSYMBA--------------------------READER \u03a4\u039f\u03a5 \u0391\u03a1\u03a7\u0395\u0399\u039f\u03a5 LSYMBOLA                       ',
+          open: 'true',
+          pId: '100373520'
+        },
+        {
+          id: 100373072,
+          name:
+            'RLCHECKAAP------------------------\u0395\u039b\u0395\u0393\u03a7\u039f\u03a3  \u0394\u0399\u0391\u03a4\u0397\u03a1\u0397\u03a3\u0397\u03a3 \u0397 \u039f\u03a7\u0399 \u03a4\u039f\u03a5 \u0391\u0391\u03a0                 ',
+          open: 'true',
+          pId: '100373520'
+        },
+        {
+          id: 100376096,
+          name:
+            'RLDLTS1W--------------------------PGM \u0394\u0399\u0391\u0393\u03a1\u0391\u03a6\u0397\u03a3 \u0391\u03a1\u03a7\u0395\u0399\u039f\u03a5 LAPPL \u03a7\u03a9\u03a1\u0399\u03a3 \u03a0\u0391\u039b\u0391\u0399\u039f\u03a4\u0397\u03a4\u0391      ',
+          open: 'true',
+          pId: '100373520'
+        },
+        {
+          id: 100376208,
+          name:
+            'RCVTSPL-----------------------------reader \u03c4\u03bf\u03c5 FXPDF - convert \u03b1\u03c1\u03c7\u03b5\u03b9\u03bf\u03c5 \u03c3\u03b5 pdf',
+          open: 'true',
+          pId: '100375088'
+        }
+      ];
+
+      function showIconForTree(treeId, treeNode) {
+        return !treeNode.isParent;
+      }
+
+      $(document).ready(function() {
+        $.fn.zTree.init($('#treeDemo'), setting, zNodes);
+        $('#expandAllBtn').bind('click', expandAll);
+        $('#collapseAllBtn').bind('click', collapseAll);
+        $('#expandLevelBtn').bind('click', expandLevel);
+        $('#collapseLevelBtn').bind('click', collapseLevel);
+      });
+
+      function expandAll() {
+        var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+        zTree.expandAll(true);
+      }
+
+      function collapseAll() {
+        var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+        zTree.expandAll(false);
+      }
+
+      function expandLevel() {
+        var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+        var sNodes = zTree.getSelectedNodes();
+        if (sNodes.length > 0) {
+          zTree.expandNode(sNodes[0], true, true);
+
+          var node = sNodes[0].getNextNode();
+          while (node != null) {
+            zTree.expandNode(node, true, false);
+            var node = node.getNextNode();
+          }
+        }
+      }
+
+      function collapseLevel() {
+        var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+        var sNodes = zTree.getSelectedNodes();
+        if (sNodes.length > 0) {
+          zTree.expandNode(sNodes[0], false, true);
+
+          var node = sNodes[0].getNextNode();
+          while (node != null) {
+            zTree.expandNode(node, false, true);
+            var node = node.getNextNode();
+          }
+        }
+      }
+    </script>
+  </head>
+
+  <body>
+    <div class="container">
+      <nav class="navbar sticky-top  navbar-expand-lg navbar-light bg-light">
+        <div class="navbar-brand">
+          <h6>Workflow of CRCBL200</h6>
+        </div>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+          <ul class="navbar-nav mr-auto">
+            <li>
+              <button
+                id="expandAllBtn"
+                class="btn btn-outline-primary ml-5 my-2 my-sm-0"
+              >
+                Expand all
+              </button>
+            </li>
+            <li>
+              <button
+                id="collapseAllBtn"
+                class="btn btn-outline-success ml-1 my-2 my-sm-0"
+              >
+                Collapse all
+              </button>
+            </li>
+            <li>
+              <button
+                id="expandLevelBtn"
+                class="btn btn-outline-primary ml-1 my-2 my-sm-0"
+              >
+                Expand level
+              </button>
+            </li>
+            <li>
+              <button
+                id="collapseLevelBtn"
+                class="btn btn-outline-success ml-1 my-2 my-sm-0"
+              >
+                Collapse level
+              </button>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <div class="card">
+        <div class="card-body" style="background-color:#e6eeff">
+          <div class="zTreeDemoBackground ">
+            <ul id="treeDemo" class="ztree"></ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- <div class="container" style="margin-top: 2em">
+      <div class="col text-center">
+        <button id="expandAllBtn" type="button" class="btn btn-primary ">
+          Expand all
+        </button>
+        <button id="expandLevelBtn" type="button" class="btn btn-primary ">
+          Expand level
+        </button>
+        <button id="collapseAllBtn" type="button" class="btn btn-success ">
+          Collapse all
+        </button>
+        <button id="collapseLevelBtn" type="button" class="btn btn-success ">
+          Collapse level
+        </button>
+      </div>
+    </div> -->
+
+    <script
+      src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"
+      integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo"
+      crossorigin="anonymous"
+    ></script>
+
+    <script
+      src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js"
+      integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
+      crossorigin="anonymous"
+    ></script>
+  </body>
+</html>

@@ -1,6 +1,9 @@
 ; initial declarations
 #SingleInstance off     ;force
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+
+  #Include .\JSON\JSON.ahk
+
   ;--------------------------------------------------------------------------------------
   ; Version with:
   ;   listbox for showing code
@@ -15,6 +18,7 @@
   ;               *NEW = try to load above files
   ;               *OLD = use existing file found in showRoutines.ini
   ;               *SELECT = open file selector
+  ;   A_Args[5] = "" show gui, "batch": load and export to html without showing gui.
   ;
   ;--------------------------------------------------------------------------------------
   ; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
@@ -54,9 +58,10 @@
   global subGui2_W, subGui2_H
   global subGui3_W, subGui3_H
   global subGui4_W, subGui4_H
+  global outputFormat
   global gCurrentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
-  global ExportSelected, nodesToExport, ExportWhatYouSee
+  global ExportSelected, nodesToExport, ExportWhatYouSee, exportInBatch
 
 initialize()
 mainProcess()
@@ -69,9 +74,13 @@ mainProcess() {
   loadTreeview()
   saveRoutines(".\data\allRoutines.txt", header, true)
   updateStatusBar()
-  showGui()
+  if (!exportInBatch)
+    showGui()
+  else {
+    exportInBatch()
+    ExitApp
+    }
   }
-
 showGui() {
   global
 	OnMessage(0x232, "Move_window") ; to move children guis with the parent
@@ -126,7 +135,7 @@ showHelp() {
   ;---------------------------------------------------------------------
 showExport() {
   inputFilename := fileRoutines
-  outputFormat := "txt"
+  outputFormat := "html"
 
   Gui, 3:Destroy
   global subGui3_W, subGui3_H
@@ -141,8 +150,10 @@ showExport() {
   Gui, 3:Add,GroupBox,xm+5 y+10 w%subGui3_W% h%subGui3_H%, Export
   
   ; filename
+  SplitPath, inputFilename , FileName, Dir, Extension, NameNoExt, Drive
+  ExportedFilename := "exported_" . NameNoExt . ".html"
   Gui, 3:Add,Text,xm+20 yp+40, Exported filename
-  Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, exported_%inputFilename%
+  Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %ExportedFilename%
   ; Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %scriptDir%\data\%inputFilename%
 
   ; max level
@@ -156,9 +167,9 @@ showExport() {
 
   ; output format
   Gui, 3:Add, Text, xm+20 yp+30, Output format
-  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup Checked xp+80 yp, txt
+  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup Checked xp+80 yp, html
   Gui, 3:Add, Radio, g3Check xp+50 yp, json
-  Gui, 3:Add, Radio, g3Check xp+50 yp, xml
+  Gui, 3:Add, Radio, g3Check xp+50 yp Disabled, txt
 
   ; Export, Close buttons
   Gui, 3:Add, button, xm+60 ym+190 w50 g3ExportAll, All
@@ -196,13 +207,12 @@ showExport() {
   Gui, 3:Submit, NoHide
 
   if (MyRadioGroup = 1)
-    outputFormat := "txt"
-    outputFormat := "txt"
+    outputFormat := "html"
 
   if (MyRadioGroup = 2)
     outputFormat := "json"
   if (MyRadioGroup = 3)
-    outputFormat := "xml"
+    outputFormat := "txt"
   Return
 
   ;---------------------------------------------------------------------
@@ -219,7 +229,8 @@ showExport() {
     return
   }
 
-  exportedString := exportTreeview()
+  expandAll := true
+  exportedString := exportNodes(expandAll)
   saveExportedString(exportedString)
   goto 3Close
 
@@ -228,7 +239,8 @@ showExport() {
   ;---------------------------------------------------------------------
 3ExportSelected:
   Gui, 3:Submit, NoHide
-  exportedString := exportNodes()
+  Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!exportMarked
+  exportedString := exportMarked()
   saveExportedString(exportedString)
   goto 3Close
 
@@ -238,7 +250,8 @@ showExport() {
 3ExportWhatYouSee:
   Gui, 3:Submit, NoHide
   Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!
-  exportedString := exportWhatYouSee()
+  expandAll := false
+  exportedString := exportNodes(expandAll)
   saveExportedString(exportedString)
   goto 3Close
 
@@ -251,17 +264,54 @@ showExport() {
   Gui, 3:Destroy
   return
   ;---------------------------------------------------------------------
+  ; export in html format with default options (without "export gui")
+  ;---------------------------------------------------------------------
+exportInBatch() {
+  ; filename to export = "exported_inputFilename.html"
+  SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
+  ExportedFilename := "exported_" . NameNoExt . ".html"
+  exportDescriptions := "true"
+  outputFormat := "html"
+  expandAll := true
+  exportedString := exportNodes(expandAll)
+  saveExportedString(exportedString)
+  }
+  ;---------------------------------------------------------------------
   ; save created export into file and open it.
   ;---------------------------------------------------------------------
 saveExportedString(exportedString) {
-  if (exportedString <> "") {
-    filename := ".\data\" . ExportedFilename
-    if FileExist(filename)
-      FileDelete, %filename%
-    FileAppend, %exportedString%, %filename%
-    openNotepad(filename)
-  } else
-    MsgBox, No bookmark to export.
+  if (exportedString = "") {
+    MsgBox, Nothing to export.
+    return
+  }
+
+  ; json format needs no processing.
+  if (outputFormat = "json")
+    OutputVar := exportedString
+  
+  ; html format uses specific template.
+  else if (outputFormat = "html") {
+    FileRead, templateContents, .\templates\routineFlow.html
+    if ErrorLevel {
+      MsgBox, Template file not found (\templates\routineFlow.html)
+      return
+    }
+
+    ; replace dummy strings with actual data.
+    SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
+    templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
+    OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
+  }
+
+  filename := ".\data\" . ExportedFilename
+  if FileExist(filename)
+    FileDelete, %filename%
+
+  FileAppend, %OutputVar%, %filename%
+  ; FileAppend, %exportedString%, %filename%
+  Run, %filename%
+  
+  ; openNotepad(filename)
 }
 
  ;--------------------------------------------
@@ -474,6 +524,7 @@ initialize() {
 	path := A_ScriptDir . "\data\"
 	fileRoutines := ""
 	fileCode := ""
+  exportInBatch := false
 	
   ; the global variable scriptNameNoExt is used for accessing the .INI file from multiple places
   ; so it is defined at the beggining.
@@ -547,6 +598,10 @@ initialize() {
 			if (!fileSelector(path, "(*.txt)"))
 				ExitApp
 		}
+    
+    if (trim(A_Args[5]) = "batch") {
+      exportInBatch := true
+    }
 	}
   }
     ;--------------------------------------------
@@ -1395,16 +1450,15 @@ processRoutine(currRoutine, parentID=0) {
     ;---------------------------------------
     ; add a node to treeview
     ;---------------------------------------
-addToTreeview(routineName, currentLevel, parentRoutine) {
-	currentId := TV_add(routineName, parentRoutine, "Expand")
-    ; currentId := TV_add(routineName, parentRoutine, "Icon138 Expand")
-    ; currentId := TV_add(routineName, parentRoutine, "Icon4 Expand")
+addToTreeview(routineName, currentLevel, parentId) {
+	currentId := TV_add(routineName, parentId, "Expand")
 	
     ; save routine level for later tree traversal.
 	levels_LastIndex += 1
-	itemLevels[levels_LastIndex, 1] := currentId
-	itemLevels[levels_LastIndex, 2] := currentLevel
-	itemLevels[levels_LastIndex, 3] := routineName
+  itemLevels[levels_LastIndex, 1] := currentId    ; current node's TV id
+  itemLevels[levels_LastIndex, 2] := currentLevel ; current node's level
+  itemLevels[levels_LastIndex, 3] := routineName  ; current node's TV text
+  itemLevels[levels_LastIndex, 4] := parentId     ; parent node's TV id
 	
 	return currentId
   }
@@ -1439,14 +1493,62 @@ toggleBookmark() {
   updateStatusbar()
   }
   ;-------------------------------------------------------------------------------
+  ; export nodes to json string
+  ;-------------------------------------------------------------------------------
+exportNodes(expandAll, index1=0, index2=0) {
+  nodesArray := []
+
+  if (index1 = 0 or index2 = 0 or index1 > index2) {
+    index1 := 1
+    index2 := itemLevels.MaxIndex()
+  }
+  currIndex := index1
+
+  ; find max level when descriptions are to be exported.
+  ; if (exportDescriptions = "true")
+  ;   maxLevel := findMaxLevel(index1, index2) 
+
+  while (currIndex <= index2) {
+
+    if (expandAll = false) {
+      if (TV_Get(itemLevels[currIndex, 1], "Expanded"))
+        isOpen := "true"
+      else
+        isOpen := "false"
+    } else
+        isOpen := "true"
+    
+    newNode := {}
+    newNode.open := isOpen
+    newNode.id := itemLevels[currIndex, 1]
+    newNode.pId := itemLevels[currIndex, 4]
+
+    routineName := itemLevels[currIndex, 3]
+
+    if (exportDescriptions = "true") {
+      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex, 2], maxLevel)
+      ; outputRoutineName .= searchRoutineDescription(routineName)
+      outputRoutineName := routineName
+    } else
+      outputRoutineName := routineName
+
+    newNode.name := outputRoutineName
+
+    nodesArray.push(newNode)
+    currIndex ++
+  }
+
+  ; convert ahk array of objects into string (adds quotes).
+  stringifiedArray := JSON.Dump(nodesArray)
+  ; stringifiedArray := RegExReplace(stringifiedArray, """id"":", "id:")
+
+  return stringifiedArray
+  }
+  ;-------------------------------------------------------------------------------
   ; export nodes to text file
   ; (returns the created string)
   ;-------------------------------------------------------------------------------
-exportNodes() {
-  global
-  exportedRoutines := []
-  exportedString := ""
-
+exportMarked() {
   if (nodesToExport.MaxIndex() = 0)
     return ""
 
@@ -1476,23 +1578,9 @@ exportNodes() {
     current_Index := index2
   }
 
-  itemID := bookmark1
-
-  ; make starting node as having level 1:
-  ; offset := itemLevels[current_Index, 2] - 1
-  offset := 0
-
-  Loop {
-    exportRoutine(itemLevels[current_Index, 3], itemLevels[current_Index, 2] - offset)
-    if (itemLevels[current_Index,1] = bookmark2)   ; stop when reaching the ending node.
-      break
-    current_Index++
-  } until (current_Index > itemLevels.MaxIndex())   ; stop when reaching end of array.
-
-  Loop, % exportedRoutines.MaxIndex() {
-    exportedString .= exportedRoutines[A_Index]
-  }
-  
+  ; export selected nodes.
+  expandAll := true
+  exportedString := exportNodes(expandAll, index1, index2)
   return exportedString
   }
   ;-------------------------------------------------------------------------------
@@ -1520,89 +1608,6 @@ findLastSubnode(index) {
       return --index
   }
   return index
-  }
-  ;-------------------------------------------------------------------------------
-  ; export what you see (not folded nodes) to text file
-  ; (returns the created string)
-  ;-------------------------------------------------------------------------------
-exportWhatYouSee() {
-  global
-  if (allRoutines.MaxIndex() <= 0)    ; no called routines
-    return ""
-
-  exportedRoutines := []
-  exportedString := ""
-
-  ItemID := TV_GetNext()  ; get first item (root)
-  if (ItemID=0)
-    return
-  
-  ; export root node.
-  currentLevel := 1
-  exportRoutine(allRoutines[1].routineName, currentLevel)
-  ItemID := TV_GetNext(ItemID, "F")
-  
-  ; loop through treeview and select only unfolded nodes (with "expanded" attribute).
-  Loop
-  {
-    if not ItemID  ; exit if end of tree.
-      break
-    
-    currentIndex := searchItemId(itemID)
-    if (currentIndex = 0)
-      break
-
-    currentRoutine := itemLevels[currentIndex, 3]
-    currentLevel := itemLevels[currentIndex, 2]
-
-    exportRoutine(currentRoutine, currentLevel)
-
-    if (TV_Get(ItemID, "Expanded"))
-      ItemID := TV_GetNext(ItemID, "F")
-
-    ; if folded, find next node with level <= current node's level.
-    else {
-      ItemID := 0
-      while (currentIndex < itemLevels.MaxIndex()) {
-        currentIndex ++
-        if (itemLevels[currentIndex, 2] <= currentLevel) {
-          ItemID := itemLevels[currentIndex, 1]
-          break
-        }
-      }
-    }
-  }
-
-  Loop, % exportedRoutines.MaxIndex() {
-    exportedString .= exportedRoutines[A_Index]
-  }
-  
-  return exportedString
-  }
-  ;-------------------------------------------------------------------------------
-  ; export treview to text file
-  ; (returns the created string)
-  ;-------------------------------------------------------------------------------
-exportTreeview() {
-  if (allRoutines.MaxIndex() <= 0)    ; no called routines
-    return ""
-  
-  exportedRoutines := []
-  currThread  := [] 
-  exportedString := ""
-
-  ; first item is always = "MAIN" (the parent routine of all)
-  currRoutine := allRoutines[1]
-  if (MaxLevel < 2 or MaxLevel > 999)
-    MaxLevel := 999
-
-  processRoutine_for_Export(currRoutine, MaxLevel)
-
-  Loop, % exportedRoutines.MaxIndex() {
-    exportedString .= exportedRoutines[A_Index]
-  }
-  
-  return exportedString
   }
   ;-------------------------------------------------------------------------------
   ; process one routine
@@ -1780,8 +1785,6 @@ createRoutineItem(tmpRoutine) {
 	routine1 := new routine
 	
 	routine1.routineName    := tmpRoutine.ROUCALLER
-    ;routine1.routineName    := tmpRoutine.ROUCALLED
-    ;routine1.calledBy       := tmpRoutine.ROUCALLER
 	routine1.startStmt      := tmpRoutine.STMFIRST
 	routine1.endStmt        := tmpRoutine.STMLAST
 	routine1.callingStmt    := tmpRoutine.STMCALL
@@ -1823,7 +1826,7 @@ parseLine(inputLine) {
     ;---------------------------------------------------------------------
 class routine {
 	routineName := ""
-	calledBy := ""
+	; calledBy := ""
 	startStmt := ""
 	endStmt := ""
 	callingStmt := ""
