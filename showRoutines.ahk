@@ -48,7 +48,7 @@
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
   global exportedRoutines, exportDescriptions
-  global MaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
+  global exportMaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
   global winX, winY ; main window position
   global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
@@ -158,7 +158,7 @@ showExport() {
 
   ; max level
   Gui, 3:Add,Text,xm+20 yp+35, Max level to export
-  Gui, 3:Add,Edit, vMaxLevel xp+100 yp-5 w40 +Number
+  Gui, 3:Add,Edit, vexportMaxLevel xp+100 yp-5 w40 +Number
   Gui, 3:Add, UpDown, Range2-999, 999
 
   ; include descriptions?
@@ -221,7 +221,7 @@ showExport() {
   ;---------------------------------------------------------------------
 3ExportAll:
   Gui, 3:Submit, NoHide
-  if (MaxLevel < 2 or MaxLevel > 999) {
+  if (exportMaxLevel < 2 or exportMaxLevel > 999) {
     MsgBox, max level must be between 2 and 999
     return
   }
@@ -1504,18 +1504,18 @@ exportNodes(expandAll, index1=0, index2=0) {
     index2 := itemLevels.MaxIndex()
   }
   currIndex := index1
-  if (MaxLevel < 2 or MaxLevel > 999)
-  MaxLevel := 999
+  if (exportMaxLevel < 2 or exportMaxLevel > 999)
+  exportMaxLevel := 999
 
   ; used only in showPrograms.ahk
   ; find max level when descriptions are to be exported.
   ; if (exportDescriptions = "true")
-  ;   maxLevel := findMaxLevel(index1, index2) 
+  ;   maxLevel := findexportMaxLevel(index1, index2) 
 
   while (currIndex <= index2) {
 
     ; ignore current node if it's level is greater than requested.
-    if (itemLevels[currIndex, 2] > MaxLevel) {
+    if (itemLevels[currIndex, 2] > exportMaxLevel) {
       currIndex ++
       continue
     }
@@ -1537,7 +1537,7 @@ exportNodes(expandAll, index1=0, index2=0) {
 
     if (exportDescriptions = "true") {
       ; used only in showPrograms.ahk
-      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex, 2], maxLevel)
+      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex, 2])
       ; outputRoutineName .= searchRoutineDescription(routineName)
       outputRoutineName := routineName
     } else
@@ -1623,7 +1623,7 @@ findLastSubnode(index) {
   ;-------------------------------------------------------------------------------
   ; process one routine
   ;-------------------------------------------------------------------------------
-processRoutine_for_Export(currRoutine, MaxLevel=999) {
+processRoutine_for_Export(currRoutine, exportMaxLevel=999) {
   static currentLevel
     
   ; check if new routine exists in this thread: if it exists don't process it again.
@@ -1632,7 +1632,7 @@ processRoutine_for_Export(currRoutine, MaxLevel=999) {
     return
 
   currentLevel ++
-  if (currentLevel > MaxLevel) {
+  if (currentLevel > exportMaxLevel) {
     currentLevel --
     return
   }
@@ -1645,7 +1645,7 @@ processRoutine_for_Export(currRoutine, MaxLevel=999) {
     ; search array allRoutines[] for the current routine item.
     calledId := searchRoutine(currRoutine.calls[A_Index])
     if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
-        processRoutine_for_Export(allRoutines[calledId], MaxLevel)     ; write children
+        processRoutine_for_Export(allRoutines[calledId], exportMaxLevel)     ; write children
       }
     }
 
