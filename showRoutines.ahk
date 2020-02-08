@@ -151,7 +151,7 @@ showExport() {
   
   ; filename
   SplitPath, inputFilename , FileName, Dir, Extension, NameNoExt, Drive
-  ExportedFilename := "exported_" . NameNoExt . ".html"
+  ExportedFilename := "exported_" . NameNoExt     ; . ".html"
   Gui, 3:Add,Text,xm+20 yp+40, Exported filename
   Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %ExportedFilename%
   ; Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %scriptDir%\data\%inputFilename%
@@ -169,7 +169,7 @@ showExport() {
   Gui, 3:Add, Text, xm+20 yp+30, Output format
   Gui, 3:Add, Radio, Group g3Check vMyRadioGroup Checked xp+80 yp, html
   Gui, 3:Add, Radio, g3Check xp+50 yp, json
-  Gui, 3:Add, Radio, g3Check xp+50 yp Disabled, txt
+  Gui, 3:Add, Radio, g3Check xp+50 yp, txt
 
   ; Export, Close buttons
   Gui, 3:Add, button, xm+60 ym+190 w50 g3ExportAll, All
@@ -241,6 +241,10 @@ showExport() {
 3ExportSelected:
   Gui, 3:Submit, NoHide
   Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!exportMarked
+  if (trim(ExportedFilename) = "") {
+    MsgBox, filename cannot be empty
+    return
+  }
   exportedString := exportMarked()
   saveExportedString(exportedString)
   goto 3Close
@@ -251,6 +255,10 @@ showExport() {
 3ExportWhatYouSee:
   Gui, 3:Submit, NoHide
   Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!
+  if (trim(ExportedFilename) = "") {
+    MsgBox, filename cannot be empty
+    return
+  }
   expandAll := false
   exportedString := exportNodes(expandAll)
   saveExportedString(exportedString)
@@ -287,7 +295,7 @@ saveExportedString(exportedString) {
   }
 
   ; json format needs no processing.
-  if (outputFormat = "json")
+  if (outputFormat = "json" or outputFormat = "txt")
     OutputVar := exportedString
   
   ; html format uses specific template.
@@ -304,7 +312,7 @@ saveExportedString(exportedString) {
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
   }
 
-  filename := ".\data\" . ExportedFilename
+  filename := ".\data\" . ExportedFilename . "." . outputFormat
   if FileExist(filename)
     FileDelete, %filename%
 
@@ -1494,23 +1502,35 @@ toggleBookmark() {
   updateStatusbar()
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to json string
+  ; export nodes to the requested format.
   ;-------------------------------------------------------------------------------
 exportNodes(expandAll, index1=0, index2=0) {
-  nodesArray := []
 
   if (index1 = 0 or index2 = 0 or index1 > index2) {
     index1 := 1
     index2 := itemLevels.MaxIndex()
   }
-  currIndex := index1
   if (exportMaxLevel < 2 or exportMaxLevel > 999)
-  exportMaxLevel := 999
+    exportMaxLevel := 999
 
+  if (outputFormat = "json" or outputFormat = "html")
+    treeString := exportNodesAsHTML(expandAll, index1, index2)
+
+  if (outputFormat = "txt")
+    treeString := exportNodesAsTXT(index1, index2)
+  
+  return treeString
+  }
+  ;-------------------------------------------------------------------------------
+  ; export nodes to html/json string
+  ;-------------------------------------------------------------------------------
+exportNodesAsHTML(expandAll, index1, index2) {
   ; used only in showPrograms.ahk
   ; find max level when descriptions are to be exported.
   ; if (exportDescriptions = "true")
   ;   maxLevel := findexportMaxLevel(index1, index2) 
+  nodesArray := []
+  currIndex := index1
 
   while (currIndex <= index2) {
 
@@ -1554,6 +1574,44 @@ exportNodes(expandAll, index1=0, index2=0) {
   ; stringifiedArray := RegExReplace(stringifiedArray, """id"":", "id:")
 
   return stringifiedArray
+  }
+  ;-------------------------------------------------------------------------------
+  ; export one routine to text file
+  ;-------------------------------------------------------------------------------
+exportNodesAsTXT(index1, index2) {
+  exportedRoutines := []
+  exportedString := ""
+  currIndex := index1
+
+  while (currIndex <= index2) {
+  
+    currentLevel := itemLevels[currIndex, 2]
+    ; ignore current node if it's level is greater than requested.
+    if (currentLevel > exportMaxLevel) {
+      currIndex ++
+      continue
+    }
+
+    prefix := "`n"
+    count:= currentLevel - 1
+
+    Loop, %count%
+      prefix .= "  "
+
+    if (count > 0)
+      prefix .= "->"
+    
+    oneLine := prefix . " " . itemLevels[currIndex, 3]
+
+    exportedRoutines.push(oneLine)
+    currIndex ++
+  }
+  
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
   }
   ;-------------------------------------------------------------------------------
   ; export nodes to text file
@@ -1620,58 +1678,9 @@ findLastSubnode(index) {
   }
   return index
   }
-  ;-------------------------------------------------------------------------------
-  ; process one routine
-  ;-------------------------------------------------------------------------------
-processRoutine_for_Export(currRoutine, exportMaxLevel=999) {
-  static currentLevel
-    
-  ; check if new routine exists in this thread: if it exists don't process it again.
-  threadIndex := searchArray(currRoutine.routineName)
-  if (threadIndex > 0)
-    return
-
-  currentLevel ++
-  if (currentLevel > exportMaxLevel) {
-    currentLevel --
-    return
-  }
-  currThread.push(currRoutine.routineName)  ; add new routine to this thread.
-
-  exportRoutine(currRoutine.routineName, currentLevel)
-
-  Loop, % currRoutine.calls.MaxIndex() {
-
-    ; search array allRoutines[] for the current routine item.
-    calledId := searchRoutine(currRoutine.calls[A_Index])
-    if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
-        processRoutine_for_Export(allRoutines[calledId], exportMaxLevel)     ; write children
-      }
-    }
-
-    value := currThread.pop() ; at end remove current routine from thread
-    currentLevel --
-  }
-  ;-------------------------------------------------------------------------------
-  ; export one routine to text file
-  ;-------------------------------------------------------------------------------
-exportRoutine(routineName, currentLevel) {
-  prefix := "`n"
-  count:= currentLevel - 1
-
-  Loop, %count%
-    prefix .= "  "
-
-  if (count > 0)
-    prefix .= "->"
-  
-  oneLine := prefix . " " . routineName
-
-  exportedRoutines.push(oneLine)
-  }
-    ;---------------------------------------------------------------------
-    ; search if parameter exists in allRoutines array.
-    ;---------------------------------------------------------------------
+  ;---------------------------------------------------------------------
+  ; search if parameter exists in allRoutines array.
+  ;---------------------------------------------------------------------
 searchRoutine(routineName) {
 	Loop, % allRoutines.MaxIndex() {
 		if (routineName = allRoutines[A_Index].routineName) {
