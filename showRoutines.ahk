@@ -211,6 +211,7 @@ showExport() {
 
   if (MyRadioGroup = 2)
     outputFormat := "json"
+
   if (MyRadioGroup = 3)
     outputFormat := "txt"
   Return
@@ -1503,12 +1504,21 @@ exportNodes(expandAll, index1=0, index2=0) {
     index2 := itemLevels.MaxIndex()
   }
   currIndex := index1
+  if (MaxLevel < 2 or MaxLevel > 999)
+  MaxLevel := 999
 
+  ; used only in showPrograms.ahk
   ; find max level when descriptions are to be exported.
   ; if (exportDescriptions = "true")
   ;   maxLevel := findMaxLevel(index1, index2) 
 
   while (currIndex <= index2) {
+
+    ; ignore current node if it's level is greater than requested.
+    if (itemLevels[currIndex, 2] > MaxLevel) {
+      currIndex ++
+      continue
+    }
 
     if (expandAll = false) {
       if (TV_Get(itemLevels[currIndex, 1], "Expanded"))
@@ -1526,6 +1536,7 @@ exportNodes(expandAll, index1=0, index2=0) {
     routineName := itemLevels[currIndex, 3]
 
     if (exportDescriptions = "true") {
+      ; used only in showPrograms.ahk
       ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex, 2], maxLevel)
       ; outputRoutineName .= searchRoutineDescription(routineName)
       outputRoutineName := routineName
