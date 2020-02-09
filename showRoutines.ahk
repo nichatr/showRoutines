@@ -2,7 +2,7 @@
 #SingleInstance off     ;force
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 
-  #Include .\JSON\JSON.ahk
+  #Include %A_ScriptDir%\JSON\JSON.ahk
 
   ;--------------------------------------------------------------------------------------
   ; Version with:
