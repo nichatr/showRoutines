@@ -321,7 +321,7 @@ saveExportedString(exportedString) {
   Run, %filename%
   
   ; openNotepad(filename)
-}
+  }
 
  ;--------------------------------------------
   ; show window with editable settings
@@ -1468,6 +1468,21 @@ addToTreeview(routineName, currentLevel, parentId) {
   itemLevels[levels_LastIndex, 2] := currentLevel ; current node's level
   itemLevels[levels_LastIndex, 3] := routineName  ; current node's TV text
   itemLevels[levels_LastIndex, 4] := parentId     ; parent node's TV id
+
+  followsSibling := false
+  parentIndex := searchItemId(parentId)
+  if (parentIndex > 0) {
+    parentName := itemLevels[parentIndex, 3]
+    callsIndex := searchRoutine(parentName)
+    if (callsIndex > 0) {
+      Loop, % allRoutines[callsIndex].calls.MaxIndex() - 1 {
+        if (allRoutines[callsIndex].calls[A_Index] = routineName)
+          followsSibling := true
+      }
+    }
+
+  itemLevels[levels_LastIndex, 5] := followsSibling  ; if it has a sibling after itself.
+  }
 	
 	return currentId
   }
@@ -1596,17 +1611,21 @@ exportNodesAsTXT(index1, index2) {
     count:= currentLevel - 1
 
     Loop, %count%
-      prefix .= "  "
+      prefix .= "   "
 
     if (count > 0)
-      prefix .= "->"
+      if (itemLevels[currIndex, 5] = true)
+        prefix .= "|__"   ; has sibling after itself
+      else
+        prefix .= "\__"   ; has no sibling after itself
     
-    oneLine := prefix . " " . itemLevels[currIndex, 3]
+    oneLine := prefix . itemLevels[currIndex, 3]  ; add routine name.
 
     exportedRoutines.push(oneLine)
     currIndex ++
   }
   
+  exportedString := "1234567890123456789012345678901234567890123456789012345678901234567890`n"
   Loop, % exportedRoutines.MaxIndex() {
     exportedString .= exportedRoutines[A_Index]
   }
@@ -1896,7 +1915,8 @@ saveRoutines(filename, header, delete) {
     if FileExist(filename)
       FileDelete, %filename%
   }
-  FileAppend, `n%header% `n , %filename%
+  row := "`t`t`t allRoutines[]`n`n"
+  FileAppend, %row%, %filename%
 
   Loop, % allRoutines.MaxIndex() {
     currentRoutine := allRoutines[A_Index]
@@ -1910,11 +1930,12 @@ saveRoutines(filename, header, delete) {
   }
 
   ; return
-  row := "`n`nseq - node  - level - routine`n"
-  row .= "-----------------------------------`n"
+  row := "`n`t`t`t itemLevels[]"
+  row .= "`n`nseq - node id - level - routine - parent id - has after sibling`n"
+  row .= "-------------------------------------------------------------------`n"
 
   Loop, % itemLevels.MaxIndex() {
-    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . "`n"
+    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . " - " . itemLevels[A_Index,4] . " - " . itemLevels[A_Index,5] . "`n"
   }
     FileAppend, %row%, %filename%
   } 
