@@ -1480,9 +1480,8 @@ addToTreeview(routineName, currentLevel, parentId) {
           followsSibling := true
       }
     }
-
-  itemLevels[levels_LastIndex, 5] := followsSibling  ; if it has a sibling after itself.
   }
+  itemLevels[levels_LastIndex, 5] := followsSibling  ; if it has a sibling after itself.
 	
 	return currentId
   }
@@ -1597,6 +1596,8 @@ exportNodesAsTXT(index1, index2) {
   exportedRoutines := []
   exportedString := ""
   currIndex := index1
+  currLine := 1
+  prefix := ""
 
   while (currIndex <= index2) {
   
@@ -1607,13 +1608,26 @@ exportNodesAsTXT(index1, index2) {
       continue
     }
 
-    prefix := "`n"
-    count:= currentLevel - 1
+    ; calc prefix string length (before the |__routine ).
+    prefixCount := (currentLevel - 1) * 3   ; 3 spaces for each previous level.
+    if (currLine > 1) {
+      prefix := SubStr(exportedRoutines[currLine - 1], 2, prefixCount)
 
-    Loop, %count%
-      prefix .= "   "
+      parentIndex := searchItemId(itemLevels[currIndex, 4])
+      parentHasSibling := itemLevels[parentIndex, 5]
+      ; if parent has sibling clear the last 2 chars (so keep the |)
+      if (parentHasSibling)
+        prefix := SubStr(prefix, 1, StrLen(prefix) - 2) . "  "
+      ; if parent hasn't sibling clear the last 3 chars
+      else
+        prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . "   "
+      
+      ; msgbox, % "[" . prefix . "]" . "`n" . strlen(prefix)
+      ; add new line char
+      prefix := "`n" . prefix
+    }
 
-    if (count > 0)
+    if (currentLevel > 1)
       if (itemLevels[currIndex, 5] = true)
         prefix .= "|__"   ; has sibling after itself
       else
@@ -1623,6 +1637,7 @@ exportNodesAsTXT(index1, index2) {
 
     exportedRoutines.push(oneLine)
     currIndex ++
+    currLine ++
   }
   
   exportedString := "1234567890123456789012345678901234567890123456789012345678901234567890`n"
