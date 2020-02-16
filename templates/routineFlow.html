@@ -24,15 +24,19 @@
 
     <script
       type="text/javascript"
-      src="../zTree/js/jquery.ztree.all.min.js"
+      src="../zTree/js/jquery.ztree.core.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="../zTree/js/jquery.ztree.excheck.min.js"
+    ></script>
+    <script
+      type="text/javascript"
+      src="../zTree/js/jquery.ztree.exedit.min.js"
     ></script>
 
     <script type="text/javascript">
       var setting = {
-        view: {
-          showIcon: false, // showIconForTree
-          expandSpeed: ''
-        },
         data: {
           key: {
             title: 't'
@@ -40,13 +44,84 @@
           simpleData: {
             enable: true
           }
+        },
+        view: {
+          showIcon: false, // set showIconForTree if you need icon for nodes with children
+          expandSpeed: '', // no delay in expand/collapse
+          addHoverDom: addHoverDom,
+          removeHoverDom: removeHoverDom,
+          selectedMulti: false
+        },
+        edit: {
+          enable: true,
+          editNameSelectAll: true,
+          showRemoveBtn: showRemoveBtn,
+          showRenameBtn: showRenameBtn
+        },
+        callback: {
+          beforeRemove: beforeRemove,
+          beforeRename: beforeRename
         }
       };
 
       var zNodes = [];
 
-      function showIconForTree(treeId, treeNode) {
-        return !treeNode.isParent;
+      var log,
+        className = 'dark';
+
+      function beforeRemove(treeId, treeNode) {
+        var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+        zTree.selectNode(treeNode);
+        return confirm("Confirm delete node '" + treeNode.name + "' it?");
+      }
+
+      function beforeRename(treeId, treeNode, newName, isCancel) {
+        if (newName.length == 0) {
+          setTimeout(function() {
+            var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+            zTree.cancelEditName();
+            alert('Node name can not be empty.');
+          }, 0);
+          return false;
+        }
+        return true;
+      }
+
+      function showRemoveBtn(treeId, treeNode) {
+        return !treeNode.isFirstNode;
+      }
+
+      function showRenameBtn(treeId, treeNode) {
+        return !treeNode.isLastNode;
+      }
+
+      var newCount = 1;
+      function addHoverDom(treeId, treeNode) {
+        var sObj = $('#' + treeNode.tId + '_span');
+        if (treeNode.editNameFlag || $('#addBtn_' + treeNode.tId).length > 0)
+          return;
+        var addStr =
+          "<span class='button add' id='addBtn_" +
+          treeNode.tId +
+          "' title='add node' onfocus='this.blur();'></span>";
+        sObj.after(addStr);
+        var btn = $('#addBtn_' + treeNode.tId);
+        if (btn)
+          btn.bind('click', function() {
+            var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+            zTree.addNodes(treeNode, {
+              id: 100 + newCount,
+              pId: treeNode.id,
+              name: 'new node' + newCount++
+            });
+            return false;
+          });
+      }
+
+      function removeHoverDom(treeId, treeNode) {
+        $('#addBtn_' + treeNode.tId)
+          .unbind()
+          .remove();
       }
 
       $(document).ready(function() {
@@ -95,6 +170,16 @@
         }
       }
     </script>
+
+    <style type="text/css">
+      .ztree li span.button.add {
+        margin-left: 2px;
+        margin-right: -1px;
+        background-position: -144px 0;
+        vertical-align: top;
+        *vertical-align: middle;
+      }
+    </style>
   </head>
 
   <body>
