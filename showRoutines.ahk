@@ -41,14 +41,14 @@
   global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
   global fullFileCode, fileCode         ; text file with source code.
   global path
-  global itemLevels
-  global levels_LastIndex
+  global itemLevels, levels_LastIndex
+  global saveOnExit ; declares if settings are saved on app exit.
   global scriptNameNoExt
   global TreeViewWidth, treeviewWidthStep
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
   global exportedRoutines, exportDescriptions
-  global exportMaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
+  global exportOutputFormat, exportMaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
   global winX, winY ; main window position
   global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
@@ -58,7 +58,6 @@
   global subGui2_W, subGui2_H
   global subGui3_W, subGui3_H
   global subGui4_W, subGui4_H
-  global outputFormat
   global gCurrentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
   global ExportSelected, nodesToExport, ExportWhatYouSee, exportInBatch
@@ -120,7 +119,7 @@ showHelp() {
     ctrl left cursor = decrease tree width
 
     )
-  Gui, 2:Add, button, xm+10 y+20 g2Close,Close
+  Gui, 2:Add, button, xm+10 y+20 g2Close, Close
   Gui, 2:show, x%newX% y%newY%, Gui 2
   return
   }
@@ -134,7 +133,7 @@ showHelp() {
   ;---------------------------------------------------------------------
 showExport() {
   inputFilename := fileRoutines
-  outputFormat := "html"
+  ; exportOutputFormat := "html"
 
   Gui, 3:Destroy
   global subGui3_W, subGui3_H
@@ -158,23 +157,26 @@ showExport() {
   ; max level
   Gui, 3:Add,Text,xm+20 yp+35, Max level to export
   Gui, 3:Add,Edit, vexportMaxLevel xp+100 yp-5 w40 +Number
-  Gui, 3:Add, UpDown, Range2-999, 999
+  Gui, 3:Add, UpDown, Range2-999, %exportMaxLevel%
 
   ; include descriptions?
-  Checked1 := exportDescriptions == "true" ? "Checked" : ""
-  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xm+20 yp+35 %Checked1% ,   Include routines descriptions
+  CheckedExportDescriptions := exportDescriptions == "true" ? "Checked" : ""
+  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xm+20 yp+35 %CheckedExportDescriptions% Disabled,   Include routines descriptions
 
   ; output format
+  CheckedHTML := exportOutputFormat == "html" ? "Checked" : ""
+  CheckedJSON := exportOutputFormat == "json" ? "Checked" : ""
+  CheckedTXT := exportOutputFormat == "txt" ? "Checked" : ""
   Gui, 3:Add, Text, xm+20 yp+30, Output format
-  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup Checked xp+80 yp, html
-  Gui, 3:Add, Radio, g3Check xp+50 yp, json
-  Gui, 3:Add, Radio, g3Check xp+50 yp, txt
+  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup %CheckedHTML% xp+80 yp, html
+  Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedJSON%, json
+  Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedTXT%, txt
 
   ; Export, Close buttons
   Gui, 3:Add, button, xm+60 ym+190 w50 g3ExportAll, All
   Gui, 3:Add, button, xp+50 ym+190 w50 g3ExportSelected vExportSelected, Selected
   Gui, 3:Add, button, xp+50 ym+190 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
-  Gui, 3:Add, button, xp+130 g3Close, Close
+  Gui, 3:Add, button, xp+130 g3Close, Cancel
 
   if (nodesToExport.MaxIndex()>0)
     GuiControl, 3:Enable, ExportSelected
@@ -183,7 +185,6 @@ showExport() {
 
   ; show window
   Gui, 3:show, x%newX% y%newY%, Gui 3
-  HWND_GUI3 := WinExist(A)
   return
   }
 
@@ -206,13 +207,13 @@ showExport() {
   Gui, 3:Submit, NoHide
 
   if (MyRadioGroup = 1)
-    outputFormat := "html"
+    exportOutputFormat := "html"
 
   if (MyRadioGroup = 2)
-    outputFormat := "json"
+    exportOutputFormat := "json"
 
   if (MyRadioGroup = 3)
-    outputFormat := "txt"
+    exportOutputFormat := "txt"
   Return
 
   ;---------------------------------------------------------------------
@@ -279,7 +280,7 @@ exportInBatch() {
   SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
   ExportedFilename := "exported_" . NameNoExt . ".html"
   exportDescriptions := "true"
-  outputFormat := "html"
+  exportOutputFormat := "html"
   expandAll := true
   exportedString := exportNodes(expandAll)
   saveExportedString(exportedString)
@@ -294,11 +295,11 @@ saveExportedString(exportedString) {
   }
 
   ; json format needs no processing.
-  if (outputFormat = "json" or outputFormat = "txt")
+  if (exportOutputFormat = "json" or exportOutputFormat = "txt")
     OutputVar := exportedString
   
   ; html format uses specific template.
-  else if (outputFormat = "html") {
+  else if (exportOutputFormat = "html") {
     FileRead, templateContents, .\templates\routineFlow.html
     if ErrorLevel {
       MsgBox, Template file not found (\templates\routineFlow.html)
@@ -311,7 +312,7 @@ saveExportedString(exportedString) {
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
   }
 
-  filename := ".\data\" . ExportedFilename . "." . outputFormat
+  filename := ".\data\" . ExportedFilename . "." . exportOutputFormat
   if FileExist(filename)
     FileDelete, %filename%
 
@@ -636,7 +637,13 @@ setup() {
 	IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
 	IniRead, valueOfwindow_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
 	IniRead, valueOfcontrol_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
+
+  IniRead, exportMaxLevel, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
+  IniRead, exportDescriptions, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
+  IniRead, exportOutputFormat, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
+
 	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
+  IniRead, saveOnExit, %A_ScriptDir%\%scriptNameNoExt%.ini, general, saveOnExit
 	
   if (TreeViewWidth = 0)
     TreeViewWidth := 600
@@ -707,8 +714,8 @@ setup() {
 	Menu, FileMenu, Add, &Open file, MenuHandler
 	Menu, FileMenu, Icon, &Open file, shell32.dll, 4
 	
-	Menu, FileMenu, Add, Save position, MenuHandler
-	Menu, FileMenu, Disable, Save position
+  Menu, FileMenu, Add, Save settings, MenuHandler
+  ; Menu, FileMenu, Disable, Save settings
 	
 	Menu, FileMenu, Add, Export tree as..., MenuHandler
 	Menu, FileMenu, Icon, Export tree as..., shell32.dll, 259
@@ -1033,6 +1040,14 @@ MenuHandler:
     exitApplication()
   }
 
+  if (A_ThisMenuItem = "Save settings") {
+    saveSettings()
+    Progress, zh0 fs10, % "Settings saved"
+    sleep, 500
+    Progress, off
+    return
+  }
+
   return
 
 Exit:
@@ -1106,6 +1121,11 @@ saveSettings() {
 
   ; on exit save position & size of window
   ; but if it is minimized skip this step.
+  if (isMinimized = -1 or saveOnExit != "true")
+    Return
+
+  ; on exit save position & size of window
+  ; but if it is minimized skip this step.
   actWin := WinExist("A")
   WinGet, isMinimized , MinMax, actWin
   if (isMinimized <> -1) {
@@ -1137,6 +1157,19 @@ saveSettings() {
     IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
   if (fileCode <> "")
     IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
+  
+  ; save export settings
+  if (exportMaxLevel <> "")
+    IniWrite, %exportMaxLevel%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
+  if (exportDescriptions <> "")
+    IniWrite, %exportDescriptions%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
+  if (exportOutputFormat <> "")
+    IniWrite, %exportOutputFormat%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
+
+  ; timestamp
+  FormatTime, currentTimestamp,, yyyy-MM-dd hh:mm:ss
+  FileEncoding, CP1253 
+  IniWrite, %currentTimestamp%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, lastSavedTimestamp
   }
   ;---------------------------------------------------------------------
   ; get actual gui size 
@@ -1525,10 +1558,10 @@ exportNodes(expandAll, index1=0, index2=0) {
   if (exportMaxLevel < 2 or exportMaxLevel > 999)
     exportMaxLevel := 999
 
-  if (outputFormat = "json" or outputFormat = "html")
+  if (exportOutputFormat = "json" or exportOutputFormat = "html")
     treeString := exportNodesAsHTML(expandAll, index1, index2)
 
-  if (outputFormat = "txt")
+  if (exportOutputFormat = "txt")
     treeString := exportNodesAsTXT(index1, index2)
   
   return treeString
