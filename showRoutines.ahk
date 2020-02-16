@@ -122,7 +122,6 @@ showHelp() {
     )
   Gui, 2:Add, button, xm+10 y+20 g2Close,Close
   Gui, 2:show, x%newX% y%newY%, Gui 2
-  HWND_GUI2 := WinExist(A)
   return
   }
 2Escape:
@@ -317,7 +316,6 @@ saveExportedString(exportedString) {
     FileDelete, %filename%
 
   FileAppend, %OutputVar%, %filename%
-  ; FileAppend, %exportedString%, %filename%
   Run, %filename%
   
   ; openNotepad(filename)
@@ -1640,7 +1638,7 @@ exportNodesAsTXT(index1, index2) {
     currLine ++
   }
   
-  exportedString := "1234567890123456789012345678901234567890123456789012345678901234567890`n"
+  ; exportedString := "1234567890123456789012345678901234567890123456789012345678901234567890`n"
   Loop, % exportedRoutines.MaxIndex() {
     exportedString .= exportedRoutines[A_Index]
   }
