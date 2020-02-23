@@ -1,11 +1,4 @@
-; initial declarations
-#SingleInstance off     ;force
-#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
-
-  FileInstall, showRoutines.ini, showRoutines.ini
-  #Include %A_ScriptDir%\JSON\JSON.ahk
-
-  ;--------------------------------------------------------------------------------------
+;--------------------------------------------------------------------------------------
   ; Version with:
   ;   listbox for showing code
   ;   parameter for input file
@@ -35,6 +28,13 @@
   ; cpyf qtemp/cbtreef5  dcommon/cbtreef5 *replace
   ; CVTDBF FROMFILE(DCOMMON/CBTREEF5) TOSTMF('/output/bussup/txt/cbtreef5') TOFMT(*FIXED) FIXED(*CRLF (*DBF) (*DBF) *SYSVAL *COMMA)
   ;--------------------------------------------------------------------------------------
+; initial declarations
+  #SingleInstance off     ;force
+  #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+
+  FileInstall, routineFlow.html, routineFlow.html 
+  FileInstall, showRoutines.ini, showRoutines.ini
+  #Include %A_ScriptDir%\JSON\JSON.ahk
   global allRoutines  ; array of class "routine"
   global allCode      ; array of source code to show
   global currThread ; keeps all routines in the current thread in order to avoid circular dependencies
@@ -304,9 +304,9 @@ saveExportedString(exportedString) {
   
   ; html format uses specific template.
   else if (exportOutputFormat = "html") {
-    FileRead, templateContents, %A_ScriptDir%\templates\routineFlow.html
+    FileRead, templateContents, %A_ScriptDir%\routineFlow.html
     if ErrorLevel {
-      MsgBox, Template file not found (\templates\routineFlow.html)
+      MsgBox, Template file not found (\routineFlow.html)
       return
     }
 
