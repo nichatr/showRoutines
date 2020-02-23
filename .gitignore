@@ -4,3 +4,5 @@ hummingbird-treeview
 data
 ztree*
 tests
+*.zip
+workflow.md
