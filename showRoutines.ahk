@@ -43,6 +43,7 @@
   global path
   global itemLevels, levels_LastIndex
   global saveOnExit ; declares if settings are saved on app exit.
+  global openLevelOnStartup ; level to unfold on startup
   global scriptNameNoExt
   global TreeViewWidth, treeviewWidthStep
   global ListBoxWidth
@@ -83,7 +84,7 @@ mainProcess() {
 showGui() {
   global
 	OnMessage(0x232, "Move_window") ; to move children guis with the parent
-  processLevel(2)
+  processLevel(openLevelOnStartup)
   updateStatusbar()
   Gui, 1:Show, X%winX% Y%winY% W%winWidth% H%winHeight%, %fileCode%
   return
@@ -106,6 +107,7 @@ showHelp() {
       
     F1 = show help 
     F2 = export tree 
+    Alt F2 = settings
 
     F3/F4 = fold/unfold all 
     F5/F6 = fold/unfold current node recursively 
@@ -156,7 +158,7 @@ showExport() {
 
   ; max level
   Gui, 3:Add,Text,xm+20 yp+35, Max level to export
-  Gui, 3:Add,Edit, vexportMaxLevel xp+100 yp-5 w40 +Number
+  Gui, 3:Add,Edit, vexportMaxLevel xp+100 yp-5 w60 +Number
   Gui, 3:Add, UpDown, Range2-999, %exportMaxLevel%
 
   ; include descriptions?
@@ -173,10 +175,10 @@ showExport() {
   Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedTXT%, txt
 
   ; Export, Close buttons
-  Gui, 3:Add, button, xm+60 ym+190 w50 g3ExportAll, All
-  Gui, 3:Add, button, xp+50 ym+190 w50 g3ExportSelected vExportSelected, Selected
-  Gui, 3:Add, button, xp+50 ym+190 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
-  Gui, 3:Add, button, xp+130 g3Close, Cancel
+  Gui, 3:Add, button, xm+30 ym+200 w80 g3ExportAll default, All
+  Gui, 3:Add, button, xp+90 ym+200 w80 g3ExportSelected vExportSelected, Selected
+  Gui, 3:Add, button, xp+90 ym+200 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
+  Gui, 3:Add, button, xp+90 w80 g3Close, Cancel
 
   if (nodesToExport.MaxIndex()>0)
     GuiControl, 3:Enable, ExportSelected
@@ -184,7 +186,7 @@ showExport() {
     GuiControl, 3:Disable, ExportSelected
 
   ; show window
-  Gui, 3:show, x%newX% y%newY%, Gui 3
+  Gui, 3:show, x%newX% y%newY% h250, Gui 3
   return
   }
 
@@ -335,6 +337,7 @@ showSettings() {
 	IniRead, window_color, showRoutines.ini, backgroundColor, window
 	IniRead, control_color, showRoutines.ini, backgroundColor, control
 	IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
+	IniRead, openLevelOnStartup, showRoutines.ini, general, openLevelOnStartup
 	
 	IniRead, codeEditor, showRoutines.ini, general, codeEditor
 	if (codeEditor == "code") {
@@ -386,6 +389,10 @@ showSettings() {
 	Gui, 4:Add, Text, xm+5 yp+40, Code editor
 	Gui, 4:Add, Radio, Group g4check vMyRadioGroup %checked1% xp+80 yp, vscode
 	Gui, 4:Add, Radio, g4check %checked2% xp+70 yp, notepad++
+
+	Gui, 4:Add, Text, xm+5 yp+40, On startup unfold level
+  Gui, 4:Add,Edit, vopenLevelOnStartup xp+115 yp-5 w60 +Number
+  Gui, 4:Add, UpDown, Range2-999, %openLevelOnStartup%
 	
 	checked := showOnlyRoutine == "false" ? "" : "Checked"
 	Gui, 4:Add, Checkbox, vshowOnlyRoutineFlag %checked% xs200 ys, Show only selected routine
@@ -393,14 +400,14 @@ showSettings() {
     ;---------------------------------------------
     ; buttons to save, cancel, load default values
     ;---------------------------------------------
-	Gui, 4:Add, Button, x70 y220 w80, Save
-	Gui, 4:Add, Button, x160 y220 w80 default, Cancel
-	Gui, 4:Add, Button, x250 y220 w80, Default
+	Gui, 4:Add, Button, x70 y260 w80, Save
+	Gui, 4:Add, Button, x160 y260 w80 default, Cancel
+	Gui, 4:Add, Button, x250 y260 w80, Default
 	
 	4show:
 	Gui, 4:+AlwaysOnTop -Caption +Owner1
   ; Gui, 4:+Resize -SysMenu +ToolWindow
-	showSubGui(400, 250, win_title)
+	showSubGui(400, 300, win_title)
 	Return
 	
 	4Check:
@@ -439,6 +446,7 @@ showSettings() {
 		IniWrite, %showOnlyRoutine%, showRoutines.ini, general, showOnlyRoutine
 		
 		IniWrite, %codeEditor%, showRoutines.ini, general, codeEditor
+		IniWrite, %openLevelOnStartup%, showRoutines.ini, general, openLevelOnStartup
 		
 		Goto, 4GuiClose
 	}
@@ -643,6 +651,7 @@ setup() {
   IniRead, exportOutputFormat, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
 
 	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
+	IniRead, openLevelOnStartup, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
   IniRead, saveOnExit, %A_ScriptDir%\%scriptNameNoExt%.ini, general, saveOnExit
 	
   if (TreeViewWidth = 0)
@@ -678,6 +687,9 @@ setup() {
 	else
 		control_color := VSCODE_EDIT_WIN
 	
+  if (openLevelOnStartup < 2 or openLevelOnStartup > 999)
+    openLevelOnStartup := 999
+
 	Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
 	Gui, 1:Color, %window_color%, %control_color%
 	
@@ -776,6 +788,10 @@ setup() {
 
   F2::
   showExport()  ;{ <-- export
+  return
+
+  !F2::
+  showSettings()()  ;{ <-- settings
   return
 
   F3::       ;{ <-- fold all routines 
