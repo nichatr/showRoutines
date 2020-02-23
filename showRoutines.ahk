@@ -2,6 +2,7 @@
 #SingleInstance off     ;force
 #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 
+  FileInstall, showRoutines.ini, showRoutines.ini
   #Include %A_ScriptDir%\JSON\JSON.ahk
 
   ;--------------------------------------------------------------------------------------
@@ -774,7 +775,7 @@ setup() {
 	
 	Gui, 1:Menu, MyMenuBar
 	Gui, 1:Add, Button, gExit, Exit This Example
-	Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
+	; Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
 	return
   }
   ;---------------------------------------
