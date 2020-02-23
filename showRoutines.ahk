@@ -121,7 +121,7 @@ showHelp() {
     ctrl left cursor = decrease tree width
 
     )
-  Gui, 2:Add, button, xm+10 y+20 g2Close, Close
+  Gui, 2:Add, button, xm+10 y+20 Default g2Close, Close
   Gui, 2:show, x%newX% y%newY%, Gui 2
   return
   }
@@ -324,22 +324,22 @@ saveExportedString(exportedString) {
   ; openNotepad(filename)
   }
 
- ;--------------------------------------------
+  ;--------------------------------------------
   ; show window with editable settings
   ;--------------------------------------------
 showSettings() {
 	static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, MyRadioGroup, checked1, checked2
 	win_title := "Settings"
 	
-	IniRead, font_size, showRoutines.ini, font, size
-	IniRead, font_color, showRoutines.ini, font, color
-	IniRead, tree_step, showRoutines.ini, position, treeviewWidthStep
-	IniRead, window_color, showRoutines.ini, backgroundColor, window
-	IniRead, control_color, showRoutines.ini, backgroundColor, control
-	IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
-	IniRead, openLevelOnStartup, showRoutines.ini, general, openLevelOnStartup
+	IniRead, font_size, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
+	IniRead, font_color, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
+	IniRead, tree_step, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
+	IniRead, window_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
+	IniRead, control_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
+	IniRead, showOnlyRoutine, %A_ScriptDir%\%scriptNameNoExt%.ini, general, showOnlyRoutine
+	IniRead, openLevelOnStartup, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
 	
-	IniRead, codeEditor, showRoutines.ini, general, codeEditor
+	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
 	if (codeEditor == "code") {
 		checked1 := "checked1"
 		checked2 := "checked0"
@@ -435,18 +435,18 @@ showSettings() {
             ; Sleep, 200
 		Progress, off
 		
-		IniWrite, %font_size%, showRoutines.ini, font, size
-		IniWrite, %font_color%, showRoutines.ini, font, color
+		IniWrite, %font_size%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
+		IniWrite, %font_color%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
 		if (tree_step > 0)
-			IniWrite, %tree_step%, showRoutines.ini, position, treeviewWidthStep
-		IniWrite, %window_color%, showRoutines.ini, backgroundColor, window
-		IniWrite, %control_color%, showRoutines.ini, backgroundColor, control
+			IniWrite, %tree_step%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
+		IniWrite, %window_color%, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
+		IniWrite, %control_color%, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
 		
 		showOnlyRoutine := showOnlyRoutineFlag ? "true" : "false"
-		IniWrite, %showOnlyRoutine%, showRoutines.ini, general, showOnlyRoutine
+		IniWrite, %showOnlyRoutine%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, showOnlyRoutine
 		
-		IniWrite, %codeEditor%, showRoutines.ini, general, codeEditor
-		IniWrite, %openLevelOnStartup%, showRoutines.ini, general, openLevelOnStartup
+		IniWrite, %codeEditor%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
+		IniWrite, %openLevelOnStartup%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
 		
 		Goto, 4GuiClose
 	}
@@ -456,13 +456,13 @@ showSettings() {
         ; Load the default values (again from ini file).
 	4ButtonDefault:
 	{
-		IniRead, treeviewWidth, showRoutines.ini, default, treeviewWidth
-		IniRead, font_size, showRoutines.ini, default, fontsize
-		IniRead, font_color, showRoutines.ini, default, fontcolor
-		IniRead, tree_step, showRoutines.ini, default, treeviewWidthStep
-		IniRead, window_color, showRoutines.ini, default, windowcolor
-		IniRead, control_color, showRoutines.ini, default, controlcolor
-		IniRead, codeEditor, showRoutines.ini, default, codeEditor
+		IniRead, treeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, default, treeviewWidth
+		IniRead, font_size, %A_ScriptDir%\%scriptNameNoExt%.ini, default, fontsize
+		IniRead, font_color, %A_ScriptDir%\%scriptNameNoExt%.ini, default, fontcolor
+		IniRead, tree_step, %A_ScriptDir%\%scriptNameNoExt%.ini, default, treeviewWidthStep
+		IniRead, window_color, %A_ScriptDir%\%scriptNameNoExt%.ini, default, windowcolor
+		IniRead, control_color, %A_ScriptDir%\%scriptNameNoExt%.ini, default, controlcolor
+		IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, default, codeEditor
 		
 		Gui, 4:Destroy
 		Goto, Loop
@@ -903,7 +903,7 @@ MyTreeView:
 		statements := []
 		routineName := ""
 		sourceCode := ""
-		IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
+		IniRead, showOnlyRoutine, %A_ScriptDir%\%scriptNameNoExt%.ini, general, showOnlyRoutine
 		
 		TV_GetText(routineName, TV_GetSelection())   ; get item text
 		statements := findRoutineFirstStatement(routineName)
