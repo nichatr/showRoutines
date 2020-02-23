@@ -72,7 +72,8 @@ mainProcess() {
   populateRoutines()
   populateCode()
   loadTreeview()
-  saveRoutines(".\data\allRoutines.txt", header, true)
+  file_to_save := A_ScriptDir . "\data\allRoutines.txt"
+  ; saveRoutines(file_to_save, header, true)
   updateStatusBar()
   if (!exportInBatch)
     showGui()
@@ -302,7 +303,7 @@ saveExportedString(exportedString) {
   
   ; html format uses specific template.
   else if (exportOutputFormat = "html") {
-    FileRead, templateContents, .\templates\routineFlow.html
+    FileRead, templateContents, %A_ScriptDir%\templates\routineFlow.html
     if ErrorLevel {
       MsgBox, Template file not found (\templates\routineFlow.html)
       return
@@ -314,7 +315,7 @@ saveExportedString(exportedString) {
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
   }
 
-  filename := ".\data\" . ExportedFilename . "." . exportOutputFormat
+  filename := A_ScriptDir . "\data\" . ExportedFilename . "." . exportOutputFormat
   if FileExist(filename)
     FileDelete, %filename%
 
@@ -541,7 +542,11 @@ initialize() {
 	fileRoutines := ""
 	fileCode := ""
   exportInBatch := false
-	
+  
+  if !FileExist(path) {
+    FileCreateDir, %path%
+  }
+
   ; the global variable scriptNameNoExt is used for accessing the .INI file from multiple places
   ; so it is defined at the beggining.
 	SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
@@ -575,7 +580,7 @@ initialize() {
 		}
 		
     ; use existing files(*no):
-    ;   move file.txt & file.XXXXX.txt (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
+    ;   move file.txt & file.XXXXX.txt (XXXXX=rpgle/cblle/cbl) from ieffect folder to \data
 		
 		if (trim(A_Args[4]) = "*NEW") {
 			pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
@@ -633,6 +638,10 @@ setup() {
 	levels_LastIndex := 0
 	fullFileRoutines := path . fileRoutines
 	fullFileCode := path . fileCode
+
+  if !FileExist(fullFileRoutines)
+    if (!fileSelector(path, "(*.txt)"))
+      ExitApp
 	
     ; read last saved values
 	IniRead, TreeViewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
