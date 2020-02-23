@@ -10,11 +10,30 @@
       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
       crossorigin="anonymous"
     />
-    <link
+    <!-- <link
       rel="stylesheet"
       href="../zTree/css/zTreeStyle/zTreeStyle.css"
       type="text/css"
+    /> -->
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/zTree.v3/3.5.40/css/zTreeStyle/zTreeStyle.css"
+    type="text/css" /> -->
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/ztree@3.5.24/css/zTreeStyle/zTreeStyle.css"
+      integrity="sha256-cr76XHBuc5/WlSeWBTtCaqsVohyJPiIWIMRufFvWK+M="
+      crossorigin="anonymous"
     />
+    <style>
+      .ztree li a input.rename {
+        height: 14px;
+        width: 50em;
+        padding: 0;
+        margin: 0;
+        font-size: 12px;
+        border: 1px #7ec4cc solid;
+        *border: 0px;
+      }
+    </style>
 
     <script
       src="https://code.jquery.com/jquery-3.4.1.min.js"
@@ -22,18 +41,11 @@
       crossorigin="anonymous"
     ></script>
 
-    <script
-      type="text/javascript"
-      src="../zTree/js/jquery.ztree.core.min.js"
-    ></script>
-    <script
-      type="text/javascript"
-      src="../zTree/js/jquery.ztree.excheck.min.js"
-    ></script>
-    <script
-      type="text/javascript"
-      src="../zTree/js/jquery.ztree.exedit.min.js"
-    ></script>
+    <script src="https://cdn.jsdelivr.net/npm/ztree@3.5.24/js/jquery.ztree.all.min.js"></script>
+
+    <!-- <script type="text/javascript" src="../zTree/js/jquery.ztree.core.min.js"></script>
+  <script type="text/javascript" src="../zTree/js/jquery.ztree.excheck.min.js"></script>
+  <script type="text/javascript" src="../zTree/js/jquery.ztree.exedit.min.js"></script> -->
 
     <script type="text/javascript">
       var setting = {
@@ -96,6 +108,7 @@
       }
 
       var newCount = 1;
+
       function addHoverDom(treeId, treeNode) {
         var sObj = $('#' + treeNode.tId + '_span');
         if (treeNode.editNameFlag || $('#addBtn_' + treeNode.tId).length > 0)
@@ -126,11 +139,33 @@
 
       $(document).ready(function() {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
+        $('#downloadBtn').bind('click', downloadAll);
         $('#expandAllBtn').bind('click', expandAll);
         $('#collapseAllBtn').bind('click', collapseAll);
         $('#expandLevelBtn').bind('click', expandLevel);
         $('#collapseLevelBtn').bind('click', collapseLevel);
       });
+
+      function downloadAll() {
+        var xx = document.querySelector('html').innerHTML;
+        download('saved.html', xx);
+      }
+
+      function download(filename, text) {
+        var element = document.createElement('a');
+        element.setAttribute(
+          'href',
+          'data:text/plain;charset=utf-8,' + encodeURIComponent(text)
+        );
+        element.setAttribute('download', filename);
+
+        element.style.display = 'none';
+        document.body.appendChild(element);
+
+        element.click();
+
+        document.body.removeChild(element);
+      }
 
       function expandAll() {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
@@ -179,6 +214,13 @@
         vertical-align: top;
         *vertical-align: middle;
       }
+
+      .badge {
+        color: #4d85ff;
+      }
+      .badge {
+        background-color: #e6e6fa;
+      }
     </style>
   </head>
 
@@ -186,11 +228,11 @@
     <div class="container">
       <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
         <div class="navbar-brand">
-          <span class="badge"
-            ><h5 style="color: #4d85ff">
-              TITLE
-            </h5></span
-          >
+          <span class="badge">
+            <h5>
+              CRCBL200: program calls
+            </h5>
+          </span>
         </div>
 
         <button
@@ -208,32 +250,28 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
           <ul class="navbar-nav ml-auto">
             <li class="nav-item">
-              <button id="expandAllBtn" class="btn btn-outline-success btn-sm">
+              <button id="expandAllBtn" class="btn btn-primary btn-sm">
                 Expand all
               </button>
             </li>
             <li class="nav-item">
-              <button
-                id="collapseAllBtn"
-                class="btn btn-outline-success btn-sm"
-              >
+              <button id="collapseAllBtn" class="btn btn-primary btn-sm">
                 Collapse all
               </button>
             </li>
             <li class="nav-item">
-              <button
-                id="expandLevelBtn"
-                class="btn btn-outline-secondary btn-sm"
-              >
+              <button id="expandLevelBtn" class="btn btn-secondary btn-sm">
                 Expand level
               </button>
             </li>
             <li class="nav-item">
-              <button
-                id="collapseLevelBtn"
-                class="btn btn-outline-secondary btn-sm"
-              >
+              <button id="collapseLevelBtn" class="btn btn-secondary btn-sm">
                 Collapse level
+              </button>
+            </li>
+            <li class="nav-item">
+              <button id="downloadBtn" class="btn btn-success btn-sm">
+                Save
               </button>
             </li>
           </ul>

@@ -2,4 +2,5 @@
 *.txt
 hummingbird-treeview
 data
-JSON
+ztree*
+tests

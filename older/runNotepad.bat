@@ -1,1 +1,0 @@
-notepad++ -lcobol -nosession -ro -n1500 %1
