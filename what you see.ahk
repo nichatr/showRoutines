@@ -1,4 +1,7 @@
-;--------------------------------------------------------------------------------------
+; initial declarations
+#SingleInstance off     ;force
+#NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
+  ;--------------------------------------------------------------------------------------
   ; Version with:
   ;   listbox for showing code
   ;   parameter for input file
@@ -6,13 +9,12 @@
   ;--------------------------------------------------------------------------------------
   ; parameters:
   ;   A_Args[1] = routine calls file = outfile.txt
-  ;   A_Args[2] = source code file   = outfile.XXXXX (XXXXX=RPGLE/CBLLE/CBL)
+  ;   A_Args[2] = source code file   = outfile.cbl
   ;   A_Args[3] = path where above files created = z:\bussup\txt\\
   ;   A_Args[4] = use existing files or select = *NEW|*OLD|*SELECT (default)
   ;               *NEW = try to load above files
   ;               *OLD = use existing file found in showRoutines.ini
   ;               *SELECT = open file selector
-  ;   A_Args[5] = "*DISPLAY" show gui, "*EXPORT": load and export to html without showing gui.
   ;
   ;--------------------------------------------------------------------------------------
   ; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
@@ -28,13 +30,6 @@
   ; cpyf qtemp/cbtreef5  dcommon/cbtreef5 *replace
   ; CVTDBF FROMFILE(DCOMMON/CBTREEF5) TOSTMF('/output/bussup/txt/cbtreef5') TOFMT(*FIXED) FIXED(*CRLF (*DBF) (*DBF) *SYSVAL *COMMA)
   ;--------------------------------------------------------------------------------------
-; initial declarations
-  #SingleInstance off     ;force
-  #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
-
-  FileInstall, routineFlow.html, routineFlow.html 
-  FileInstall, showRoutines.ini, showRoutines.ini
-  #Include %A_ScriptDir%\JSON\JSON.ahk
   global allRoutines  ; array of class "routine"
   global allCode      ; array of source code to show
   global currThread ; keeps all routines in the current thread in order to avoid circular dependencies
@@ -42,15 +37,14 @@
   global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
   global fullFileCode, fileCode         ; text file with source code.
   global path
-  global itemLevels, levels_LastIndex
-  global saveOnExit ; declares if settings are saved on app exit.
-  global openLevelOnStartup ; level to unfold on startup
+  global itemLevels
+  global levels_LastIndex
   global scriptNameNoExt
   global TreeViewWidth, treeviewWidthStep
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
   global exportedRoutines, exportDescriptions
-  global exportOutputFormat, exportMaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
+  global MaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
   global winX, winY ; main window position
   global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
@@ -62,7 +56,7 @@
   global subGui4_W, subGui4_H
   global gCurrentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
-  global ExportSelected, nodesToExport, ExportWhatYouSee, exportInBatch
+  global ExportSelected, nodesToExport, ExportWhatYouSee
 
 initialize()
 mainProcess()
@@ -73,20 +67,15 @@ mainProcess() {
   populateRoutines()
   populateCode()
   loadTreeview()
-  file_to_save := A_ScriptDir . "\data\allRoutines.txt"
-  saveRoutines(file_to_save, header, true)
+  saveRoutines(".\data\allRoutines.txt", header, true)
   updateStatusBar()
-  if (!exportInBatch)
-    showGui()
-  else {
-    exportInBatch()
-    ExitApp
-    }
+  showGui()
   }
+
 showGui() {
   global
 	OnMessage(0x232, "Move_window") ; to move children guis with the parent
-  processLevel(openLevelOnStartup)
+  processLevel(2)
   updateStatusbar()
   Gui, 1:Show, X%winX% Y%winY% W%winWidth% H%winHeight%, %fileCode%
   return
@@ -109,7 +98,6 @@ showHelp() {
       
     F1 = show help 
     F2 = export tree 
-    Alt F2 = settings
 
     F3/F4 = fold/unfold all 
     F5/F6 = fold/unfold current node recursively 
@@ -123,8 +111,9 @@ showHelp() {
     ctrl left cursor = decrease tree width
 
     )
-  Gui, 2:Add, button, xm+10 y+20 Default g2Close, Close
+  Gui, 2:Add, button, xm+10 y+20 g2Close,Close
   Gui, 2:show, x%newX% y%newY%, Gui 2
+  HWND_GUI2 := WinExist(A)
   return
   }
 2Escape:
@@ -137,7 +126,7 @@ showHelp() {
   ;---------------------------------------------------------------------
 showExport() {
   inputFilename := fileRoutines
-  ; exportOutputFormat := "html"
+  outputFormat := "txt"
 
   Gui, 3:Destroy
   global subGui3_W, subGui3_H
@@ -152,35 +141,30 @@ showExport() {
   Gui, 3:Add,GroupBox,xm+5 y+10 w%subGui3_W% h%subGui3_H%, Export
   
   ; filename
-  SplitPath, inputFilename , FileName, Dir, Extension, NameNoExt, Drive
-  ExportedFilename := "exported_" . NameNoExt     ; . ".html"
   Gui, 3:Add,Text,xm+20 yp+40, Exported filename
-  Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %ExportedFilename%
+  Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, exported_%inputFilename%
   ; Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %scriptDir%\data\%inputFilename%
 
   ; max level
   Gui, 3:Add,Text,xm+20 yp+35, Max level to export
-  Gui, 3:Add,Edit, vexportMaxLevel xp+100 yp-5 w60 +Number
-  Gui, 3:Add, UpDown, Range2-999, %exportMaxLevel%
+  Gui, 3:Add,Edit, vMaxLevel xp+100 yp-5 w40 +Number
+  Gui, 3:Add, UpDown, Range2-999, 999
 
   ; include descriptions?
-  CheckedExportDescriptions := exportDescriptions == "true" ? "Checked" : ""
-  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xm+20 yp+35 %CheckedExportDescriptions% Disabled,   Include routines descriptions
+  Checked1 := exportDescriptions == "true" ? "Checked" : ""
+  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xm+20 yp+35 %Checked1% ,   Include routines descriptions
 
   ; output format
-  CheckedHTML := exportOutputFormat == "html" ? "Checked" : ""
-  CheckedJSON := exportOutputFormat == "json" ? "Checked" : ""
-  CheckedTXT := exportOutputFormat == "txt" ? "Checked" : ""
   Gui, 3:Add, Text, xm+20 yp+30, Output format
-  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup %CheckedHTML% xp+80 yp, html
-  Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedJSON%, json
-  Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedTXT%, txt
+  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup Checked xp+80 yp, txt
+  Gui, 3:Add, Radio, g3Check xp+50 yp, json
+  Gui, 3:Add, Radio, g3Check xp+50 yp, xml
 
   ; Export, Close buttons
-  Gui, 3:Add, button, xm+30 ym+200 w80 g3ExportAll default, All
-  Gui, 3:Add, button, xp+90 ym+200 w80 g3ExportSelected vExportSelected, Selected
-  Gui, 3:Add, button, xp+90 ym+200 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
-  Gui, 3:Add, button, xp+90 w80 g3Close, Cancel
+  Gui, 3:Add, button, xm+60 ym+190 w50 g3ExportAll, All
+  Gui, 3:Add, button, xp+50 ym+190 w50 g3ExportSelected vExportSelected, Selected
+  Gui, 3:Add, button, xp+50 ym+190 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
+  Gui, 3:Add, button, xp+130 g3Close, Close
 
   if (nodesToExport.MaxIndex()>0)
     GuiControl, 3:Enable, ExportSelected
@@ -188,7 +172,8 @@ showExport() {
     GuiControl, 3:Disable, ExportSelected
 
   ; show window
-  Gui, 3:show, x%newX% y%newY% h250, Gui 3
+  Gui, 3:show, x%newX% y%newY%, Gui 3
+  HWND_GUI3 := WinExist(A)
   return
   }
 
@@ -211,13 +196,13 @@ showExport() {
   Gui, 3:Submit, NoHide
 
   if (MyRadioGroup = 1)
-    exportOutputFormat := "html"
+    outputFormat := "txt"
+    outputFormat := "txt"
 
   if (MyRadioGroup = 2)
-    exportOutputFormat := "json"
-
+    outputFormat := "json"
   if (MyRadioGroup = 3)
-    exportOutputFormat := "txt"
+    outputFormat := "xml"
   Return
 
   ;---------------------------------------------------------------------
@@ -225,7 +210,7 @@ showExport() {
   ;---------------------------------------------------------------------
 3ExportAll:
   Gui, 3:Submit, NoHide
-  if (exportMaxLevel < 2 or exportMaxLevel > 999) {
+  if (MaxLevel < 2 or MaxLevel > 999) {
     MsgBox, max level must be between 2 and 999
     return
   }
@@ -234,8 +219,7 @@ showExport() {
     return
   }
 
-  expandAll := true
-  exportedString := exportNodes(expandAll)
+  exportedString := exportTreeview()
   saveExportedString(exportedString)
   goto 3Close
 
@@ -244,16 +228,7 @@ showExport() {
   ;---------------------------------------------------------------------
 3ExportSelected:
   Gui, 3:Submit, NoHide
-  Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!exportMarked
-  if (trim(ExportedFilename) = "") {
-    MsgBox, filename cannot be empty
-    return
-  }
-  if (exportOutputFormat = "txt") {
-    MsgBox, Export selected nodes does not work with .TXT
-    return
-  }
-  exportedString := exportMarked()
+  exportedString := exportNodes()
   saveExportedString(exportedString)
   goto 3Close
 
@@ -263,12 +238,7 @@ showExport() {
 3ExportWhatYouSee:
   Gui, 3:Submit, NoHide
   Gui, 1:Default  ; necessary to use the TV_* functions on the gui 1 treeview!
-  if (trim(ExportedFilename) = "") {
-    MsgBox, filename cannot be empty
-    return
-  }
-  expandAll := false
-  exportedString := exportNodes(expandAll)
+  exportedString := exportWhatYouSee()
   saveExportedString(exportedString)
   goto 3Close
 
@@ -281,71 +251,34 @@ showExport() {
   Gui, 3:Destroy
   return
   ;---------------------------------------------------------------------
-  ; export in html format with default options (without "export gui")
-  ;---------------------------------------------------------------------
-exportInBatch() {
-  ; filename to export = "exported_inputFilename.html"
-  SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-  ExportedFilename := "exported_" . NameNoExt . ".html"
-  exportDescriptions := "true"
-  exportOutputFormat := "html"
-  expandAll := true
-  exportedString := exportNodes(expandAll)
-  saveExportedString(exportedString)
-  }
-  ;---------------------------------------------------------------------
   ; save created export into file and open it.
   ;---------------------------------------------------------------------
 saveExportedString(exportedString) {
-  if (exportedString = "") {
-    MsgBox, Nothing to export.
-    return
-  }
+  if (exportedString <> "") {
+    filename := ".\data\" . ExportedFilename
+    if FileExist(filename)
+      FileDelete, %filename%
+    FileAppend, %exportedString%, %filename%
+    openNotepad(filename)
+  } else
+    MsgBox, No bookmark to export.
+}
 
-  ; json format needs no processing.
-  if (exportOutputFormat = "json" or exportOutputFormat = "txt")
-    OutputVar := exportedString
-  
-  ; html format uses specific template.
-  else if (exportOutputFormat = "html") {
-    FileRead, templateContents, %A_ScriptDir%\routineFlow.html
-    if ErrorLevel {
-      MsgBox, Template file not found (\routineFlow.html)
-      return
-    }
-
-    ; replace dummy strings with actual data.
-    SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-    templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
-    OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
-  }
-
-  filename := A_ScriptDir . "\data\" . ExportedFilename . "." . exportOutputFormat
-  if FileExist(filename)
-    FileDelete, %filename%
-
-  FileAppend, %OutputVar%, %filename%
-  Run, %filename%
-  
-  ; openNotepad(filename)
-  }
-
-  ;--------------------------------------------
+ ;--------------------------------------------
   ; show window with editable settings
   ;--------------------------------------------
 showSettings() {
 	static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, MyRadioGroup, checked1, checked2
 	win_title := "Settings"
 	
-	IniRead, font_size, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
-	IniRead, font_color, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
-	IniRead, tree_step, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
-	IniRead, window_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
-	IniRead, control_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
-	IniRead, showOnlyRoutine, %A_ScriptDir%\%scriptNameNoExt%.ini, general, showOnlyRoutine
-	IniRead, openLevelOnStartup, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
+	IniRead, font_size, showRoutines.ini, font, size
+	IniRead, font_color, showRoutines.ini, font, color
+	IniRead, tree_step, showRoutines.ini, position, treeviewWidthStep
+	IniRead, window_color, showRoutines.ini, backgroundColor, window
+	IniRead, control_color, showRoutines.ini, backgroundColor, control
+	IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
 	
-	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
+	IniRead, codeEditor, showRoutines.ini, general, codeEditor
 	if (codeEditor == "code") {
 		checked1 := "checked1"
 		checked2 := "checked0"
@@ -395,10 +328,6 @@ showSettings() {
 	Gui, 4:Add, Text, xm+5 yp+40, Code editor
 	Gui, 4:Add, Radio, Group g4check vMyRadioGroup %checked1% xp+80 yp, vscode
 	Gui, 4:Add, Radio, g4check %checked2% xp+70 yp, notepad++
-
-	Gui, 4:Add, Text, xm+5 yp+40, On startup unfold level
-  Gui, 4:Add,Edit, vopenLevelOnStartup xp+115 yp-5 w60 +Number
-  Gui, 4:Add, UpDown, Range2-999, %openLevelOnStartup%
 	
 	checked := showOnlyRoutine == "false" ? "" : "Checked"
 	Gui, 4:Add, Checkbox, vshowOnlyRoutineFlag %checked% xs200 ys, Show only selected routine
@@ -406,14 +335,14 @@ showSettings() {
     ;---------------------------------------------
     ; buttons to save, cancel, load default values
     ;---------------------------------------------
-	Gui, 4:Add, Button, x70 y260 w80, Save
-	Gui, 4:Add, Button, x160 y260 w80 default, Cancel
-	Gui, 4:Add, Button, x250 y260 w80, Default
+	Gui, 4:Add, Button, x70 y220 w80, Save
+	Gui, 4:Add, Button, x160 y220 w80 default, Cancel
+	Gui, 4:Add, Button, x250 y220 w80, Default
 	
 	4show:
 	Gui, 4:+AlwaysOnTop -Caption +Owner1
   ; Gui, 4:+Resize -SysMenu +ToolWindow
-	showSubGui(400, 300, win_title)
+	showSubGui(400, 250, win_title)
 	Return
 	
 	4Check:
@@ -441,18 +370,17 @@ showSettings() {
             ; Sleep, 200
 		Progress, off
 		
-		IniWrite, %font_size%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
-		IniWrite, %font_color%, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
+		IniWrite, %font_size%, showRoutines.ini, font, size
+		IniWrite, %font_color%, showRoutines.ini, font, color
 		if (tree_step > 0)
-			IniWrite, %tree_step%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidthStep
-		IniWrite, %window_color%, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
-		IniWrite, %control_color%, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
+			IniWrite, %tree_step%, showRoutines.ini, position, treeviewWidthStep
+		IniWrite, %window_color%, showRoutines.ini, backgroundColor, window
+		IniWrite, %control_color%, showRoutines.ini, backgroundColor, control
 		
 		showOnlyRoutine := showOnlyRoutineFlag ? "true" : "false"
-		IniWrite, %showOnlyRoutine%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, showOnlyRoutine
+		IniWrite, %showOnlyRoutine%, showRoutines.ini, general, showOnlyRoutine
 		
-		IniWrite, %codeEditor%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
-		IniWrite, %openLevelOnStartup%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
+		IniWrite, %codeEditor%, showRoutines.ini, general, codeEditor
 		
 		Goto, 4GuiClose
 	}
@@ -462,13 +390,13 @@ showSettings() {
         ; Load the default values (again from ini file).
 	4ButtonDefault:
 	{
-		IniRead, treeviewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, default, treeviewWidth
-		IniRead, font_size, %A_ScriptDir%\%scriptNameNoExt%.ini, default, fontsize
-		IniRead, font_color, %A_ScriptDir%\%scriptNameNoExt%.ini, default, fontcolor
-		IniRead, tree_step, %A_ScriptDir%\%scriptNameNoExt%.ini, default, treeviewWidthStep
-		IniRead, window_color, %A_ScriptDir%\%scriptNameNoExt%.ini, default, windowcolor
-		IniRead, control_color, %A_ScriptDir%\%scriptNameNoExt%.ini, default, controlcolor
-		IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, default, codeEditor
+		IniRead, treeviewWidth, showRoutines.ini, default, treeviewWidth
+		IniRead, font_size, showRoutines.ini, default, fontsize
+		IniRead, font_color, showRoutines.ini, default, fontcolor
+		IniRead, tree_step, showRoutines.ini, default, treeviewWidthStep
+		IniRead, window_color, showRoutines.ini, default, windowcolor
+		IniRead, control_color, showRoutines.ini, default, controlcolor
+		IniRead, codeEditor, showRoutines.ini, default, codeEditor
 		
 		Gui, 4:Destroy
 		Goto, Loop
@@ -546,12 +474,7 @@ initialize() {
 	path := A_ScriptDir . "\data\"
 	fileRoutines := ""
 	fileCode := ""
-  exportInBatch := false
-  
-  if !FileExist(path) {
-    FileCreateDir, %path%
-  }
-
+	
   ; the global variable scriptNameNoExt is used for accessing the .INI file from multiple places
   ; so it is defined at the beggining.
 	SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
@@ -563,8 +486,9 @@ initialize() {
 	
     ; set default filenames when run from my home.
 	if (user ="SYSTEM_HOME") {
-      IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
-			IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
+    ; fileSelector(path, "(*.txt)")
+		fileRoutines := "B9Y36.txt"
+		fileCode := "B9Y36.cbl"
 	}
 	
   ; otherwise get filenames from params.
@@ -585,7 +509,7 @@ initialize() {
 		}
 		
     ; use existing files(*no):
-    ;   move file.txt & file.XXXXX.txt (XXXXX=rpgle/cblle/cbl) from ieffect folder to \data
+    ;   move file.txt & file.cbl.txt from ieffect folder to .\data
 		
 		if (trim(A_Args[4]) = "*NEW") {
 			pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
@@ -600,15 +524,12 @@ initialize() {
 				}
 				Progress, Off
 				
-        ; cut .txt from filename.XXXXX.txt (XXXXX=rpgle/cblle/cbl)
+        ; cut .txt from filename.cbl.txt
 				OLDfileCode := fileCode
-        fileCode := RegExReplace(fileCode, ".txt$", Replacement = "")
-
-				; FoundPos := InStr(fileCode, ".cbl.txt" , CaseSensitive:=false)
-				; if (foundPos > 0) {
-				; 	fileCode := SubStr(fileCode, 1, foundPos-1) . ".cbl"
-				; }
-
+				FoundPos := InStr(fileCode, ".cbl.txt" , CaseSensitive:=false)
+				if (foundPos > 0) {
+					fileCode := SubStr(fileCode, 1, foundPos-1) . ".cbl"
+				}
 				Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
 				FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite
 				if (ErrorLevel <> 0) {
@@ -624,10 +545,6 @@ initialize() {
 			if (!fileSelector(path, "(*.txt)"))
 				ExitApp
 		}
-    
-    if (trim(A_Args[5]) = "*EXPORT") {
-      exportInBatch := true
-    }
 	}
   }
     ;--------------------------------------------
@@ -643,10 +560,6 @@ setup() {
 	levels_LastIndex := 0
 	fullFileRoutines := path . fileRoutines
 	fullFileCode := path . fileCode
-
-  if !FileExist(fullFileRoutines)
-    if (!fileSelector(path, "(*.txt)"))
-      ExitApp
 	
     ; read last saved values
 	IniRead, TreeViewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
@@ -659,14 +572,7 @@ setup() {
 	IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
 	IniRead, valueOfwindow_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
 	IniRead, valueOfcontrol_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
-
-  IniRead, exportMaxLevel, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
-  IniRead, exportDescriptions, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
-  IniRead, exportOutputFormat, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
-
 	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
-	IniRead, openLevelOnStartup, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
-  IniRead, saveOnExit, %A_ScriptDir%\%scriptNameNoExt%.ini, general, saveOnExit
 	
   if (TreeViewWidth = 0)
     TreeViewWidth := 600
@@ -701,9 +607,6 @@ setup() {
 	else
 		control_color := VSCODE_EDIT_WIN
 	
-  if (openLevelOnStartup < 2 or openLevelOnStartup > 999)
-    openLevelOnStartup := 999
-
 	Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
 	Gui, 1:Color, %window_color%, %control_color%
 	
@@ -740,8 +643,8 @@ setup() {
 	Menu, FileMenu, Add, &Open file, MenuHandler
 	Menu, FileMenu, Icon, &Open file, shell32.dll, 4
 	
-  Menu, FileMenu, Add, Save settings, MenuHandler
-  ; Menu, FileMenu, Disable, Save settings
+	Menu, FileMenu, Add, Save position, MenuHandler
+	Menu, FileMenu, Disable, Save position
 	
 	Menu, FileMenu, Add, Export tree as..., MenuHandler
 	Menu, FileMenu, Icon, Export tree as..., shell32.dll, 259
@@ -779,7 +682,7 @@ setup() {
 	
 	Gui, 1:Menu, MyMenuBar
 	Gui, 1:Add, Button, gExit, Exit This Example
-	; Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
+	Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
 	return
   }
   ;---------------------------------------
@@ -802,10 +705,6 @@ setup() {
 
   F2::
   showExport()  ;{ <-- export
-  return
-
-  !F2::
-  showSettings()()  ;{ <-- settings
   return
 
   F3::       ;{ <-- fold all routines 
@@ -917,7 +816,7 @@ MyTreeView:
 		statements := []
 		routineName := ""
 		sourceCode := ""
-		IniRead, showOnlyRoutine, %A_ScriptDir%\%scriptNameNoExt%.ini, general, showOnlyRoutine
+		IniRead, showOnlyRoutine, showRoutines.ini, general, showOnlyRoutine
 		
 		TV_GetText(routineName, TV_GetSelection())   ; get item text
 		statements := findRoutineFirstStatement(routineName)
@@ -1070,14 +969,6 @@ MenuHandler:
     exitApplication()
   }
 
-  if (A_ThisMenuItem = "Save settings") {
-    saveSettings()
-    Progress, zh0 fs10, % "Settings saved"
-    sleep, 500
-    Progress, off
-    return
-  }
-
   return
 
 Exit:
@@ -1151,11 +1042,6 @@ saveSettings() {
 
   ; on exit save position & size of window
   ; but if it is minimized skip this step.
-  if (isMinimized = -1 or saveOnExit != "true")
-    Return
-
-  ; on exit save position & size of window
-  ; but if it is minimized skip this step.
   actWin := WinExist("A")
   WinGet, isMinimized , MinMax, actWin
   if (isMinimized <> -1) {
@@ -1187,19 +1073,6 @@ saveSettings() {
     IniWrite, %fileRoutines%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
   if (fileCode <> "")
     IniWrite, %fileCode%, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-  
-  ; save export settings
-  if (exportMaxLevel <> "")
-    IniWrite, %exportMaxLevel%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
-  if (exportDescriptions <> "")
-    IniWrite, %exportDescriptions%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
-  if (exportOutputFormat <> "")
-    IniWrite, %exportOutputFormat%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
-
-  ; timestamp
-  FormatTime, currentTimestamp,, yyyy-MM-dd hh:mm:ss
-  FileEncoding, CP1253 
-  IniWrite, %currentTimestamp%, %A_ScriptDir%\%scriptNameNoExt%.ini, general, lastSavedTimestamp
   }
   ;---------------------------------------------------------------------
   ; get actual gui size 
@@ -1520,29 +1393,16 @@ processRoutine(currRoutine, parentID=0) {
     ;---------------------------------------
     ; add a node to treeview
     ;---------------------------------------
-addToTreeview(routineName, currentLevel, parentId) {
-	currentId := TV_add(routineName, parentId, "Expand")
+addToTreeview(routineName, currentLevel, parentRoutine) {
+	currentId := TV_add(routineName, parentRoutine, "Expand")
+    ; currentId := TV_add(routineName, parentRoutine, "Icon138 Expand")
+    ; currentId := TV_add(routineName, parentRoutine, "Icon4 Expand")
 	
     ; save routine level for later tree traversal.
 	levels_LastIndex += 1
-  itemLevels[levels_LastIndex, 1] := currentId    ; current node's TV id
-  itemLevels[levels_LastIndex, 2] := currentLevel ; current node's level
-  itemLevels[levels_LastIndex, 3] := routineName  ; current node's TV text
-  itemLevels[levels_LastIndex, 4] := parentId     ; parent node's TV id
-
-  followsSibling := false
-  parentIndex := searchItemId(parentId)
-  if (parentIndex > 0) {
-    parentName := itemLevels[parentIndex, 3]
-    callsIndex := searchRoutine(parentName)
-    if (callsIndex > 0) {
-      Loop, % allRoutines[callsIndex].calls.MaxIndex() - 1 {
-        if (allRoutines[callsIndex].calls[A_Index] = routineName)
-          followsSibling := true
-      }
-    }
-  }
-  itemLevels[levels_LastIndex, 5] := followsSibling  ; if it has a sibling after itself.
+	itemLevels[levels_LastIndex, 1] := currentId
+	itemLevels[levels_LastIndex, 2] := currentLevel
+	itemLevels[levels_LastIndex, 3] := routineName
 	
 	return currentId
   }
@@ -1577,143 +1437,14 @@ toggleBookmark() {
   updateStatusbar()
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to the requested format.
-  ;-------------------------------------------------------------------------------
-exportNodes(expandAll, index1=0, index2=0) {
-
-  if (index1 = 0 or index2 = 0 or index1 > index2) {
-    index1 := 1
-    index2 := itemLevels.MaxIndex()
-  }
-  if (exportMaxLevel < 2 or exportMaxLevel > 999)
-    exportMaxLevel := 999
-
-  if (exportOutputFormat = "json" or exportOutputFormat = "html")
-    treeString := exportNodesAsHTML(expandAll, index1, index2)
-
-  if (exportOutputFormat = "txt")
-    treeString := exportNodesAsTXT(expandAll, index1, index2)
-  
-  return treeString
-  }
-  ;-------------------------------------------------------------------------------
-  ; export nodes to html/json string
-  ;-------------------------------------------------------------------------------
-exportNodesAsHTML(expandAll, index1, index2) {
-  ; used only in showPrograms.ahk
-  ; find max level when descriptions are to be exported.
-  ; if (exportDescriptions = "true")
-  ;   maxLevel := findexportMaxLevel(index1, index2) 
-  nodesArray := []
-  currIndex := index1
-
-  while (currIndex <= index2) {
-
-    ; ignore current node if it's level is greater than requested.
-    if (itemLevels[currIndex, 2] > exportMaxLevel) {
-      currIndex ++
-      continue
-    }
-
-    if (expandAll = false) {
-      if (TV_Get(itemLevels[currIndex, 1], "Expanded"))
-        isOpen := "true"
-      else
-        isOpen := "false"
-    } else
-        isOpen := "true"
-    
-    newNode := {}
-    newNode.open := isOpen
-    newNode.id := itemLevels[currIndex, 1]
-    newNode.pId := itemLevels[currIndex, 4]
-
-    routineName := itemLevels[currIndex, 3]
-
-    if (exportDescriptions = "true") {
-      ; used only in showPrograms.ahk
-      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex, 2])
-      ; outputRoutineName .= searchRoutineDescription(routineName)
-      outputRoutineName := routineName
-    } else
-      outputRoutineName := routineName
-
-    newNode.name := outputRoutineName
-
-    nodesArray.push(newNode)
-    currIndex ++
-  }
-
-  ; convert ahk array of objects into string (adds quotes).
-  stringifiedArray := JSON.Dump(nodesArray)
-  ; stringifiedArray := RegExReplace(stringifiedArray, """id"":", "id:")
-
-  return stringifiedArray
-  }
-  ;-------------------------------------------------------------------------------
-  ; export nodes to text file
-  ;   expandAll = true : export all nodes
-  ;   expandAll = false : export only the shown nodes
-  ;-------------------------------------------------------------------------------
-exportNodesAsTXT(expandAll, index1, index2) {
-  exportedRoutines := []
-  exportedString := ""
-  currIndex := index1
-  currLine := 1
-  prefix := ""
-
-  while (currIndex <= index2) {
-  
-    currentLevel := itemLevels[currIndex, 2]
-    ; ignore current node if it's level is greater than requested.
-    if (currentLevel > exportMaxLevel) {
-      currIndex ++
-      continue
-    }
-
-    ; calc prefix string length (before the |__routine ).
-    prefixCount := (currentLevel - 1) * 3   ; 3 spaces for each previous level.
-    if (currLine > 1) {
-      prefix := SubStr(exportedRoutines[currLine - 1], 2, prefixCount)
-
-      parentIndex := searchItemId(itemLevels[currIndex, 4])
-      parentHasSibling := itemLevels[parentIndex, 5]
-      ; if parent has sibling clear the last 2 chars (so keep the |)
-      if (parentHasSibling)
-        prefix := SubStr(prefix, 1, StrLen(prefix) - 2) . "  "
-      ; if parent hasn't sibling clear the last 3 chars
-      else
-        prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . "   "
-      
-      ; add new line char
-      prefix := "`n" . prefix
-    }
-
-    if (currentLevel > 1)
-      if (itemLevels[currIndex, 5] = true)
-        prefix .= "|__"   ; has sibling after itself
-      else
-        prefix .= "\__"   ; has no sibling after itself
-    
-    oneLine := prefix . itemLevels[currIndex, 3]  ; add routine name.
-
-    exportedRoutines.push(oneLine)
-    currIndex ++
-    currLine ++
-  }
-  
-  ; exportedString := "1234567890123456789012345678901234567890123456789012345678901234567890`n"
-  Loop, % exportedRoutines.MaxIndex() {
-    exportedString .= exportedRoutines[A_Index]
-  }
-  
-  return exportedString
-  }
-  ;-------------------------------------------------------------------------------
   ; export nodes to text file
   ; (returns the created string)
   ;-------------------------------------------------------------------------------
-exportMarked() {
+exportNodes() {
+  global
+  exportedRoutines := []
+  exportedString := ""
+
   if (nodesToExport.MaxIndex() = 0)
     return ""
 
@@ -1743,9 +1474,23 @@ exportMarked() {
     current_Index := index2
   }
 
-  ; export selected nodes.
-  expandAll := true
-  exportedString := exportNodes(expandAll, index1, index2)
+  itemID := bookmark1
+
+  ; make starting node as having level 1:
+  ; offset := itemLevels[current_Index, 2] - 1
+  offset := 0
+
+  Loop {
+    exportRoutine(itemLevels[current_Index, 3], itemLevels[current_Index, 2] - offset)
+    if (itemLevels[current_Index,1] = bookmark2)   ; stop when reaching the ending node.
+      break
+    current_Index++
+  } until (current_Index > itemLevels.MaxIndex())   ; stop when reaching end of array.
+
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
   return exportedString
   }
   ;-------------------------------------------------------------------------------
@@ -1774,9 +1519,141 @@ findLastSubnode(index) {
   }
   return index
   }
-  ;---------------------------------------------------------------------
-  ; search if parameter exists in allRoutines array.
-  ;---------------------------------------------------------------------
+  ;-------------------------------------------------------------------------------
+  ; export what you see (not folded nodes) to text file
+  ; (returns the created string)
+  ;-------------------------------------------------------------------------------
+exportWhatYouSee() {
+  global
+  if (allRoutines.MaxIndex() <= 0)    ; no called routines
+    return ""
+
+  exportedRoutines := []
+  exportedString := ""
+
+  ItemID := TV_GetNext()  ; get first item (root)
+  if (ItemID=0)
+    return
+  
+  ; export root node.
+  currentLevel := 1
+  exportRoutine(allRoutines[1].routineName, currentLevel)
+  ItemID := TV_GetNext(ItemID, "F")
+  
+  ; loop through treeview and select only unfolded nodes (with "expanded" attribute).
+  Loop
+  {
+    if not ItemID  ; exit if end of tree.
+      break
+    
+    currentIndex := searchItemId(itemID)
+    if (currentIndex = 0)
+      break
+
+    currentRoutine := itemLevels[currentIndex, 3]
+    currentLevel := itemLevels[currentIndex, 2]
+
+    exportRoutine(currentRoutine, currentLevel)
+
+    if (TV_Get(ItemID, "Expanded"))
+      ItemID := TV_GetNext(ItemID, "F")
+
+    ; if folded, find next node with level <= current node's level.
+    else {
+      ItemID := 0
+      while (currentIndex < itemLevels.MaxIndex()) {
+        currentIndex ++
+        if (itemLevels[currentIndex, 2] <= currentLevel) {
+          ItemID := itemLevels[currentIndex, 1]
+          break
+        }
+      }
+    }
+  }
+
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; export treview to text file
+  ; (returns the created string)
+  ;-------------------------------------------------------------------------------
+exportTreeview() {
+  if (allRoutines.MaxIndex() <= 0)    ; no called routines
+    return ""
+  
+  exportedRoutines := []
+  currThread  := [] 
+  exportedString := ""
+
+  ; first item is always = "MAIN" (the parent routine of all)
+  currRoutine := allRoutines[1]
+  if (MaxLevel < 2 or MaxLevel > 999)
+    MaxLevel := 999
+
+  processRoutine_for_Export(currRoutine, MaxLevel)
+
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; process one routine
+  ;-------------------------------------------------------------------------------
+processRoutine_for_Export(currRoutine, MaxLevel=999) {
+  static currentLevel
+    
+  ; check if new routine exists in this thread: if it exists don't process it again.
+  threadIndex := searchArray(currRoutine.routineName)
+  if (threadIndex > 0)
+    return
+
+  currentLevel ++
+  if (currentLevel > MaxLevel) {
+    currentLevel --
+    return
+  }
+  currThread.push(currRoutine.routineName)  ; add new routine to this thread.
+
+  exportRoutine(currRoutine.routineName, currentLevel)
+
+  Loop, % currRoutine.calls.MaxIndex() {
+
+    ; search array allRoutines[] for the current routine item.
+    calledId := searchRoutine(currRoutine.calls[A_Index])
+    if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
+        processRoutine_for_Export(allRoutines[calledId], MaxLevel)     ; write children
+      }
+    }
+
+    value := currThread.pop() ; at end remove current routine from thread
+    currentLevel --
+  }
+  ;-------------------------------------------------------------------------------
+  ; export one routine to text file
+  ;-------------------------------------------------------------------------------
+exportRoutine(routineName, currentLevel) {
+  prefix := "`n"
+  count:= currentLevel - 1
+
+  Loop, %count%
+    prefix .= "  "
+
+  if (count > 0)
+    prefix .= "->"
+  
+  oneLine := prefix . " " . routineName
+
+  exportedRoutines.push(oneLine)
+  }
+    ;---------------------------------------------------------------------
+    ; search if parameter exists in allRoutines array.
+    ;---------------------------------------------------------------------
 searchRoutine(routineName) {
 	Loop, % allRoutines.MaxIndex() {
 		if (routineName = allRoutines[A_Index].routineName) {
@@ -1811,10 +1688,6 @@ searchItemId(itemID) {
     ; read mpmdl001.cbl file and populate array with all code
     ;-----------------------------------------------------------------------
 populateCode() {
-    
-  ; set encoding to windows-1253 otherwise greek text is not shown correctly.
-  FileEncoding, CP1253
-  
 	Loop, Read, %fullFileCode%
 	{
 		allCode.push(A_LoopReadLine)
@@ -1901,6 +1774,8 @@ createRoutineItem(tmpRoutine) {
 	routine1 := new routine
 	
 	routine1.routineName    := tmpRoutine.ROUCALLER
+    ;routine1.routineName    := tmpRoutine.ROUCALLED
+    ;routine1.calledBy       := tmpRoutine.ROUCALLER
 	routine1.startStmt      := tmpRoutine.STMFIRST
 	routine1.endStmt        := tmpRoutine.STMLAST
 	routine1.callingStmt    := tmpRoutine.STMCALL
@@ -1942,7 +1817,7 @@ parseLine(inputLine) {
     ;---------------------------------------------------------------------
 class routine {
 	routineName := ""
-	; calledBy := ""
+	calledBy := ""
 	startStmt := ""
 	endStmt := ""
 	callingStmt := ""
@@ -1992,8 +1867,7 @@ saveRoutines(filename, header, delete) {
     if FileExist(filename)
       FileDelete, %filename%
   }
-  row := "`t`t`t allRoutines[]`n`n"
-  FileAppend, %row%, %filename%
+  FileAppend, `n%header% `n , %filename%
 
   Loop, % allRoutines.MaxIndex() {
     currentRoutine := allRoutines[A_Index]
@@ -2007,12 +1881,11 @@ saveRoutines(filename, header, delete) {
   }
 
   ; return
-  row := "`n`t`t`t itemLevels[]"
-  row .= "`n`nseq - node id - level - routine - parent id - has after sibling`n"
-  row .= "-------------------------------------------------------------------`n"
+  row := "`n`nseq - node  - level - routine`n"
+  row .= "-----------------------------------`n"
 
   Loop, % itemLevels.MaxIndex() {
-    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . " - " . itemLevels[A_Index,4] . " - " . itemLevels[A_Index,5] . "`n"
+    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . "`n"
   }
     FileAppend, %row%, %filename%
   } 
