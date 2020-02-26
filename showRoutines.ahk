@@ -1665,6 +1665,7 @@ exportNodesAsTXT(expandAll, index1, index2) {
   while (currIndex <= index2) {
   
     currentLevel := itemLevels[currIndex, 2]
+    
     ; ignore current node if it's level is greater than requested.
     if (currentLevel > exportMaxLevel) {
       currIndex ++
@@ -1698,7 +1699,24 @@ exportNodesAsTXT(expandAll, index1, index2) {
     oneLine := prefix . itemLevels[currIndex, 3]  ; add routine name.
 
     exportedRoutines.push(oneLine)
-    currIndex ++
+
+    ; if requested only visible nodes
+    ; and current node is folded, find next node with level <= current node's level.
+    if (!expandAll and !TV_Get(itemLevels[currIndex, 1], "Expanded")) {
+      found := false
+      while (currIndex < itemLevels.MaxIndex()) {
+        currIndex ++
+        if (itemLevels[currIndex, 2] <= currentLevel) {
+          found := true
+          break
+        }
+      }
+      if (found = false)
+        currIndex ++
+    } else {
+      currIndex ++
+    }
+
     currLine ++
   }
   
