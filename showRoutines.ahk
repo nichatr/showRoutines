@@ -122,6 +122,9 @@ showHelp() {
     ctrl right cursor = increase tree width
     ctrl left cursor = decrease tree width
 
+    click a routine left to show the code right
+    double-click a routine left to open code in editor
+
     )
   Gui, 2:Add, button, xm+10 y+20 Default g2Close, Close
   Gui, 2:show, x%newX% y%newY%, Gui 2
@@ -704,6 +707,7 @@ setup() {
   if (openLevelOnStartup < 2 or openLevelOnStartup > 999)
     openLevelOnStartup := 999
 
+	; Gui, 1:Font, c%fontColor% s%fontSize%, Segoe
 	Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
 	Gui, 1:Color, %window_color%, %control_color%
 	
@@ -1971,7 +1975,7 @@ class routine {
   ;-----------------------------------------------------------
 getSystem() {
 	StringLower, user, A_UserName
-	if (user = "nu72oa")
+	if (user != "nic")
 		return "SYSTEM_WORK"
 	Else
 		return "SYSTEM_HOME"
@@ -1988,14 +1992,24 @@ fileSelector(homePath, filter) {
 	}
 	
 	SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-	FoundPos := InStr(FileName, ".cbl.txt" , CaseSensitive:=false)
-	if (foundPos > 0) {
-		Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
-		NameNoExt := SubStr(FileName, 1, foundPos-1)
-	}
+
+  Loop, Files, %Dir%\%NameNoExt%.*
+    {
+      if (A_LoopFileExt != "txt") {
+        fileCode := A_LoopFileName
+        break
+      }
+    }
+
+	; FoundPos := InStr(FileName, ".cbl.txt" , CaseSensitive:=false)
+	; if (foundPos > 0) {
+	; 	Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
+	; 	NameNoExt := SubStr(FileName, 1, foundPos-1)
+	; }
 	
 	fileRoutines := FileName
-	fileCode := NameNoExt . ".cbl"
+	; fileCode := NameNoExt . ".cbl"
+  ; msgbox, %fileCode%
 	return true
 	
   ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode

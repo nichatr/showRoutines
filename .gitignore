@@ -6,3 +6,5 @@ ztree*
 tests
 *.zip
 old files
+*.exe
+tests
