@@ -1,8 +1,9 @@
-;--------------------------------------------------------------------------------------
+﻿;--------------------------------------------------------------------------------------
   ; Version with:
   ;   listbox for showing code
   ;   parameter for input file
   ;   external ini file
+  ; source must be saved as "UTF8 with BOM"
   ;--------------------------------------------------------------------------------------
   ; parameters:
   ;   A_Args[1] = routine calls file = outfile.txt
@@ -327,6 +328,7 @@ saveExportedString(exportedString) {
   if FileExist(filename)
     FileDelete, %filename%
 
+  FileEncoding, UTF-8
   FileAppend, %OutputVar%, %filename%
   Run, %filename%
   
@@ -1683,9 +1685,9 @@ exportNodesAsTXT(expandAll, index1, index2) {
 
       parentIndex := searchItemId(itemLevels[currIndex, 4])
       parentHasSibling := itemLevels[parentIndex, 5]
-      ; if parent has sibling clear the last 2 chars (so keep the |)
+      ; if parent has sibling clear the last 2 chars and replace ├ with │
       if (parentHasSibling)
-        prefix := SubStr(prefix, 1, StrLen(prefix) - 2) . "  "
+        prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . "│  "
       ; if parent hasn't sibling clear the last 3 chars
       else
         prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . "   "
@@ -1694,11 +1696,14 @@ exportNodesAsTXT(expandAll, index1, index2) {
       prefix := "`n" . prefix
     }
 
+    ; source must be saved as "UTF8 with BOM"
     if (currentLevel > 1)
       if (itemLevels[currIndex, 5] = true)
-        prefix .= "|__"   ; has sibling after itself
+        prefix .= "├──"   ; has sibling after itself
+        ; prefix .= "|__"   ; has sibling after itself
       else
-        prefix .= "\__"   ; has no sibling after itself
+        prefix .= "└──"   ; has no sibling after itself
+        ; prefix .= "\__"   ; has no sibling after itself
     
     oneLine := prefix . itemLevels[currIndex, 3]  ; add routine name.
 
