@@ -599,7 +599,7 @@ initialize() {
 				fileRoutines := ""      ; clear in order next to show file selector!
 			} else {
 				Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
-				FileMove, %pathIeffect%%fileRoutines% , %path% , 1
+				FileMove, %pathIeffect%%fileRoutines% , %path% , 1  ; 1=overwrite file
 				if (ErrorLevel <> 0) {
 					msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
 				}
@@ -607,15 +607,11 @@ initialize() {
 				
         ; cut .txt from filename.XXXXX.txt (XXXXX=rpgle/cblle/cbl)
 				OLDfileCode := fileCode
-        fileCode := RegExReplace(fileCode, ".txt$", Replacement = "")
-
-				; FoundPos := InStr(fileCode, ".cbl.txt" , CaseSensitive:=false)
-				; if (foundPos > 0) {
-				; 	fileCode := SubStr(fileCode, 1, foundPos-1) . ".cbl"
-				; }
+        ; below not necessary because command cvtsrc command does the rename from FILENAME.XXXXX.TXT to FILENAME.XXXXX
+        ; fileCode := RegExReplace(fileCode, ".txt$", Replacement = "")
 
 				Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
-				FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite
+				FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite file
 				if (ErrorLevel <> 0) {
 					msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
 				}
