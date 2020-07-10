@@ -51,7 +51,7 @@
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
   global exportedRoutines, exportDescriptions
-  global exportOutputFormat, exportMaxLevel, includeDescriptions, MyRadioGroup, ExportedFilename
+  global exportOutputFormat, exportConnectorsType, exportMaxLevel, includeDescriptions, OutputFormatRadio, ConnectorsTypeRadio, EditorRadio, ExportedFilename
   global winX, winY ; main window position
   global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
@@ -141,13 +141,12 @@ showHelp() {
   ;---------------------------------------------------------------------
 showExport() {
   inputFilename := fileRoutines
-  ; exportOutputFormat := "html"
 
   Gui, 3:Destroy
   global subGui3_W, subGui3_H
 
   subGui3_W := 420
-  subGui3_H := 180
+  subGui3_H := 240
   WinGetPos, targetX, targetY, targetWidth, targetHeight, A
   newX := targetX + (targetWidth - subGui3_W) / 2
   newY := targetY + (targetHeight - subGui3_H) / 2
@@ -169,16 +168,24 @@ showExport() {
 
   ; include descriptions?
   CheckedExportDescriptions := exportDescriptions == "true" ? "Checked" : ""
-  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xm+20 yp+35 %CheckedExportDescriptions% Disabled,   Include routines descriptions
+  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xp+100 yp+5 %CheckedExportDescriptions% Disabled,   Include routines descriptions
 
   ; output format
   CheckedHTML := exportOutputFormat == "html" ? "Checked" : ""
   CheckedJSON := exportOutputFormat == "json" ? "Checked" : ""
   CheckedTXT := exportOutputFormat == "txt" ? "Checked" : ""
-  Gui, 3:Add, Text, xm+20 yp+30, Output format
-  Gui, 3:Add, Radio, Group g3Check vMyRadioGroup %CheckedHTML% xp+80 yp, html
+  Gui, 3:Add, GroupBox, xm+20 y120 w160 h60, Output format
+  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML% xp+15 yp+30, html
   Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedJSON%, json
   Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedTXT%, txt
+
+  ; connectors type
+  ; exportConnectorsType := "AS400"
+  CheckedUnicode := exportConnectorsType == "Unicode" ? "Checked" : ""
+  CheckedAS400 := exportConnectorsType == "AS400" ? "Checked" : ""
+  Gui, 3:Add, GroupBox, xp+60 y120 w150 h60, Connectors type
+  Gui, 3:Add, Radio, Group g3Check vConnectorsTypeRadio %CheckedUnicode% xp+15 yp+30, Unicode
+  Gui, 3:Add, Radio, g3Check xp+70 yp %CheckedAS400%, AS400
 
   ; Export, Close buttons
   Gui, 3:Add, button, xm+30 ym+200 w80 g3ExportAll default, All
@@ -214,14 +221,21 @@ showExport() {
 3Check:
   Gui, 3:Submit, NoHide
 
-  if (MyRadioGroup = 1)
+  if (OutputFormatRadio = 1)
     exportOutputFormat := "html"
 
-  if (MyRadioGroup = 2)
+  if (OutputFormatRadio = 2)
     exportOutputFormat := "json"
 
-  if (MyRadioGroup = 3)
+  if (OutputFormatRadio = 3)
     exportOutputFormat := "txt"
+  
+  if (ConnectorsTypeRadio = 1)
+    exportConnectorsType := "Unicode"
+
+  if (ConnectorsTypeRadio = 2)
+    exportConnectorsType := "AS400"
+  
   Return
 
   ;---------------------------------------------------------------------
@@ -293,6 +307,7 @@ exportInBatch() {
   ExportedFilename := "exported_" . NameNoExt . ".html"
   exportDescriptions := "true"
   exportOutputFormat := "html"
+  exportConnectorsType := "Unicode"
   expandAll := true
   exportedString := exportNodes(expandAll)
   saveExportedString(exportedString)
@@ -339,7 +354,7 @@ saveExportedString(exportedString) {
   ; show window with editable settings
   ;--------------------------------------------
 showSettings() {
-	static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, MyRadioGroup, checked1, checked2
+	static font_size, font_color, tree_step, window_color, control_color, showOnlyRoutine, showOnlyRoutineFlag, OutputFormatRadio, checked1, checked2
 	win_title := "Settings"
 	
 	IniRead, font_size, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
@@ -398,7 +413,7 @@ showSettings() {
 	Gui, 4:Add, UpDown, Range10-200, %tree_step%
 	
 	Gui, 4:Add, Text, xm+5 yp+40, Code editor
-	Gui, 4:Add, Radio, Group g4check vMyRadioGroup %checked1% xp+80 yp, vscode
+	Gui, 4:Add, Radio, Group g4check vEditorRadio %checked1% xp+80 yp, vscode
 	Gui, 4:Add, Radio, g4check %checked2% xp+70 yp, notepad++
 
 	Gui, 4:Add, Text, xm+5 yp+40, On startup unfold level
@@ -423,10 +438,10 @@ showSettings() {
 	
 	4Check:
 	gui, 4:submit, nohide
-        ; GuiControlGet, MyRadioGroup
-	if (MyRadioGroup = 1)
+        ; GuiControlGet, EditorRadio
+	if (EditorRadio = 1)
 		codeEditor := "code"
-	if (MyRadioGroup = 2)
+	if (EditorRadio = 2)
 		codeEditor := "notepad++"
 	Return
 	
@@ -664,6 +679,7 @@ setup() {
   IniRead, exportMaxLevel, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
   IniRead, exportDescriptions, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
   IniRead, exportOutputFormat, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
+  IniRead, exportConnectorsType, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportConnectorsType
 
 	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
 	IniRead, openLevelOnStartup, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
@@ -1197,6 +1213,9 @@ saveSettings() {
     IniWrite, %exportDescriptions%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
   if (exportOutputFormat <> "")
     IniWrite, %exportOutputFormat%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
+  if (exportConnectorsType <> "")
+    IniWrite, %exportConnectorsType%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportConnectorsType
+
 
   ; timestamp
   FormatTime, currentTimestamp,, yyyy-MM-dd hh:mm:ss
@@ -1664,6 +1683,10 @@ exportNodesAsTXT(expandAll, index1, index2) {
   currLine := 1
   prefix := ""
 
+  connector1 := exportConnectorsType == "Unicode" ? "├──" : "|__"
+  connector2 := exportConnectorsType == "Unicode" ? "└──" : "\__"
+  connector3 := exportConnectorsType == "Unicode" ? "│  " : "|  "
+
   while (currIndex <= index2) {
   
     currentLevel := itemLevels[currIndex, 2]
@@ -1683,7 +1706,7 @@ exportNodesAsTXT(expandAll, index1, index2) {
       parentHasSibling := itemLevels[parentIndex, 5]
       ; if parent has sibling clear the last 2 chars and replace ├ with │
       if (parentHasSibling)
-        prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . "│  "
+        prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . connector3
       ; if parent hasn't sibling clear the last 3 chars
       else
         prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . "   "
@@ -1695,12 +1718,10 @@ exportNodesAsTXT(expandAll, index1, index2) {
     ; source must be saved as "UTF8 with BOM"
     if (currentLevel > 1)
       if (itemLevels[currIndex, 5] = true)
-        prefix .= "├──"   ; has sibling after itself
-        ; prefix .= "|__"   ; has sibling after itself
+        prefix .= connector1 ; has sibling after itself
       else
-        prefix .= "└──"   ; has no sibling after itself
-        ; prefix .= "\__"   ; has no sibling after itself
-    
+        prefix .= connector2 ; has no sibling after itself
+
     oneLine := prefix . itemLevels[currIndex, 3]  ; add routine name.
 
     exportedRoutines.push(oneLine)
