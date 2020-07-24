@@ -671,6 +671,9 @@ setup() {
   IniRead, winWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
   IniRead, winHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight  
 
+  winX := 0
+  winY := 0
+
 	IniRead, valueOfFontsize, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
 	IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
 	IniRead, valueOfwindow_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, window
@@ -1613,6 +1616,7 @@ exportNodes(expandAll, index1=0, index2=0) {
     treeString := exportNodesAsHTML(expandAll, index1, index2)
 
   if (exportOutputFormat = "txt")
+    ; treeString := exportNodesAsPUG(expandAll, index1, index2)
     treeString := exportNodesAsTXT(expandAll, index1, index2)
   
   return treeString
@@ -1752,6 +1756,82 @@ exportNodesAsTXT(expandAll, index1, index2) {
   }
   
   return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; export nodes to text pug file
+  ;   expandAll = true : export all nodes
+  ;   expandAll = false : export only the shown nodes
+  ;-------------------------------------------------------------------------------
+exportNodesAsPUG(expandAll, index1, index2) {
+  exportedRoutines := []
+  exportedString := ""
+  currIndex := index1
+  isRoot := True
+  prefix := ""
+
+  while (currIndex <= index2) {
+  
+    currentLevel := itemLevels[currIndex, 2]
+    
+    ; ignore current node if it's level is greater than requested.
+    if (currentLevel > exportMaxLevel) {
+      currIndex ++
+      continue
+    }
+
+    ; for the root item create also the header.
+    if (isRoot) {
+      oneLine := "figure"
+      exportedRoutines.push(oneLine)
+      oneLine := "`n figcaption Example DOM structure diagram"
+      exportedRoutines.push(oneLine)
+      oneLine := "`n ul(class='tree')"
+      exportedRoutines.push(oneLine)
+      oneLine := "`n  li"
+      exportedRoutines.push(oneLine)
+      oneLine := "`n   code " . itemLevels[currIndex, 3]  ; add routine name.
+      exportedRoutines.push(oneLine)
+      previousLevel := itemLevels[currIndex, 2]
+      
+      isRoot := False
+      currIndex ++
+      continue  ; go to next item (node)
+    }
+
+    ; for the children create ul/li statements.
+    currPos := 2 * currentLevel
+    if (currentLevel > previousLevel) {
+      oneLine := "`n" . Spaces(currPos - 1) . "ul"
+      exportedRoutines.push(oneLine)
+    }
+
+    currPos ++
+    oneLine := "`n" . Spaces(currPos - 1) . "li"
+    exportedRoutines.push(oneLine)
+
+    currPos ++
+    oneLine := "`n" . Spaces(currPos - 1) . "code " . itemLevels[currIndex, 3]  ; add routine name.
+    exportedRoutines.push(oneLine)
+
+    previousLevel := currentLevel
+    currIndex ++
+  }
+  
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; create a string with the given number of spaces
+  ;-------------------------------------------------------------------------------
+Spaces(count)
+  {
+    strSpaces := ""
+    loop % count
+      strSpaces .= A_Space
+   return strSpaces
   }
   ;-------------------------------------------------------------------------------
   ; export nodes to text file
