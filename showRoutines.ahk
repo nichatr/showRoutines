@@ -33,9 +33,14 @@
   #SingleInstance off     ;force
   #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 
+  ; used for building the executable.
   FileInstall, routineFlow.html, routineFlow.html 
   FileInstall, showRoutines.ini, showRoutines.ini
-  #Include %A_ScriptDir%\JSON\JSON.ahk
+
+  #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
+  #Include %A_ScriptDir%\tests\xml.ahk  ; for building html (xml)
+
+  ; global declarations
   global allRoutines  ; array of class "routine"
   global allCode      ; array of source code to show
   global currThread ; keeps all routines in the current thread in order to avoid circular dependencies
@@ -64,6 +69,7 @@
   global gCurrentLevel   ; holds the fold level or 0 if none.
   global targetX, targetY, targetWidth, targetHeight  ; main window coordinates
   global ExportSelected, nodesToExport, ExportWhatYouSee, exportInBatch
+  global guiHWND
 
 initialize()
 mainProcess()
@@ -664,6 +670,10 @@ setup() {
     if (!fileSelector(path, "(*.txt)"))
       ExitApp
 	
+  ; get gui handle.
+  Gui  +HwndguiHWND
+  ; msgbox, % guiHWND
+  
     ; read last saved values
 	IniRead, TreeViewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
   IniRead, winX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
@@ -671,8 +681,18 @@ setup() {
   IniRead, winWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
   IniRead, winHeight, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight  
 
-  winX := 0
-  winY := 0
+  ; adjust the saved gui location/size according to current monitors.
+  getMonitorsSizes(minLeft, maxRight, maxBottom)
+  adjustGui_SizePosition(winX, winY, winWidth, winHeight, minLeft, maxRight, maxBottom)
+
+  ; winX := 0
+  ; winY := 0
+  if (winHeight < 200)
+    winHeight := 200
+  if (winWidth < 250)
+    winWidth := 250
+  if (winWidth > 2500)
+    winWidth := 2500
 
 	IniRead, valueOfFontsize, %A_ScriptDir%\%scriptNameNoExt%.ini, font, size
 	IniRead, valueOfFontcolor, %A_ScriptDir%\%scriptNameNoExt%.ini, font, color
@@ -724,8 +744,8 @@ setup() {
   if (openLevelOnStartup < 2 or openLevelOnStartup > 999)
     openLevelOnStartup := 999
 
-	; Gui, 1:Font, c%fontColor% s%fontSize%, Segoe
-	Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
+	Gui, 1:Font, c%fontColor% s%fontSize%, Segoe
+	; Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
 	Gui, 1:Color, %window_color%, %control_color%
 	
 	Gui, 1:+Resize +Border
@@ -739,6 +759,8 @@ setup() {
 	Gui, 1:Add, TreeView, vMyTreeView w%TreeViewWidth% r15 x5 gMyTreeView AltSubmit
     ; Gui, Add, TreeView, vMyTreeView r80 w%TreeViewWidth% x5 gMyTreeView AltSubmit ImageList%ImageListID% ; Background%color1% ; x5= 5 pixels left border
 	
+  ; change font to courier for the code section.
+  Gui, 1:Font, c%fontColor% s%fontSize%, Courier New
 	Gui, 1:Add, ListBox, r100 vMyListBox w%ListBoxWidth% x+5, click any routine from the tree to show the code|double click any routine to open in default editor
 	Gui, 1:add, StatusBar, Background c%control_color%
     ; Gui, add, StatusBar, Background c%window_color%
@@ -1170,6 +1192,9 @@ saveSettings() {
   if (fileCode = "ERROR")
     return
 
+  WinGet, isMinimized , MinMax, ahk_id %guiHWND%
+  ; msgbox, % isMinimized "-------" guiHWND
+
   ; on exit save position & size of window
   ; but if it is minimized skip this step.
   if (isMinimized = -1 or saveOnExit != "true")
@@ -1177,25 +1202,25 @@ saveSettings() {
 
   ; on exit save position & size of window
   ; but if it is minimized skip this step.
-  actWin := WinExist("A")
-  WinGet, isMinimized , MinMax, actWin
-  if (isMinimized <> -1) {
-    WinGetPos, winX, winY, winWidth, winHeight, A
-    
-    ; save X, Y that are absolute values.
-    IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
-    IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
-    
-    ; save absolute values of W,H.
-    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
-    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
-    
-    GetClientSize(actWin, winWidth, winHeight)
-    
-    ; save client values of W,H (used by winmove)
-    IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
-    IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
-    }
+  ; actWin := WinExist("A")
+  ; WinGet, isMinimized , MinMax, actWin
+
+  WinGetPos, winX, winY, winWidth, winHeight, ahk_id %guiHWND%
+  
+  ; save X, Y that are absolute values.
+  IniWrite, %winX%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
+  IniWrite, %winY%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
+  
+  ; save absolute values of W,H.
+  IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinWidth
+  IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, actualWinHeight
+  
+  GetClientSize(guiHWND, winWidth, winHeight)
+  ; GetClientSize(actWin, winWidth, winHeight)
+  
+  ; save client values of W,H (used by winmove)
+  IniWrite, %winWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winWidth
+  IniWrite, %winHeight%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winHeight
 
   if (treeviewWidth > 0)
   	IniWrite, %treeviewWidth%, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
@@ -1234,6 +1259,40 @@ GetClientSize(hWnd, ByRef w := "", ByRef h := "")
 	DllCall("GetClientRect", "ptr", hWnd, "ptr", &rect)
 	w := NumGet(rect, 8, "int")
 	h := NumGet(rect, 12, "int")
+  }
+  ;-------------------------------------------------
+  ; find number of monitors and their sizes
+  ; keep min left, max right, max bottom
+  ;-------------------------------------------------
+getMonitorsSizes(Byref minLeft := 0, ByRef maxRight := 0, ByRef maxBottom := 0) {
+  minLeft := 0
+  maxRight := 0
+  maxBottom := 0
+  sysget, monitorCount, MonitorCount
+  Loop, %monitorCount%
+    {
+      SysGet, Mon%A_Index%, Monitor, %A_Index%
+      if (Mon%A_Index%Left < minLeft)
+        minLeft := Mon%A_Index%Left
+      if (Mon%A_Index%Right > maxRight)
+        maxRight := Mon%A_Index%Right
+      if (Mon%A_Index%Bottom > maxBottom)
+        maxBottom := Mon%A_Index%Bottom
+    }
+  }
+  ;---------------------------------------------------------------------
+  ; adjust gui size and position to real display(s)
+  ;---------------------------------------------------------------------
+adjustGui_SizePosition(Byref winX, Byref winY, Byref winWidth, Byref winHeight, Byref minLeft, Byref maxRight, Byref maxBottom) {
+  
+  ; if left, right, bottom are beyond boundaries adjust them.
+  if (winX < minLeft - 7)
+    winX := minLeft - 7
+  if (winX > maxRight - winWidth)
+    winX := maxRight - winWidth
+  if (winY > maxBottom - winHeight - 30)
+    winY := maxBottom - winHeight - 30
+
   }
   ;--------------------------------------------
   ; resize when ctrl+left or ctrl+right pressed
@@ -1534,7 +1593,7 @@ processRoutine(currRoutine, parentID=0) {
 		calledId := searchRoutine(currRoutine.calls[A_Index])
 
 		if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
-			processRoutine(allRoutines[calledId], itemId)     ; write children
+			processRoutine(allRoutines[calledId], itemId, )     ; write children
 		}
 	}
 
@@ -1613,18 +1672,21 @@ exportNodes(expandAll, index1=0, index2=0) {
     exportMaxLevel := 999
 
   if (exportOutputFormat = "json" or exportOutputFormat = "html")
-    treeString := exportNodesAsHTML(expandAll, index1, index2)
+    treeString := exportNodesAsHTML1(expandAll, index1, index2)
 
   if (exportOutputFormat = "txt")
-    ; treeString := exportNodesAsPUG(expandAll, index1, index2)
-    treeString := exportNodesAsTXT(expandAll, index1, index2)
+    treeString := exportNodesAsHTML2(expandAll, index1, index2)
+    ; treeString := exportNodesAsTXT(expandAll, index1, index2)
   
   return treeString
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to html/json string
+  ; export nodes to html/json string - show as treeview
+  ;   expandAll = true : export all nodes
+  ;   expandAll = false : export only the shown nodes
+  ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
-exportNodesAsHTML(expandAll, index1, index2) {
+exportNodesAsHTML1(expandAll, index1, index2) {
   ; used only in showPrograms.ahk
   ; find max level when descriptions are to be exported.
   ; if (exportDescriptions = "true")
@@ -1676,9 +1738,9 @@ exportNodesAsHTML(expandAll, index1, index2) {
   return stringifiedArray
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to text file
-  ;   expandAll = true : export all nodes
-  ;   expandAll = false : export only the shown nodes
+  ; export nodes to text file - show as treeview
+  ;   expandAll = true : export all nodes / false : export only the shown nodes
+  ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
 exportNodesAsTXT(expandAll, index1, index2) {
   exportedRoutines := []
@@ -1758,16 +1820,15 @@ exportNodesAsTXT(expandAll, index1, index2) {
   return exportedString
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to text pug file
-  ;   expandAll = true : export all nodes
-  ;   expandAll = false : export only the shown nodes
+  ; export nodes to text pug file - show as flowchart
+  ;   expandAll = true : export all nodes / false : export only the shown nodes
+  ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
 exportNodesAsPUG(expandAll, index1, index2) {
   exportedRoutines := []
   exportedString := ""
   currIndex := index1
   isRoot := True
-  prefix := ""
 
   while (currIndex <= index2) {
   
@@ -1785,6 +1846,85 @@ exportNodesAsPUG(expandAll, index1, index2) {
       exportedRoutines.push(oneLine)
       oneLine := "`n figcaption Example DOM structure diagram"
       exportedRoutines.push(oneLine)
+      oneLine := "`n ul(class='tree')"
+      exportedRoutines.push(oneLine)
+      oneLine := "`n  li"
+      exportedRoutines.push(oneLine)
+      oneLine := "`n   code " . itemLevels[currIndex, 3]  ; add routine name.
+      exportedRoutines.push(oneLine)
+      previousLevel := itemLevels[currIndex, 2]
+      
+      isRoot := False
+      currIndex ++
+      continue  ; go to next item (node)
+    }
+
+    ; for the children create ul/li statements.
+    currPos := 2 * currentLevel
+    if (currentLevel > previousLevel) {
+      oneLine := "`n" . Spaces(currPos - 1) . "ul"
+      exportedRoutines.push(oneLine)
+    }
+
+    currPos ++
+    oneLine := "`n" . Spaces(currPos - 1) . "li"
+    exportedRoutines.push(oneLine)
+
+    currPos ++
+    oneLine := "`n" . Spaces(currPos - 1) . "code " . itemLevels[currIndex, 3]  ; add routine name.
+    exportedRoutines.push(oneLine)
+
+    previousLevel := currentLevel
+    currIndex ++
+  }
+  
+  Loop, % exportedRoutines.MaxIndex() {
+    exportedString .= exportedRoutines[A_Index]
+  }
+  
+  return exportedString
+  }
+  ;-------------------------------------------------------------------------------
+  ; export nodes to html - show as flowchart
+  ;   expandAll = true : export all nodes / false : export only the shown nodes
+  ;   index1, index2 = from item to item
+  ;-------------------------------------------------------------------------------
+exportNodesAsHTML2(expandAll, index1, index2) {
+  exportedString := ""
+  currIndex := index1
+  isRoot := True
+
+  try
+    ; create an XMLDOMDocument object
+    ; set its top-level node
+    xmlObj := new xml("<figure/>")
+  catch pe ; catch parsing error(if any)
+	  MsgBox, 16, PARSE ERROR
+    , % "Exception thrown!!`n`nWhat: " pe.What "`nFile: " pe.File
+    . "`nLine: " pe.Line "`nMessage: " pe.Message "`nExtra: " pe.Extra
+  
+  ; if root element is null then exit.
+  if !xmlObj.documentElement
+    return
+
+  while (currIndex <= index2) {
+  
+    currentLevel := itemLevels[currIndex, 2]
+    
+    ; ignore current node if it's level is greater than requested.
+    if (currentLevel > exportMaxLevel) {
+      currIndex ++
+      continue
+    }
+
+    ; for the root item create also the header.
+    if (isRoot) {
+      xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")
+      xmlObj.transformXML()
+      return xmlObj.xml
+      xmlObj.viewXML()
+      return
+
       oneLine := "`n ul(class='tree')"
       exportedRoutines.push(oneLine)
       oneLine := "`n  li"
