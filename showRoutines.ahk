@@ -1575,17 +1575,18 @@ loadTreeview() {
     ; currRoutine = item in allRoutines[]
     ; parentID = the parent node (in a treeview)
     ;---------------------------------------------------------------------
-processRoutine(currRoutine, parentID=0) {
+processRoutine(currRoutine, parentID=0, parentName="") {
 	static currentLevel
 
   ; check if new routine exists in this thread: if it exists don't process it again.
-  threadIndex := searchArray(currRoutine.routineName)
+  currentName := currRoutine.routineName
+  threadIndex := searchArray(currentName)
   if (threadIndex > 0)
     return
   
   currentLevel ++
-  currThread.push(currRoutine.routineName)  ; add new routine to this thread.
-	itemId := addToTreeview(currRoutine.routineName, currentLevel, parentID)
+  currThread.push(currentName)  ; add new routine to this thread.
+	itemId := addToTreeview(currentName, currentLevel, parentID, parentName)
 	
 	Loop, % currRoutine.calls.MaxIndex() {
 		
@@ -1593,7 +1594,7 @@ processRoutine(currRoutine, parentID=0) {
 		calledId := searchRoutine(currRoutine.calls[A_Index])
 
 		if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
-			processRoutine(allRoutines[calledId], itemId )     ; write children
+			processRoutine(allRoutines[calledId], itemId, currentName)     ; write children
 		}
 	}
 
@@ -1603,7 +1604,7 @@ processRoutine(currRoutine, parentID=0) {
     ;---------------------------------------
     ; add a node to treeview
     ;---------------------------------------
-addToTreeview(routineName, currentLevel, parentId) {
+addToTreeview(routineName, currentLevel, parentId, parentName) {
 	currentId := TV_add(routineName, parentId, "Expand")
 	
     ; save routine level for later tree traversal.
@@ -1612,6 +1613,7 @@ addToTreeview(routineName, currentLevel, parentId) {
   itemLevels[levels_LastIndex, 2] := currentLevel ; current node's level
   itemLevels[levels_LastIndex, 3] := routineName  ; current node's TV text
   itemLevels[levels_LastIndex, 4] := parentId     ; parent node's TV id
+  itemLevels[levels_LastIndex, 5] := parentName
 
   followsSibling := false
   parentIndex := searchItemId(parentId)
@@ -1625,7 +1627,7 @@ addToTreeview(routineName, currentLevel, parentId) {
       }
     }
   }
-  itemLevels[levels_LastIndex, 5] := followsSibling  ; if it has a sibling after itself.
+  itemLevels[levels_LastIndex, 7] := followsSibling  ; if it has a sibling after itself.
 	
 	return currentId
   }
@@ -1769,7 +1771,7 @@ exportNodesAsTXT(expandAll, index1, index2) {
       prefix := SubStr(exportedRoutines[currLine - 1], 2, prefixCount)
 
       parentIndex := searchItemId(itemLevels[currIndex, 4])
-      parentHasSibling := itemLevels[parentIndex, 5]
+      parentHasSibling := itemLevels[parentIndex, 7]
       ; if parent has sibling clear the last 2 chars and replace ├ with │
       if (parentHasSibling)
         prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . connector3
@@ -1783,7 +1785,7 @@ exportNodesAsTXT(expandAll, index1, index2) {
 
     ; source must be saved as "UTF8 with BOM"
     if (currentLevel > 1)
-      if (itemLevels[currIndex, 5] = true)
+      if (itemLevels[currIndex, 7] = true)
         prefix .= connector1 ; has sibling after itself
       else
         prefix .= connector2 ; has no sibling after itself
@@ -1920,38 +1922,31 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     ; for the root item create also the header.
     if (isRoot) {
       xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")
-      xmlObj.transformXML()
-      return xmlObj.xml
-      xmlObj.viewXML()
-      return
-
-      oneLine := "`n ul(class='tree')"
-      exportedRoutines.push(oneLine)
-      oneLine := "`n  li"
-      exportedRoutines.push(oneLine)
-      oneLine := "`n   code " . itemLevels[currIndex, 3]  ; add routine name.
-      exportedRoutines.push(oneLine)
+      xmlObj.addElement("ul", "figure", {class: "tree"})              ; <ul class="tree">
+      node := xmlObj.addElement("li", "//ul")                         ; <li></li>
+      xmlObj.addElement("code", "//li", itemLevels[currIndex, 3])     ; <code>root routine</code>
+      itemLevels[currIndex, 6] := node  ; save root node object for later reference.
       previousLevel := itemLevels[currIndex, 2]
-      
       isRoot := False
       currIndex ++
       continue  ; go to next item (node)
     }
 
     ; for the children create ul/li statements.
-    currPos := 2 * currentLevel
     if (currentLevel > previousLevel) {
-      oneLine := "`n" . Spaces(currPos - 1) . "ul"
-      exportedRoutines.push(oneLine)
+      node:= xmlObj.addElement("ul", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
+      newnode:= xmlObj.addElement("li", node)
     }
+    else {
+      newnode:= xmlObj.addElement("li", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
+    }
+    xmlObj.addElement("code", newnode, itemLevels[currIndex, 3])
+    itemLevels[currIndex, 6] := newnode  ; save current li node for later reference.
 
-    currPos ++
-    oneLine := "`n" . Spaces(currPos - 1) . "li"
-    exportedRoutines.push(oneLine)
-
-    currPos ++
-    oneLine := "`n" . Spaces(currPos - 1) . "code " . itemLevels[currIndex, 3]  ; add routine name.
-    exportedRoutines.push(oneLine)
+    if (currIndex >3) {
+      xmlObj.transformXML()
+      return xmlObj.xml ; this contains the full xml
+    }
 
     previousLevel := currentLevel
     currIndex ++
@@ -2282,11 +2277,11 @@ saveRoutines(filename, header, delete) {
 
   ; return
   row := "`n`t`t`t itemLevels[]"
-  row .= "`n`nseq - node id - level - routine - parent id - has after sibling`n"
-  row .= "-------------------------------------------------------------------`n"
+  row .= "`n`nseq - node id - level - routine - parent id - parent name - has after sibling`n"
+  row .= "---------------------------------------------------------------------------------`n"
 
   Loop, % itemLevels.MaxIndex() {
-    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . " - " . itemLevels[A_Index,4] . " - " . itemLevels[A_Index,5] . "`n"
+    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . " - " . itemLevels[A_Index,4] . " - " . itemLevels[A_Index,5] . " - " . itemLevels[A_Index,7] . "`n"
   }
     FileAppend, %row%, %filename%
   } 
