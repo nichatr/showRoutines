@@ -1895,6 +1895,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
   exportedString := ""
   currIndex := index1
   isRoot := True
+  firstChild := True
 
   try
     ; create an XMLDOMDocument object
@@ -1919,39 +1920,54 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       continue
     }
 
+    ;------------------------------------------
     ; for the root item create also the header.
+    ;------------------------------------------
     if (isRoot) {
       xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")
       xmlObj.addElement("ul", "figure", {class: "tree"})              ; <ul class="tree">
-      node := xmlObj.addElement("li", "//ul")                         ; <li></li>
+      nodeLI := xmlObj.addElement("li", "//ul")                         ; <li></li>
       xmlObj.addElement("code", "//li", itemLevels[currIndex, 3])     ; <code>root routine</code>
-      itemLevels[currIndex, 6] := node  ; save root node object for later reference.
+      itemLevels[currIndex, 6] := nodeLI  ; save root node object for later reference.
       previousLevel := itemLevels[currIndex, 2]
+      prevIndex := currIndex
       isRoot := False
       currIndex ++
-      continue  ; go to next item (node)
+      continue  ; go to next item
     }
 
     ; for the children create ul/li statements.
     if (currentLevel > previousLevel) {
-      node:= xmlObj.addElement("ul", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
-      newnode:= xmlObj.addElement("li", node)
+      nodeUL := xmlObj.addElement("ul", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
+      newnode:= xmlObj.addElement("li", nodeUL)
     }
     else {
+      if (currentLevel < previousLevel) ; reset flag when starting new sub-tree.
+        firstChild := True
       newnode:= xmlObj.addElement("li", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
     }
+
     xmlObj.addElement("code", newnode, itemLevels[currIndex, 3])
     itemLevels[currIndex, 6] := newnode  ; save current li node for later reference.
-
-    if (currIndex >3) {
-      xmlObj.transformXML()
-      return xmlObj.xml ; this contains the full xml
+      
+    if (firstChild) {
+      itemLevels[prevIndex, 6] := xmlObj.getChild(itemLevels[prevIndex, 6], "element", 2)  ; change parent node from li --> ul after writting first child.
+      firstChild := False
     }
 
+    if (currIndex >3) {
+      ; xmlObj.transformXML()
+      ; return xmlObj.xml ; this contains the full xml
+    }
+
+    prevIndex := currIndex
     previousLevel := currentLevel
     currIndex ++
   }
-  
+
+      xmlObj.transformXML()
+      return xmlObj.xml ; this contains the full xml
+      
   Loop, % exportedRoutines.MaxIndex() {
     exportedString .= exportedRoutines[A_Index]
   }
