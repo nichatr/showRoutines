@@ -1593,7 +1593,7 @@ processRoutine(currRoutine, parentID=0) {
 		calledId := searchRoutine(currRoutine.calls[A_Index])
 
 		if (calledId > 0 and currRoutine <> allRoutines[calledId]) {
-			processRoutine(allRoutines[calledId], itemId, )     ; write children
+			processRoutine(allRoutines[calledId], itemId )     ; write children
 		}
 	}
 
