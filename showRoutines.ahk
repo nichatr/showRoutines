@@ -34,7 +34,8 @@
   #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 
   ; used for building the executable.
-  FileInstall, routineFlow.html, routineFlow.html 
+  FileInstall, tree diagram in zTree.html, tree diagram in zTree.html 
+  FileInstall, tree diagram in CSS.html, tree diagram in CSS.html
   FileInstall, showRoutines.ini, showRoutines.ini
 
   #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
@@ -152,7 +153,7 @@ showExport() {
   global subGui3_W, subGui3_H
 
   subGui3_W := 420
-  subGui3_H := 240
+  subGui3_H := 350
   WinGetPos, targetX, targetY, targetWidth, targetHeight, A
   newX := targetX + (targetWidth - subGui3_W) / 2
   newY := targetY + (targetHeight - subGui3_H) / 2
@@ -177,26 +178,31 @@ showExport() {
   Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xp+100 yp+5 %CheckedExportDescriptions% Disabled,   Include routines descriptions
 
   ; output format
-  CheckedHTML := exportOutputFormat == "html" ? "Checked" : ""
-  CheckedJSON := exportOutputFormat == "json" ? "Checked" : ""
+  CheckedHTML1 := exportOutputFormat == "html1" ? "Checked" : ""
+  CheckedHTML2 := exportOutputFormat == "html2" ? "Checked" : ""
   CheckedTXT := exportOutputFormat == "txt" ? "Checked" : ""
-  Gui, 3:Add, GroupBox, xm+20 y120 w160 h60, Output format
-  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML% xp+15 yp+30, html
-  Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedJSON%, json
-  Gui, 3:Add, Radio, g3Check xp+50 yp %CheckedTXT%, txt
+  CheckedJSON := exportOutputFormat == "json" ? "Checked" : ""
 
   ; connectors type
-  ; exportConnectorsType := "AS400"
   CheckedUnicode := exportConnectorsType == "Unicode" ? "Checked" : ""
   CheckedAS400 := exportConnectorsType == "AS400" ? "Checked" : ""
-  Gui, 3:Add, GroupBox, xp+60 y120 w150 h60, Connectors type
+
+  Gui, 3:Add, GroupBox, xm+20 y120 w150 h150, Output format
+  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML1% xp+15 yp+30, folding tree
+  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, boxed tree
+  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedTXT%, txt
+  Gui, 3:Add, Radio, g3Check xm+35 yp+25 %CheckedJSON%, json
+
+  Gui, 3:Add, GroupBox, xp+150 y120 w150 h60, Connectors
   Gui, 3:Add, Radio, Group g3Check vConnectorsTypeRadio %CheckedUnicode% xp+15 yp+30, Unicode
   Gui, 3:Add, Radio, g3Check xp+70 yp %CheckedAS400%, AS400
+  ; Gui, 3:Add, Radio, g3Check vAS400 xp+70 yp %CheckedAS400%, AS400
+
 
   ; Export, Close buttons
-  Gui, 3:Add, button, xm+30 ym+200 w80 g3ExportAll default, All
-  Gui, 3:Add, button, xp+90 ym+200 w80 g3ExportSelected vExportSelected, Selected
-  Gui, 3:Add, button, xp+90 ym+200 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
+  Gui, 3:Add, button, xm+30 ym+300 w80 g3ExportAll default, All
+  Gui, 3:Add, button, xp+90 ym+300 w80 g3ExportSelected vExportSelected, Selected
+  Gui, 3:Add, button, xp+90 ym+300 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
   Gui, 3:Add, button, xp+90 w80 g3Close, Cancel
 
   if (nodesToExport.MaxIndex()>0)
@@ -205,7 +211,7 @@ showExport() {
     GuiControl, 3:Disable, ExportSelected
 
   ; show window
-  Gui, 3:show, x%newX% y%newY% h250, Gui 3
+  Gui, 3:show, x%newX% y%newY% h%subGui3_H%, Gui 3
   return
   }
 
@@ -227,15 +233,26 @@ showExport() {
 3Check:
   Gui, 3:Submit, NoHide
 
-  if (OutputFormatRadio = 1)
-    exportOutputFormat := "html"
+  if (OutputFormatRadio = 1) {
+    exportOutputFormat := "html1"
+    ; connectorsDisplayMode("Disable")
+  }
 
-  if (OutputFormatRadio = 2)
-    exportOutputFormat := "json"
+  if (OutputFormatRadio = 2) {
+    exportOutputFormat := "html2"
+    ; connectorsDisplayMode("Disable")
+  }
 
-  if (OutputFormatRadio = 3)
+  if (OutputFormatRadio = 3) {
     exportOutputFormat := "txt"
-  
+    ; connectorsDisplayMode("Enable")
+  }
+
+  if (OutputFormatRadio = 4) {
+    exportOutputFormat := "json"
+    ; connectorsDisplayMode("Disable")
+  }
+
   if (ConnectorsTypeRadio = 1)
     exportConnectorsType := "Unicode"
 
@@ -305,6 +322,18 @@ showExport() {
   Gui, 3:Destroy
   return
   ;---------------------------------------------------------------------
+  ; enable or disable groupbox with connectors type.
+  ;---------------------------------------------------------------------
+connectorsDisplayMode(mode) {
+  if (mode = "Disable") {
+    GuiControl, Disable, ConnectorsTypeRadio
+    GuiControl, Disable, AS400
+  } else {
+    GuiControl, Enable, ConnectorsTypeRadio
+    GuiControl, Enable, AS400
+  }
+  }
+  ;---------------------------------------------------------------------
   ; export in html format with default options (without "export gui")
   ;---------------------------------------------------------------------
 exportInBatch() {
@@ -312,7 +341,7 @@ exportInBatch() {
   SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
   ExportedFilename := "exported_" . NameNoExt . ".html"
   exportDescriptions := "true"
-  exportOutputFormat := "html"
+  exportOutputFormat := "html1"
   exportConnectorsType := "Unicode"
   expandAll := true
   exportedString := exportNodes(expandAll)
@@ -328,14 +357,16 @@ saveExportedString(exportedString) {
   }
 
   ; json format needs no processing.
-  if (exportOutputFormat = "json" or exportOutputFormat = "txt")
+  if (exportOutputFormat = "json" or exportOutputFormat = "txt") {
     OutputVar := exportedString
+    extension := exportOutputFormat
+  }
   
-  ; html format uses specific template.
-  else if (exportOutputFormat = "html") {
-    FileRead, templateContents, %A_ScriptDir%\routineFlow.html
+  ; html1 format uses specific template.
+  else if (exportOutputFormat = "html1") {
+    FileRead, templateContents, %A_ScriptDir%\tree diagram in zTree.html
     if ErrorLevel {
-      MsgBox, Template file not found (\routineFlow.html)
+      MsgBox, Template file not found (\tree diagram in zTree.html)
       return
     }
 
@@ -343,9 +374,25 @@ saveExportedString(exportedString) {
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
+    extension := "html"
   }
 
-  filename := A_ScriptDir . "\data\" . ExportedFilename . "." . exportOutputFormat
+  ; html2 format uses specific template.
+  else if (exportOutputFormat = "html2") {
+    FileRead, templateContents, %A_ScriptDir%\tree diagram in CSS.html
+    if ErrorLevel {
+      MsgBox, Template file not found (\tree diagram in CSS.html)
+      return
+    }
+
+    ; replace dummy strings with actual data.
+    SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
+    templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
+    OutputVar := RegExReplace(templateContents, "\<body\>(?s)(.*)\<\/body\>", "<body>" . exportedString . "</body>")
+    extension := "html"
+  }
+
+  filename := A_ScriptDir . "\data\" . ExportedFilename . "." . extension
   if FileExist(filename)
     FileDelete, %filename%
 
@@ -1673,12 +1720,14 @@ exportNodes(expandAll, index1=0, index2=0) {
   if (exportMaxLevel < 2 or exportMaxLevel > 999)
     exportMaxLevel := 999
 
-  if (exportOutputFormat = "json" or exportOutputFormat = "html")
+  if (exportOutputFormat = "json" or exportOutputFormat = "html1")
     treeString := exportNodesAsHTML1(expandAll, index1, index2)
 
   if (exportOutputFormat = "txt")
+    treeString := exportNodesAsTXT(expandAll, index1, index2)
+  
+  if (exportOutputFormat = "html2")
     treeString := exportNodesAsHTML2(expandAll, index1, index2)
-    ; treeString := exportNodesAsTXT(expandAll, index1, index2)
   
   return treeString
   }
