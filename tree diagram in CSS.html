@@ -1,0 +1,187 @@
+<!-- 
+  Template used for creating tree diagrams for the routines of a program
+  From Ross Angus
+  https://www.cssscript.com/clean-tree-diagram/
+  https://codepen.io/ross-angus/pen/jwxMjL
+  -->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>TITLE</title>
+    <!-- The stylesheet is integrated with the html for ease of use. -->
+    <!-- <link rel="stylesheet" href="./style.css"> -->
+    <style>
+      body {
+        font-family: Calibri, Segoe, 'Segoe UI', 'Gill Sans', 'Gill Sans MT',
+          sans-serif;
+      }
+
+      /* It's supposed to look like a tree diagram */
+      .tree,
+      .tree ul,
+      .tree li {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        position: relative;
+      }
+
+      .tree {
+        margin: 0 0 1em;
+        text-align: center;
+      }
+      .tree,
+      .tree ul {
+        display: table;
+      }
+      .tree ul {
+        width: 100%;
+      }
+      .tree li {
+        display: table-cell;
+        padding: 0.5em 0;
+        vertical-align: top;
+      }
+      /* _________ */
+      .tree li:before {
+        outline: solid 1px #666;
+        content: '';
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+      }
+      .tree li:first-child:before {
+        left: 50%;
+      }
+      .tree li:last-child:before {
+        right: 50%;
+      }
+
+      .tree code,
+      .tree span {
+        border: solid 0.1em #666;
+        border-radius: 0.2em;
+        display: inline-block;
+        margin: 0 0.2em 0.5em;
+        padding: 0.2em 0.5em;
+        position: relative;
+      }
+      /* If the tree represents DOM structure */
+      .tree code {
+        font-family: monaco, Consolas, 'Lucida Console', monospace;
+      }
+
+      /* | */
+      .tree ul:before,
+      .tree code:before,
+      .tree span:before {
+        outline: solid 1px #666;
+        content: '';
+        height: 0.5em;
+        left: 50%;
+        position: absolute;
+      }
+      .tree ul:before {
+        top: -0.5em;
+      }
+      .tree code:before,
+      .tree span:before {
+        top: -0.55em;
+      }
+
+      /* The root node doesn't connect upwards */
+      .tree > li {
+        margin-top: 0;
+      }
+      .tree > li:before,
+      .tree > li:after,
+      .tree > li > code:before,
+      .tree > li > span:before {
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- partial:index.partial.html -->
+    <figure>
+      <figcaption>Example DOM structure diagram</figcaption>
+      <ul class="tree">
+        <li>
+          <code>html</code>
+          <ul>
+            <li>
+              <code>head</code>
+              <ul>
+                <li><code>title</code></li>
+              </ul>
+            </li>
+            <li>
+              <code>body</code>
+              <ul>
+                <li>
+                  <code>header</code>
+                  <ul>
+                    <li><code>h1</code></li>
+                    <li><code>p</code></li>
+                  </ul>
+                </li>
+                <li>
+                  <code>nav</code>
+                  <ul>
+                    <li><code>a</code></li>
+                    <li><code>a</code></li>
+                    <li><code>a</code></li>
+                    <li><code>a</code></li>
+                  </ul>
+                </li>
+                <li>
+                  <code>main</code>
+                  <ul>
+                    <li><code>h1</code></li>
+                    <li>
+                      <code>article</code>
+                      <ul>
+                        <li><code>h2</code></li>
+                        <li><code>p</code></li>
+                        <li><code>p</code></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <code>aside</code>
+                  <ul>
+                    <li><code>h2</code></li>
+                    <li><code>p</code></li>
+                    <li>
+                      <code>p</code>
+                      <ul>
+                        <li><code>a</code></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+                <li>
+                  <code>footer</code>
+                  <ul>
+                    <li>
+                      <code>nav</code>
+                      <ul>
+                        <li><code>a</code></li>
+                        <li><code>a</code></li>
+                        <li><code>a</code></li>
+                        <li><code>a</code></li>
+                      </ul>
+                    </li>
+                  </ul>
+                </li>
+              </ul>
+            </li>
+          </ul>
+        </li>
+      </ul>
+    </figure>
+  </body>
+</html>

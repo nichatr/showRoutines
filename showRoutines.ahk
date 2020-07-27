@@ -1968,14 +1968,9 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     currIndex ++
   }
 
-      xmlObj.transformXML()
-      return xmlObj.xml ; this contains the full xml
-      
-  Loop, % exportedRoutines.MaxIndex() {
-    exportedString .= exportedRoutines[A_Index]
-  }
-  
-  return exportedString
+  ; transform into xml and return for further processing.
+  xmlObj.transformXML()
+  return xmlObj.xml ; this contains the full xml
   }
   ;-------------------------------------------------------------------------------
   ; create a string with the given number of spaces
