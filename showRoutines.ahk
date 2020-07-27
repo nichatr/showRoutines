@@ -1961,7 +1961,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
             nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
           }
           newnode:= xmlObj.addElement("li", nodeUL)
-          xmlObj.addElement("code", newnode, itemLevels[currIndex, 3])  ; write <code>routine</code>
+          xmlObj.addElement("code", newnode, allRoutines[allRoutinesIndex].calls[A_Index])  ; write <code>routine</code>
         }        
       }
 
