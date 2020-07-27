@@ -1929,39 +1929,42 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       nodeLI := xmlObj.addElement("li", "//ul")                         ; <li></li>
       xmlObj.addElement("code", "//li", itemLevels[currIndex, 3])     ; <code>root routine</code>
       itemLevels[currIndex, 6] := nodeLI  ; save root node object for later reference.
-      previousLevel := itemLevels[currIndex, 2]
-      prevIndex := currIndex
+
+      ; write root's calls as ul/li.
+      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3])
+      if (allRoutinesIndex > 0) {
+        Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+          ; if first call, write a ul under parent li.
+          if (A_Index = 1) {
+            nodeUL := xmlObj.addElement("ul", nodeLI)
+          }
+          newnode:= xmlObj.addElement("li", nodeUL)
+          xmlObj.addElement("code", newnode, itemLevels[A_Index, 3])  ; write <code>routine</code>
+          index_in_itemLevels := searchRoutine_inItemLevels(allRoutines[allRoutinesIndex].calls[A_Index])
+          itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.
+        }
+      }
+
       isRoot := False
       currIndex ++
       continue  ; go to next item
     }
 
-    ; for the children create ul/li statements.
-    if (currentLevel > previousLevel) {
-      nodeUL := xmlObj.addElement("ul", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
-      newnode:= xmlObj.addElement("li", nodeUL)
-    }
-    else {
-      if (currentLevel < previousLevel) ; reset flag when starting new sub-tree.
-        firstChild := True
-      newnode:= xmlObj.addElement("li", itemLevels[searchItemId(itemLevels[currIndex, 4]), 6])
-    }
+    ;-------------------------------------------
+    ; for the children write the calls as ul/li.
+    ;-------------------------------------------
+      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3])
+      if (allRoutinesIndex > 0) {
+        Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+          ; if first call, write a ul under parent li.
+          if (A_Index = 1) {
+            nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
+          }
+          newnode:= xmlObj.addElement("li", nodeUL)
+          xmlObj.addElement("code", newnode, itemLevels[currIndex, 3])  ; write <code>routine</code>
+        }        
+      }
 
-    xmlObj.addElement("code", newnode, itemLevels[currIndex, 3])
-    itemLevels[currIndex, 6] := newnode  ; save current li node for later reference.
-      
-    if (firstChild) {
-      itemLevels[prevIndex, 6] := xmlObj.getChild(itemLevels[prevIndex, 6], "element", 2)  ; change parent node from li --> ul after writting first child.
-      firstChild := False
-    }
-
-    if (currIndex >3) {
-      ; xmlObj.transformXML()
-      ; return xmlObj.xml ; this contains the full xml
-    }
-
-    prevIndex := currIndex
-    previousLevel := currentLevel
     currIndex ++
   }
 
@@ -2055,6 +2058,17 @@ findLastSubnode(index) {
 searchRoutine(routineName) {
 	Loop, % allRoutines.MaxIndex() {
 		if (routineName = allRoutines[A_Index].routineName) {
+			return A_index
+		}
+	}
+	return 0
+  }
+  ;---------------------------------------------------------------------
+  ; search if parameter exists in itemLevels array.
+  ;---------------------------------------------------------------------
+searchRoutine_inItemLevels(routineName) {
+	Loop, % itemLevels.MaxIndex() {
+		if (routineName = itemLevels[A_Index, 3]) {
 			return A_index
 		}
 	}
