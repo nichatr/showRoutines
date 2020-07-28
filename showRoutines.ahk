@@ -39,7 +39,7 @@
   FileInstall, showRoutines.ini, showRoutines.ini
 
   #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
-  #Include %A_ScriptDir%\tests\xml.ahk  ; for building html (xml)
+  #Include %A_ScriptDir%\XML\xml.ahk  ; for building html (xml)
 
   ; global declarations
   global allRoutines  ; array of class "routine"
@@ -193,7 +193,7 @@ showExport() {
   Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedTXT%, txt
   Gui, 3:Add, Radio, g3Check xm+35 yp+25 %CheckedJSON%, json
 
-  Gui, 3:Add, GroupBox, xp+150 y120 w150 h60, Connectors
+  Gui, 3:Add, GroupBox, xp+150 y120 w150 h60, Connectors (only for txt)
   Gui, 3:Add, Radio, Group g3Check vConnectorsTypeRadio %CheckedUnicode% xp+15 yp+30, Unicode
   Gui, 3:Add, Radio, g3Check xp+70 yp %CheckedAS400%, AS400
   ; Gui, 3:Add, Radio, g3Check vAS400 xp+70 yp %CheckedAS400%, AS400
@@ -388,6 +388,8 @@ saveExportedString(exportedString) {
     ; replace dummy strings with actual data.
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
+    ; below regex was taken from https://stackoverflow.com/questions/6109882/regex-match-all-characters-between-two-strings
+    ; it replaces all dummy text between <body>..</body> with the actual content.
     OutputVar := RegExReplace(templateContents, "\<body\>(?s)(.*)\<\/body\>", "<body>" . exportedString . "</body>")
     extension := "html"
   }
@@ -721,7 +723,7 @@ setup() {
   Gui  +HwndguiHWND
   ; msgbox, % guiHWND
   
-    ; read last saved values
+  ; read last saved values
 	IniRead, TreeViewWidth, %A_ScriptDir%\%scriptNameNoExt%.ini, position, treeviewWidth
   IniRead, winX, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winX
   IniRead, winY, %A_ScriptDir%\%scriptNameNoExt%.ini, position, winY
@@ -1621,6 +1623,7 @@ loadTreeview() {
     ; recursively write routines array to a text file for testing.
     ; currRoutine = item in allRoutines[]
     ; parentID = the parent node (in a treeview)
+    ; parentName
     ;---------------------------------------------------------------------
 processRoutine(currRoutine, parentID=0, parentName="") {
 	static currentLevel
@@ -1988,8 +1991,9 @@ exportNodesAsHTML2(expandAll, index1, index2) {
             nodeUL := xmlObj.addElement("ul", nodeLI)
           }
           newnode:= xmlObj.addElement("li", nodeUL)
-          xmlObj.addElement("code", newnode, itemLevels[A_Index, 3])  ; write <code>routine</code>
-          index_in_itemLevels := searchRoutine_inItemLevels(allRoutines[allRoutinesIndex].calls[A_Index])
+          calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]            
+          xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
+          index_in_itemLevels := searchRoutine_inItemLevels(calledRoutineName)
           itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.
         }
       }
@@ -2010,7 +2014,10 @@ exportNodesAsHTML2(expandAll, index1, index2) {
             nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
           }
           newnode:= xmlObj.addElement("li", nodeUL)
-          xmlObj.addElement("code", newnode, allRoutines[allRoutinesIndex].calls[A_Index])  ; write <code>routine</code>
+          calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]          
+          xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
+          index_in_itemLevels := searchRoutine_inItemLevels(calledRoutineName)
+          itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.                    
         }        
       }
 
