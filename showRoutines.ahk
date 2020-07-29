@@ -1983,7 +1983,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       itemLevels[currIndex, 6] := nodeLI  ; save root node object for later reference.
 
       ; write root's calls as ul/li.
-      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3])
+      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
       if (allRoutinesIndex > 0) {
         Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
           ; if first call, write a ul under parent li.
@@ -1993,7 +1993,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
           newnode:= xmlObj.addElement("li", nodeUL)
           calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]            
           xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
-          index_in_itemLevels := searchRoutine_inItemLevels(calledRoutineName)
+          index_in_itemLevels := searchRoutine_inItemLevels(currIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName )
           itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.
         }
       }
@@ -2006,20 +2006,28 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     ;-------------------------------------------
     ; for the children write the calls as ul/li.
     ;-------------------------------------------
-      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3])
-      if (allRoutinesIndex > 0) {
-        Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
-          ; if first call, write a ul under parent li.
-          if (A_Index = 1) {
-            nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
-          }
-          newnode:= xmlObj.addElement("li", nodeUL)
-          calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]          
-          xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
-          index_in_itemLevels := searchRoutine_inItemLevels(calledRoutineName)
-          itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.                    
-        }        
-      }
+    ; if (currIndex = 24) {
+    ;   msgbox, % currIndex
+    ; }
+    allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
+    if (allRoutinesIndex > 0) {
+      Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+        ; if first call, write a ul under parent li.
+        if (A_Index = 1) {
+          if (itemLevels[currIndex, 6] == null) {
+            msgbox, % "itemLevels[currIndex, 6] is null for currIndex =" . currIndex . "-" . itemLevels[currIndex, 5] . "`nallRoutinesIndex =" . allRoutinesIndex . "-" . itemLevels[currIndex, 3]
+            currIndex ++
+            continue
+          }            
+          nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
+        }
+        newnode:= xmlObj.addElement("li", nodeUL)
+        calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]          
+        xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
+        index_in_itemLevels := searchRoutine_inItemLevels(currIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
+        itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.                    
+      }        
+    }
 
     currIndex ++
   }
@@ -2117,11 +2125,13 @@ searchRoutine(routineName) {
   ;---------------------------------------------------------------------
   ; search if parameter exists in itemLevels array.
   ;---------------------------------------------------------------------
-searchRoutine_inItemLevels(routineName) {
-	Loop, % itemLevels.MaxIndex() {
-		if (routineName = itemLevels[A_Index, 3]) {
-			return A_index
+searchRoutine_inItemLevels(fromIndex, routineName, parentName) {
+  index := fromIndex
+  while (index <= itemLevels.MaxIndex()) {
+		if (routineName = itemLevels[index, 3] && parentName = itemLevels[index, 5]) {
+			return index
 		}
+    index ++
 	}
 	return 0
   }
