@@ -1835,7 +1835,6 @@ exportNodesAsTXT(expandAll, index1, index2) {
       prefix := "`n" . prefix
     }
 
-    ; source must be saved as "UTF8 with BOM"
     if (currentLevel > 1)
       if (itemLevels[currIndex, 7] = true)
         prefix .= connector1 ; has sibling after itself
@@ -2001,19 +2000,25 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       }
 
       isRoot := False
-      currIndex ++
+      getNextIndex(currIndex, currentLevel, expandAll)
+      ; currIndex ++
       continue  ; go to next item
     }
 
     ;-------------------------------------------
     ; for the children write the calls as ul/li.
     ;-------------------------------------------
-    ; if (currIndex = 24) {
-    ;   msgbox, % currIndex
-    ; }
     allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
     if (allRoutinesIndex > 0) {
+
+      ; if requested "export what you see" and node is folded: skip the called routines.
+      if (!expandAll and !TV_Get(itemLevels[currIndex, 1], "Expanded")) {
+        getNextIndex(currIndex, currentLevel, expandAll)
+        continue  ; go to next item
+      }
+
       Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+
         ; if first call, write a ul under parent li.
         if (A_Index = 1) {
           if (itemLevels[currIndex, 6] == null) {
@@ -2033,12 +2038,34 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       }        
     }
 
-    currIndex ++
+    getNextIndex(currIndex, currentLevel, expandAll)
+    ; currIndex ++
   }
 
   ; transform into xml and return for further processing.
   xmlObj.transformXML()
   return xmlObj.xml ; this contains the full xml
+  }
+  ;-------------------------------------------------------------------------------
+  ; used when exporting only visible nodes.
+  ;-------------------------------------------------------------------------------
+getNextIndex(Byref currIndex, currentLevel, expandAll) {
+  ; if requested only visible nodes
+  ; and current node is folded, find next node with level <= current node's level.
+  if (!expandAll and !TV_Get(itemLevels[currIndex, 1], "Expanded")) {
+    found := false
+    while (currIndex < itemLevels.MaxIndex()) {
+      currIndex ++
+      if (itemLevels[currIndex, 2] <= currentLevel) {
+        found := true
+        break
+      }
+    }
+    if (found = false)
+      currIndex ++
+  } else {
+    currIndex ++
+  }
   }
   ;-------------------------------------------------------------------------------
   ; create a string with the given number of spaces
