@@ -1989,11 +1989,13 @@ exportNodesAsHTML2(expandAll, index1, index2) {
           ; if first call, write a ul under parent li.
           if (A_Index = 1) {
             nodeUL := xmlObj.addElement("ul", nodeLI)
+            fromIndex := currIndex + 1  ; to avoid getting the wrong routine : ignore previous items.
           }
           newnode:= xmlObj.addElement("li", nodeUL)
           calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]            
           xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
-          index_in_itemLevels := searchRoutine_inItemLevels(currIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName )
+          index_in_itemLevels := searchRoutine_inItemLevels(fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName )
+          fromIndex := index_in_itemLevels + 1  ; to avoid getting the wrong routine : ignore previous items.
           itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.
         }
       }
@@ -2020,11 +2022,13 @@ exportNodesAsHTML2(expandAll, index1, index2) {
             continue
           }            
           nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
+          fromIndex := currIndex + 1  ; to avoid getting the wrong routine : ignore previous items.
         }
         newnode:= xmlObj.addElement("li", nodeUL)
         calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]          
         xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
-        index_in_itemLevels := searchRoutine_inItemLevels(currIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
+        index_in_itemLevels := searchRoutine_inItemLevels(fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
+        fromIndex := index_in_itemLevels + 1  ; to avoid getting the wrong routine : ignore previous items.
         itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.                    
       }        
     }
