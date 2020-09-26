@@ -401,8 +401,6 @@ saveExportedString(exportedString) {
   FileEncoding, UTF-8
   FileAppend, %OutputVar%, %filename%
   Run, %filename%
-  
-  ; openNotepad(filename)
   }
 
   ;--------------------------------------------
@@ -568,14 +566,6 @@ showSubGui(subGui_W, subGui_H, subGui_Title) {
   subGui4_W := subGui_W
   subGui4_H := subGui_H
 	Gui, 4:Show, x%newX% y%newY% w%subGui_W% h%subGui_H%, Gui 4 ; %subGui_Title%
-  }
-  ;---------------------------------------------------------------------
-  ; open exported routines in editor beside main window
-  ;---------------------------------------------------------------------
-openNotepad(filename) {
-  x := targetX + targetWidth - 10
-  y := targetY
-  RunWait, notepad++.exe -nosession -ro  -x%x% -y%y% "%filename%"
   }
   ;---------------------------------------------------------------------
   ; move secondary windows
@@ -1021,11 +1011,22 @@ MyTreeView:
     x := X_main + Width_main
     y := Y_main
 		
+    FileEncoding, CP1253 
+    SplitPath, fullFileCode , codeFileName, codeDir, codeExtension, codeNameNoExt, codeDrive
+    if (RegExMatch(codeExtension, "i)cbl"))
+      language := "cobol"
+    else if (RegExMatch(codeExtension, "i)rpg"))
+      language := "rpgle"
+    else
+      language := "cobol"
+
 		if (showOnlyRoutine == "false")
-			if (codeEditor == "notepad++")
-				RunWait, notepad++.exe -lcobol -nosession -ro -n%statement% -x%x% -y%y% "%fullFileCode%"
-		else
+			if (codeEditor == "notepad++") {
+				RunWait, notepad++.exe -l%language% -nosession -ro -n%statement% -x%x% -y%y% "%fullFileCode%"
+      }
+		else {
 			RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --new-window --goto "%fullFileCode%:%statement%"
+    }
 		else {
 			filename := path . "tempfile" . ".cbl"
 			FileDelete, %filename%
@@ -1039,18 +1040,10 @@ MyTreeView:
 			FileAppend, %sourceCode%, %filename%
             ; msgbox, %filename%
 			if (codeEditor == "notepad++")
-				RunWait, notepad++.exe -lcobol -nosession -ro -x%x% -y%y% "%filename%"
+				RunWait, notepad++.exe -l%language% -nosession -ro -x%x% -y%y% "%filename%"
 			else
 				RunWait, "C:\Program Files\Microsoft VS Code\Code.exe" --new-window "%filename%"
 		}
-
-		
-		; Sleep, 300  ; wait to open
-        ; position besides main window
-		; if (codeEditor == "notepad++")
-		; 	WinMove, ahk_class notepad++, , X_main + Width_main , Y_main
-        ; else
-        ;     WinMove, ahk_exe Code.exe, , X_main + Width_main , Y_main
 	}
 	
     ; spacebar an item: load the routine code.
