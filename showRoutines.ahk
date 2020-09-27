@@ -980,6 +980,18 @@ setup() {
   processLevel(13)
   return
 
+  F12::
+    GuiControlGet, outputvar1, Pos, MyTreeView
+    GuiControlGet, outputvar2, Pos, MyListBox
+    output := "treview:`n"
+    output .= "`tX=" . outputvar1X . "`tY=" . outputvar1Y . "`tW=" . outputvar1W . "`tH=" . outputvar1H
+    output .= "`n"
+    output .= "listbox:`n"
+    output .= "`tX=" . outputvar2X . "`tY=" . outputvar2Y . "`tW=" . outputvar2W . "`tH=" . outputvar2H
+
+    Msgbox, %output%
+    return
+
 #IfWinActive
     ;-----------------------------------------------------------
     ; Handle user actions (such as clicking). 
@@ -992,6 +1004,7 @@ MyTreeView:
 	if (A_GuiEvent = "S") {
 		TV_GetText(SelectedItemText, A_EventInfo)   ; get item text
 		loadListbox(SelectedItemText)              ; load routine code
+    return
 	}
 	
     ; doubleclick an item: open code in default editor and position to selected routine.
@@ -1081,12 +1094,14 @@ GuiSize:
 	gui_width := A_GuiWidth
   gui_offset := 60
 
+  winHeight := A_GuiHeight
+  ; msgbox, % A_GuiHeight - gui_offset
+
   ; Otherwise, the window has been resized or maximized. Resize the controls to match.
   GuiControl, Move, MyTreeView, % "H" . (A_GuiHeight - gui_offset) . " W" . TreeViewWidth ; -30 for StatusBar and margins.
 	
-	GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - gui_offset ) . " W" . (A_GuiWidth - TreeViewWidth - 10) ; width = total - treeview - (3 X 5) margins.
-  ; GuiControl, Move, MyListBox, % "X" . LVX . " H" . (A_GuiHeight - 30) . " W" . (A_GuiWidth - TreeViewWidth - 15) ; width = total - treeview - (3 X 5) margins.
-	
+  ; 0x100 = Include 0x100 in Options to turn on the LBS_NOINTEGRALHEIGHT style. This forces the ListBox to be exactly the height specified rather than a height that prevents a partial row from appearing at the bottom. This option also prevents the ListBox from shrinking when its font is changed
+	GuiControl, Move, MyListBox, % 0x100 "X" . LVX . " H" . (A_GuiHeight - gui_offset ) . " W" . (A_GuiWidth - TreeViewWidth - 10) ; width = total - treeview - (2 X 5) margins.
 	return
   }
     ;----------------------------------------------------------------
@@ -2234,13 +2249,20 @@ loadListbox(routineName) {
 		line_number ++
 	}
 	
+  GuiControlGet, MyTreeView, Pos  ; get treeview height and use it to the listbox.
+  currenttH := MyTreeViewH
+  ; if (MyTreeViewH != winHeight - 60)
+  ;   Msgbox, % MyTreeViewH . "---" . winHeight
+
+  ; msgbox, %currenttH%
+  ; msgbox, %winHeight% . "---" . %MyTreeViewH%
+
 	updateStatusBar(SelectedItemText)
 	GuiControl, -Redraw, MyListBox
 	GuiControl,,MyListBox, |
 	GuiControl,,MyListBox, %sourceCode%
-    ; msgbox, %  gui_height . "`n" . gui_offset
-	GuiControl, Move, MyListBox, % "H" . (gui_height - gui_offset +5 ) ; width = total - treeview - (3 X 5) margins.
 	GuiControl, +Redraw, MyListBox
+	GuiControl, Move, MyListBox, % "H" . (winHeight - 60)
   }
     ;-------------------------------------------------------
     ; read cbtreef5.txt file and populate routines array
