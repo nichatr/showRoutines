@@ -51,29 +51,29 @@
       var setting = {
         data: {
           key: {
-            title: 't'
+            title: 't',
           },
           simpleData: {
-            enable: true
-          }
+            enable: true,
+          },
         },
         view: {
           showIcon: false, // set showIconForTree if you need icon for nodes with children
           expandSpeed: '', // no delay in expand/collapse
-          addHoverDom: addHoverDom,
-          removeHoverDom: removeHoverDom,
-          selectedMulti: false
+          // addHoverDom: addHoverDom,
+          // removeHoverDom: removeHoverDom,
+          selectedMulti: false,
         },
-        edit: {
-          enable: true,
-          editNameSelectAll: true,
-          showRemoveBtn: showRemoveBtn,
-          showRenameBtn: showRenameBtn
-        },
+        // edit: {
+        //   enable: true,
+        //   editNameSelectAll: true,
+        //   showRemoveBtn: showRemoveBtn,
+        //   showRenameBtn: showRenameBtn
+        // },
         callback: {
-          beforeRemove: beforeRemove,
-          beforeRename: beforeRename
-        }
+          // beforeRemove: beforeRemove,
+          // beforeRename: beforeRename
+        },
       };
 
       var zNodes = [];
@@ -81,6 +81,9 @@
       var log,
         className = 'dark';
 
+      function myOnClick(event, treeId, treeNode) {
+        alert(treeNode.tId + ', ' + treeNode.name);
+      }
       function beforeRemove(treeId, treeNode) {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         zTree.selectNode(treeNode);
@@ -89,7 +92,7 @@
 
       function beforeRename(treeId, treeNode, newName, isCancel) {
         if (newName.length == 0) {
-          setTimeout(function() {
+          setTimeout(function () {
             var zTree = $.fn.zTree.getZTreeObj('treeDemo');
             zTree.cancelEditName();
             alert('Node name can not be empty.');
@@ -120,12 +123,12 @@
         sObj.after(addStr);
         var btn = $('#addBtn_' + treeNode.tId);
         if (btn)
-          btn.bind('click', function() {
+          btn.bind('click', function () {
             var zTree = $.fn.zTree.getZTreeObj('treeDemo');
             zTree.addNodes(treeNode, {
               id: 100 + newCount,
               pId: treeNode.id,
-              name: 'new node' + newCount++
+              name: 'new node' + newCount++,
             });
             return false;
           });
@@ -137,7 +140,7 @@
           .remove();
       }
 
-      $(document).ready(function() {
+      $(document).ready(function () {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
         $('#downloadBtn').bind('click', downloadAll);
         $('#expandAllBtn').bind('click', expandAll);
@@ -229,9 +232,7 @@
       <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
         <div class="navbar-brand">
           <span class="badge">
-            <h5>
-              TITLE
-            </h5>
+            <h5>TITLE</h5>
           </span>
         </div>
 
@@ -279,8 +280,8 @@
       </nav>
 
       <div class="card">
-        <div class="card-body" style="background-color:#e6eeff">
-          <div class="zTreeDemoBackground ">
+        <div class="card-body" style="background-color: #e6eeff">
+          <div class="zTreeDemoBackground">
             <ul id="treeDemo" class="ztree"></ul>
           </div>
         </div>

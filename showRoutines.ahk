@@ -1644,7 +1644,8 @@ processRoutine(currRoutine, parentID=0, parentName="") {
   
   currentLevel ++
   currThread.push(currentName)  ; add new routine to this thread.
-	itemId := addToTreeview(currentName, currentLevel, parentID, parentName)
+	itemId := addToTreeview(currRoutine, currentLevel, parentID, parentName)
+	; itemId := addToTreeview(currentName, currentLevel, parentID, parentName)
 	
 	Loop, % currRoutine.calls.MaxIndex() {
 		
@@ -1662,16 +1663,17 @@ processRoutine(currRoutine, parentID=0, parentName="") {
     ;---------------------------------------
     ; add a node to treeview
     ;---------------------------------------
-addToTreeview(routineName, currentLevel, parentId, parentName) {
-	currentId := TV_add(routineName, parentId, "Expand")
+addToTreeview(currRoutine, currentLevel, parentId, parentName) {
+	currentId := TV_add(currRoutine.routineName, parentId, "Expand")
 	
     ; save routine level for later tree traversal.
 	levels_LastIndex += 1
   itemLevels[levels_LastIndex, 1] := currentId    ; current node's TV id
   itemLevels[levels_LastIndex, 2] := currentLevel ; current node's level
-  itemLevels[levels_LastIndex, 3] := routineName  ; current node's TV text
+  itemLevels[levels_LastIndex, 3] := currRoutine.routineName  ; current node's TV text
   itemLevels[levels_LastIndex, 4] := parentId     ; parent node's TV id
   itemLevels[levels_LastIndex, 5] := parentName
+  itemLevels[levels_LastIndex, 6] := "" ; used only in export to html2 (flowchart)
 
   followsSibling := false
   parentIndex := searchItemId(parentId)
@@ -1680,12 +1682,14 @@ addToTreeview(routineName, currentLevel, parentId, parentName) {
     callsIndex := searchRoutine(parentName)
     if (callsIndex > 0) {
       Loop, % allRoutines[callsIndex].calls.MaxIndex() - 1 {
-        if (allRoutines[callsIndex].calls[A_Index] = routineName)
+        if (allRoutines[callsIndex].calls[A_Index] = currRoutine.routineName)
           followsSibling := true
       }
     }
   }
   itemLevels[levels_LastIndex, 7] := followsSibling  ; if it has a sibling after itself.
+  itemLevels[levels_LastIndex, 8] := currRoutine.startStmt  ; routine starting stmt
+  itemLevels[levels_LastIndex, 9] := currRoutine.endStmt  ; routine ending stmt
 	
 	return currentId
   }
@@ -1788,6 +1792,8 @@ exportNodesAsHTML1(expandAll, index1, index2) {
       outputRoutineName := routineName
 
     newNode.name := outputRoutineName
+    newNode.start := itemLevels[currIndex, 8]
+    newNode.end := itemLevels[currIndex, 9]
 
     nodesArray.push(newNode)
     currIndex ++
@@ -2218,8 +2224,10 @@ findRoutineFirstStatement(routineName) {
 	if (routineName <> "") {
 		calledId := searchRoutine(routineName)
 		if (calledId > 0) {
-			statements[1] := substr(allRoutines[calledId].startStmt, 1, 4)
-			statements[2] := substr(allRoutines[calledId].endStmt, 1, 4)
+			statements[1] := allRoutines[calledId].startStmt
+			statements[2] := allRoutines[calledId].endStmt
+			; statements[1] := substr(allRoutines[calledId].startStmt, 1, 4)
+			; statements[2] := substr(allRoutines[calledId].endStmt, 1, 4)
 		}
 	}
 	
@@ -2236,8 +2244,10 @@ loadListbox(routineName) {
 	
 	calledId := searchRoutine(routineName)
 	if (calledId > 0) {
-		from_line_number := substr(allRoutines[calledId].startStmt, 1, 4)
-		to_line_number := substr(allRoutines[calledId].endStmt, 1, 4)
+		from_line_number := allRoutines[calledId].startStmt
+		to_line_number := allRoutines[calledId].endStmt
+		; from_line_number := substr(allRoutines[calledId].startStmt, 1, 4)
+		; to_line_number := substr(allRoutines[calledId].endStmt, 1, 4)
 	} else {
 		from_line_number := 3103
 		to_line_number := 3117
@@ -2414,11 +2424,11 @@ saveRoutines(filename, header, delete) {
 
   ; return
   row := "`n`t`t`t itemLevels[]"
-  row .= "`n`nseq - node id - level - routine - parent id - parent name - has after sibling`n"
-  row .= "---------------------------------------------------------------------------------`n"
+  row .= "`n`nseq -   node id -  level - routine              -   parent id - parent name         - has sibling - start stmt - end stmt`n"
+  row .= "-----------------------------------------------------------------------------------------------------------------------------`n"
 
   Loop, % itemLevels.MaxIndex() {
-    row .= A_Index . " : " itemLevels[A_Index, 1] . " - " . itemLevels[A_Index, 2] . " - " . itemLevels[A_Index,3] . " - " . itemLevels[A_Index,4] . " - " . itemLevels[A_Index,5] . " - " . itemLevels[A_Index,7] . "`n"
+    row .= Format("{:3}", A_Index) . " : " . Format("{:10}", itemLevels[A_Index, 1]) . " - " . Format("{:5}", itemLevels[A_Index, 2]) . " - " . Format("{:-20}", itemLevels[A_Index, 3]) . " - " . Format("{:10}", itemLevels[A_Index, 4]) . " - " . Format("{:-20}", itemLevels[A_Index, 5]) . " - " . Format("{:5}", itemLevels[A_Index, 7]) . " - " . Format("{:10}", itemLevels[A_Index, 8]) . " - " . Format("{:10}", itemLevels[A_Index, 9]) . "`n"
   }
     FileAppend, %row%, %filename%
   } 
