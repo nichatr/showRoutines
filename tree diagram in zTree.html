@@ -42,12 +42,16 @@
     ></script>
 
     <script src="https://cdn.jsdelivr.net/npm/ztree@3.5.24/js/jquery.ztree.all.min.js"></script>
+    <link href="prism.css" rel="stylesheet" />
 
     <!-- <script type="text/javascript" src="../zTree/js/jquery.ztree.core.min.js"></script>
-  <script type="text/javascript" src="../zTree/js/jquery.ztree.excheck.min.js"></script>
-  <script type="text/javascript" src="../zTree/js/jquery.ztree.exedit.min.js"></script> -->
+    <script type="text/javascript" src="../zTree/js/jquery.ztree.excheck.min.js"></script>
+    <script type="text/javascript" src="../zTree/js/jquery.ztree.exedit.min.js"></script> -->
 
     <script type="text/javascript">
+      var zNodes = [];
+      var code = [];
+
       var setting = {
         data: {
           key: {
@@ -75,8 +79,6 @@
           // beforeRename: beforeRename
         },
       };
-
-      var zNodes = [];
 
       var log,
         className = 'dark';
@@ -142,6 +144,7 @@
 
       $(document).ready(function () {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
+        $("#codeID").html(code);
         $('#downloadBtn').bind('click', downloadAll);
         $('#expandAllBtn').bind('click', expandAll);
         $('#collapseAllBtn').bind('click', collapseAll);
@@ -286,6 +289,12 @@
           </div>
         </div>
       </div>
+      <div class="card">
+        <div class="card-body" style="background-color: #e6eeff">
+          <div class="code" id="codeID">
+            <p>this is it</p>
+        </div>
+      </div>
     </div>
 
     <script
@@ -299,5 +308,7 @@
       integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6"
       crossorigin="anonymous"
     ></script>
+
+    <script src="prism.js"></script>
   </body>
 </html>
