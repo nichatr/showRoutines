@@ -370,20 +370,20 @@ saveExportedString(exportedString) {
       return
     }
 
-    ; convert ahk array of objects into html string.
+    ; convert ahk array of objects into one string, each item separated by \r.
     Loop, % allCode.MaxIndex() {
-      stringCode .= allCode[A_index]"`r"
+      stringCode .= RTrim(allCode[A_index])"`r"  ; `n adds another <br> --> 2 linefeeds!
     }
-    Transform, stringCode, HTML, %stringCode%
-    stringCode := "<pre><code class=""language-cobol"">" . stringCode
+    Transform, stringCode, HTML, %stringCode% ; convert into html string
+    ; stringCode := "<pre><code class=""language-javascript"">`r" . stringCode
+    stringCode := "<pre><code class=""language-cobol"">`r" . stringCode
     stringCode .= "</code></pre>"
-    stringifiedCode .= JSON.Dump(stringCode)
 
     ; replace dummy strings with actual data.
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
-    OutputVar := RegExReplace(OutputVar, "var code = \[\]", "var code = " . stringifiedCode)
+    OutputVar := RegExReplace(OutputVar, "here goes the code", stringCode)
     extension := "html"
   }
 

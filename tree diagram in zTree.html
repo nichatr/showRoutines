@@ -4,6 +4,7 @@
     <title>TITLE</title>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
 
+    <link href="..\prism.css" rel="stylesheet" />
     <link
       href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css"
       rel="stylesheet"
@@ -42,7 +43,6 @@
     ></script>
 
     <script src="https://cdn.jsdelivr.net/npm/ztree@3.5.24/js/jquery.ztree.all.min.js"></script>
-    <link href="prism.css" rel="stylesheet" />
 
     <!-- <script type="text/javascript" src="../zTree/js/jquery.ztree.core.min.js"></script>
     <script type="text/javascript" src="../zTree/js/jquery.ztree.excheck.min.js"></script>
@@ -50,7 +50,6 @@
 
     <script type="text/javascript">
       var zNodes = [];
-      var code = [];
 
       var setting = {
         data: {
@@ -144,7 +143,7 @@
 
       $(document).ready(function () {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
-        $("#codeID").html(code);
+        // $("#codeID").html(code);
         $('#downloadBtn').bind('click', downloadAll);
         $('#expandAllBtn').bind('click', expandAll);
         $('#collapseAllBtn').bind('click', collapseAll);
@@ -292,7 +291,7 @@
       <div class="card">
         <div class="card-body" style="background-color: #e6eeff">
           <div class="code" id="codeID">
-            <p>this is it</p>
+            here goes the code
         </div>
       </div>
     </div>
@@ -309,6 +308,6 @@
       crossorigin="anonymous"
     ></script>
 
-    <script src="prism.js"></script>
+    <script src="..\prism.js"></script>
   </body>
 </html>
