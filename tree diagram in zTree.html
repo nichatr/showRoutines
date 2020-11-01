@@ -50,6 +50,7 @@
 
     <script type="text/javascript">
       var zNodes = [];
+      var myCode = ``;
 
       var setting = {
         data: {
@@ -75,16 +76,33 @@
         // },
         callback: {
           // beforeRemove: beforeRemove,
-          // beforeRename: beforeRename
+          // beforeRename: beforeRename,
+          onClick: myOnClick,
         },
       };
 
       var log,
         className = 'dark';
 
+      var selectedCode = myCode;
+
       function myOnClick(event, treeId, treeNode) {
-        alert(treeNode.tId + ', ' + treeNode.name);
+        // search treeNode in array of nodes.
+        const index = zNodes.findIndex((item) => item.name === treeNode.name);
+        const startStmt = parseInt(zNodes[index].start);
+        const endStmt = parseInt(zNodes[index].end);
+        selectedCode = '';
+        myCode.split(/^/m).reduce((a, c, i) => {
+          if (i >= startStmt - 1 && i <= endStmt)
+            selectedCode = selectedCode + c;
+        });
+
+        code = Prism.highlight(selectedCode, Prism.languages.cobol, 'cobol');
+        $('#myCode').html(code);
+
+        // alert(treeNode.tId + ", " + index + ", " + treeNode.name + ", " + zNodes[index].start);
       }
+
       function beforeRemove(treeId, treeNode) {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         zTree.selectNode(treeNode);
@@ -143,7 +161,14 @@
 
       $(document).ready(function () {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
-        // $("#codeID").html(code);
+
+        const code = Prism.highlight(
+          selectedCode,
+          Prism.languages.cobol,
+          'cobol'
+        );
+        $('#myCode').html(code);
+
         $('#downloadBtn').bind('click', downloadAll);
         $('#expandAllBtn').bind('click', expandAll);
         $('#collapseAllBtn').bind('click', collapseAll);
@@ -229,72 +254,81 @@
     </style>
   </head>
 
-  <body>
-    <div class="container">
-      <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
-        <div class="navbar-brand">
-          <span class="badge">
-            <h5>TITLE</h5>
-          </span>
-        </div>
+  <body class="line-numbers">
+    <!-- <div class="container"> -->
+    <nav class="navbar sticky-top navbar-expand-lg navbar-light bg-light">
+      <div class="navbar-brand">
+        <span class="badge">
+          <h5>TITLE</h5>
+        </span>
+      </div>
 
-        <button
-          class="navbar-toggler"
-          type="button"
-          data-toggle="collapse"
-          data-target="#navbarSupportedContent"
-          aria-controls="navbarSupportedContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span class="navbar-toggler-icon"></span>
-        </button>
+      <button
+        class="navbar-toggler"
+        type="button"
+        data-toggle="collapse"
+        data-target="#navbarSupportedContent"
+        aria-controls="navbarSupportedContent"
+        aria-expanded="false"
+        aria-label="Toggle navigation"
+      >
+        <span class="navbar-toggler-icon"></span>
+      </button>
 
-        <div class="collapse navbar-collapse" id="navbarSupportedContent">
-          <ul class="navbar-nav ml-auto">
-            <li class="nav-item">
-              <button id="expandAllBtn" class="btn btn-primary btn-sm">
-                Expand all
-              </button>
-            </li>
-            <li class="nav-item">
-              <button id="collapseAllBtn" class="btn btn-primary btn-sm">
-                Collapse all
-              </button>
-            </li>
-            <li class="nav-item">
-              <button id="expandLevelBtn" class="btn btn-secondary btn-sm">
-                Expand level
-              </button>
-            </li>
-            <li class="nav-item">
-              <button id="collapseLevelBtn" class="btn btn-secondary btn-sm">
-                Collapse level
-              </button>
-            </li>
-            <li class="nav-item">
-              <button id="downloadBtn" class="btn btn-success btn-sm">
-                Save
-              </button>
-            </li>
-          </ul>
-        </div>
-      </nav>
+      <div class="collapse navbar-collapse" id="navbarSupportedContent">
+        <ul class="navbar-nav ml-auto">
+          <li class="nav-item">
+            <button id="expandAllBtn" class="btn btn-primary btn-sm">
+              Expand all
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="collapseAllBtn" class="btn btn-primary btn-sm">
+              Collapse all
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="expandLevelBtn" class="btn btn-secondary btn-sm">
+              Expand level
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="collapseLevelBtn" class="btn btn-secondary btn-sm">
+              Collapse level
+            </button>
+          </li>
+          <li class="nav-item">
+            <button id="downloadBtn" class="btn btn-success btn-sm">
+              Save
+            </button>
+          </li>
+        </ul>
+      </div>
+    </nav>
 
-      <div class="card">
-        <div class="card-body" style="background-color: #e6eeff">
-          <div class="zTreeDemoBackground">
-            <ul id="treeDemo" class="ztree"></ul>
+    <div class="row">
+      <div class="col-sm-4">
+        <div class="card">
+          <div class="card-body" style="background-color: #e6eeff">
+            <div class="zTreeDemoBackground">
+              <ul id="treeDemo" class="ztree"></ul>
+            </div>
           </div>
         </div>
       </div>
-      <div class="card">
-        <div class="card-body" style="background-color: #e6eeff">
-          <div class="code" id="codeID">
-            here goes the code
+
+      <div class="col-sm-8">
+        <div class="card">
+          <div class="card-body" >
+            <div class="code">
+              <pre><code class="language-cobol" id="myCode">
+
+              </code></pre>
+          </div>
         </div>
       </div>
-    </div>
+    <!-- </div> -->
+    <!-- </div> -->
 
     <script
       src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js"

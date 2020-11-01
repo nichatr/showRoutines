@@ -374,16 +374,18 @@ saveExportedString(exportedString) {
     Loop, % allCode.MaxIndex() {
       stringCode .= RTrim(allCode[A_index])"`r"  ; `n adds another <br> --> 2 linefeeds!
     }
-    Transform, stringCode, HTML, %stringCode% ; convert into html string
+    ; transformation will be done by Prism.
+    ; Transform, stringCode, HTML, %stringCode% ; convert into html string
+
     ; stringCode := "<pre><code class=""language-javascript"">`r" . stringCode
-    stringCode := "<pre><code class=""language-cobol"">`r" . stringCode
-    stringCode .= "</code></pre>"
+    ; stringCode := "<pre><code class=""language-cobol"">`r" . stringCode
+    ; stringCode .= "</code></pre>"
 
     ; replace dummy strings with actual data.
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
-    OutputVar := RegExReplace(OutputVar, "here goes the code", stringCode)
+    OutputVar := RegExReplace(OutputVar, "var myCode = ````", "var myCode = ``" . stringCode . "``")
     extension := "html"
   }
 
