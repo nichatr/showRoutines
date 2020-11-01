@@ -25,14 +25,10 @@
       crossorigin="anonymous"
     />
     <style>
-      .ztree li a input.rename {
-        height: 14px;
-        width: 50em;
-        padding: 0;
-        margin: 0;
-        font-size: 12px;
-        border: 1px #7ec4cc solid;
-        *border: 0px;
+      .ztree li a {
+        height: 1.5em;
+        font-size: 1.3em;
+        /* font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace; */
       }
     </style>
 
@@ -62,6 +58,7 @@
           },
         },
         view: {
+          // fontCss: getFont,
           showIcon: false, // set showIconForTree if you need icon for nodes with children
           expandSpeed: '', // no delay in expand/collapse
           // addHoverDom: addHoverDom,
@@ -85,6 +82,10 @@
         className = 'dark';
 
       var selectedCode = myCode;
+      
+      function getFont(treeId, node) {
+			  return {'font-size': '1.3em', 'font-family':'Consolas, Monaco, monospace' };
+		  }
 
       function myOnClick(event, treeId, treeNode) {
         // search treeNode in array of nodes.
@@ -162,12 +163,14 @@
       $(document).ready(function () {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
 
+        // initially the selected code is all source code.
         const code = Prism.highlight(
           selectedCode,
           Prism.languages.cobol,
           'cobol'
         );
         $('#myCode').html(code);
+        resizePanels()
 
         $('#downloadBtn').bind('click', downloadAll);
         $('#expandAllBtn').bind('click', expandAll);
@@ -175,6 +178,15 @@
         $('#expandLevelBtn').bind('click', expandLevel);
         $('#collapseLevelBtn').bind('click', collapseLevel);
       });
+
+      function resizePanels() {
+        // var width = window.innerWidth - 50;
+        var height = window.innerHeight - 130;
+
+        $(".zTreeDemoBackground").css("max-height",`${height}px`);
+        $(".code").css("max-height",`${height}px`);
+      }
+
 
       function downloadAll() {
         var xx = document.querySelector('html').innerHTML;
@@ -309,8 +321,8 @@
     <div class="row">
       <div class="col-sm-4">
         <div class="card">
-          <div class="card-body" style="background-color: #e6eeff">
-            <div class="zTreeDemoBackground">
+          <div class="card-body">
+            <div class="zTreeDemoBackground overflow-auto" style="max-height: 500px; background-color: #f5f2f0">
               <ul id="treeDemo" class="ztree"></ul>
             </div>
           </div>
@@ -318,9 +330,9 @@
       </div>
 
       <div class="col-sm-8">
-        <div class="card">
+        <div class="card ">
           <div class="card-body" >
-            <div class="code">
+            <div class="code overflow-auto" style="max-height: 1000px">
               <pre><code class="language-cobol" id="myCode">
 
               </code></pre>
