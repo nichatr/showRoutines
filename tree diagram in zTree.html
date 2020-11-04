@@ -63,7 +63,7 @@
           expandSpeed: '', // no delay in expand/collapse
           // addHoverDom: addHoverDom,
           // removeHoverDom: removeHoverDom,
-          selectedMulti: false,
+          // selectedMulti: true,
         },
         // edit: {
         //   enable: true,
@@ -87,12 +87,19 @@
 			  return {'font-size': '1.3em', 'font-family':'Consolas, Monaco, monospace' };
 		  }
 
-      function myOnClick(event, treeId, treeNode) {
+      /**---------------------------------------------------------------------
+       * click event handler:
+       *  for each selected node: load corresponding code segment.
+       *--------------------------------------------------------------------- */
+      function myOnClick(event, treeId, treeNode, clickFlag) {
+        // alert("event="+event + ", " +treeNode.tId + ", " + treeNode.name + ", " + clickFlag);
         // search treeNode in array of nodes.
         const index = zNodes.findIndex((item) => item.name === treeNode.name);
         const startStmt = parseInt(zNodes[index].start);
         const endStmt = parseInt(zNodes[index].end);
         selectedCode = '';
+        // count lines until the previous from the start statement (to take into account a possible comment line.)
+        // then add rest lines up to end statement to the code variable.
         myCode.split(/^/m).reduce((a, c, i) => {
           if (i >= startStmt - 1 && i <= endStmt)
             selectedCode = selectedCode + c;
@@ -103,13 +110,17 @@
 
         // alert(treeNode.tId + ", " + index + ", " + treeNode.name + ", " + zNodes[index].start);
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function beforeRemove(treeId, treeNode) {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         zTree.selectNode(treeNode);
         return confirm("Confirm delete node '" + treeNode.name + "' it?");
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function beforeRename(treeId, treeNode, newName, isCancel) {
         if (newName.length == 0) {
           setTimeout(function () {
@@ -121,45 +132,53 @@
         }
         return true;
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function showRemoveBtn(treeId, treeNode) {
         return !treeNode.isFirstNode;
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function showRenameBtn(treeId, treeNode) {
         return !treeNode.isLastNode;
       }
 
-      var newCount = 1;
+      // var newCount = 1;
 
-      function addHoverDom(treeId, treeNode) {
-        var sObj = $('#' + treeNode.tId + '_span');
-        if (treeNode.editNameFlag || $('#addBtn_' + treeNode.tId).length > 0)
-          return;
-        var addStr =
-          "<span class='button add' id='addBtn_" +
-          treeNode.tId +
-          "' title='add node' onfocus='this.blur();'></span>";
-        sObj.after(addStr);
-        var btn = $('#addBtn_' + treeNode.tId);
-        if (btn)
-          btn.bind('click', function () {
-            var zTree = $.fn.zTree.getZTreeObj('treeDemo');
-            zTree.addNodes(treeNode, {
-              id: 100 + newCount,
-              pId: treeNode.id,
-              name: 'new node' + newCount++,
-            });
-            return false;
-          });
-      }
-
+      // function addHoverDom(treeId, treeNode) {
+      //   var sObj = $('#' + treeNode.tId + '_span');
+      //   if (treeNode.editNameFlag || $('#addBtn_' + treeNode.tId).length > 0)
+      //     return;
+      //   var addStr =
+      //     "<span class='button add' id='addBtn_" +
+      //     treeNode.tId +
+      //     "' title='add node' onfocus='this.blur();'></span>";
+      //   sObj.after(addStr);
+      //   var btn = $('#addBtn_' + treeNode.tId);
+      //   if (btn)
+      //     btn.bind('click', function () {
+      //       var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+      //       zTree.addNodes(treeNode, {
+      //         id: 100 + newCount,
+      //         pId: treeNode.id,
+      //         name: 'new node' + newCount++,
+      //       });
+      //       return false;
+      //     });
+      // }
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function removeHoverDom(treeId, treeNode) {
         $('#addBtn_' + treeNode.tId)
           .unbind()
           .remove();
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       $(document).ready(function () {
         $.fn.zTree.init($('#treeDemo'), setting, zNodes);
 
@@ -178,7 +197,9 @@
         $('#expandLevelBtn').bind('click', expandLevel);
         $('#collapseLevelBtn').bind('click', collapseLevel);
       });
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function resizePanels() {
         // var width = window.innerWidth - 50;
         var height = window.innerHeight - 130;
@@ -186,13 +207,16 @@
         $(".zTreeDemoBackground").css("max-height",`${height}px`);
         $(".code").css("max-height",`${height}px`);
       }
-
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function downloadAll() {
         var xx = document.querySelector('html').innerHTML;
         download('saved.html', xx);
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function download(filename, text) {
         var element = document.createElement('a');
         element.setAttribute(
@@ -208,17 +232,23 @@
 
         document.body.removeChild(element);
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function expandAll() {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         zTree.expandAll(true);
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function collapseAll() {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         zTree.expandAll(false);
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function expandLevel() {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         var sNodes = zTree.getSelectedNodes();
@@ -232,7 +262,9 @@
           }
         }
       }
-
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
       function collapseLevel() {
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         var sNodes = zTree.getSelectedNodes();

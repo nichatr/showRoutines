@@ -36,7 +36,10 @@
   ; used for building the executable.
   FileInstall, tree diagram in zTree.html, tree diagram in zTree.html 
   FileInstall, tree diagram in CSS.html, tree diagram in CSS.html
+  FileInstall, prism.js, prism.js
+  FileInstall, prism.css, prism.css
   FileInstall, showRoutines.ini, showRoutines.ini
+  FileInstall, showRoutines.bat, showRoutines.bat
 
   #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
   #Include %A_ScriptDir%\XML\xml.ahk  ; for building html (xml)
@@ -369,22 +372,31 @@ saveExportedString(exportedString) {
       MsgBox, Template file not found (\tree diagram in zTree.html)
       return
     }
-
-    ; convert ahk array of objects into one string, each item separated by \r.
+    /*--------------------------------------------------------------------------- 
+     convert ahk array of objects into one string, each item separated by \r.
+     but first, for each statement, remove:
+     example line: [ 0881.00       *                                                  ]
+     example line: [ 0882.00            MOVE LSAA-BUPAREC           TO BUPA-DATA-AREA.]
+       -the line numbers at the begining
+       -the first space, the next 7 spaces.
+       -the date at the end.
+       -the spaces from the right only.
+    -----------------------------------------------------------------------------
+    */
     Loop, % allCode.MaxIndex() {
-      stringCode .= RTrim(allCode[A_index])"`r"  ; `n adds another <br> --> 2 linefeeds!
+      line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{6}","") ; remove (1 char) + (9999.99) + (6 chars) at BOL
+      line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
+      stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
     }
     ; transformation will be done by Prism.
     ; Transform, stringCode, HTML, %stringCode% ; convert into html string
-
-    ; stringCode := "<pre><code class=""language-javascript"">`r" . stringCode
-    ; stringCode := "<pre><code class=""language-cobol"">`r" . stringCode
-    ; stringCode .= "</code></pre>"
+    ; the <pre><code> tags are inside the template's body already. The addition of the code is done dynamically with $().html()
 
     ; replace dummy strings with actual data.
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
+    ; enclose the code in backticks for multiline functionality.
     OutputVar := RegExReplace(OutputVar, "var myCode = ````", "var myCode = ``" . stringCode . "``")
     extension := "html"
   }
@@ -873,7 +885,12 @@ setup() {
 	
 	Gui, 1:Menu, MyMenuBar
 	Gui, 1:Add, Button, gExit, Exit This Example
-	; Menu, Tray, Icon, icons\shell32_16806.ico                      ;shell32.dll, 85
+  
+  ; next icon is used only in the uncompiled script.
+  ;@Ahk2Exe-IgnoreBegin
+  if (!A_IsCompiled)
+	  Menu, Tray, Icon, %A_ScriptDir%\shell32_16806.ico ;shell32.dll, 85
+  ;@Ahk2Exe-IgnoreEnd
 	return
   }
   ;---------------------------------------
