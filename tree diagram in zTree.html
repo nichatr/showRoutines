@@ -91,24 +91,34 @@
        * click event handler:
        *  for each selected node: load corresponding code segment.
        *--------------------------------------------------------------------- */
-      function myOnClick(event, treeId, treeNode, clickFlag) {
-        // alert("event="+event + ", " +treeNode.tId + ", " + treeNode.name + ", " + clickFlag);
-        // search treeNode in array of nodes.
-        const index = zNodes.findIndex((item) => item.name === treeNode.name);
-        const startStmt = parseInt(zNodes[index].start);
-        const endStmt = parseInt(zNodes[index].end);
-        selectedCode = '';
-        // count lines until the previous from the start statement (to take into account a possible comment line.)
-        // then add rest lines up to end statement to the code variable.
-        myCode.split(/^/m).reduce((a, c, i) => {
-          if (i >= startStmt - 1 && i <= endStmt)
-            selectedCode = selectedCode + c;
-        });
+      function myOnClick(event, treeId, treeNode) {
+        
+        var zTree = $.fn.zTree.getZTreeObj('treeDemo');
+        var sNodes = zTree.getSelectedNodes();
+        
+        // sNodes is arrry of zTree nodes.
+        if (sNodes.length > 0) {
+          selectedCode = '';
 
+          sNodes.forEach((item)=>{
+            const startStmt = parseInt(item.start);
+            const endStmt = parseInt(item.end);
+            // count lines until the previous from the start statement (to take into account a possible comment line.)
+            // then add rest lines up to end statement to the code variable.
+            myCode.split(/^/m).reduce((a, c, i) => {
+            if (i >= startStmt - 1 && i <= endStmt)
+              selectedCode = selectedCode + c;
+            });
+          })
+        } else {
+          selectedCode = myCode;
+        }
+
+        // highlight the selected code.
         code = Prism.highlight(selectedCode, Prism.languages.cobol, 'cobol');
-        $('#myCode').html(code);
 
-        // alert(treeNode.tId + ", " + index + ", " + treeNode.name + ", " + zNodes[index].start);
+        // add code in code panel.
+        $('#myCode').html(code);
       }
       /**---------------------------------------------------------------------
        * 
