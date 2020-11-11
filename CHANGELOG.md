@@ -10,7 +10,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - change new html template to include bootstrap/container/sticky top bar (similar to old template).
 - make the same changes to showPrograms!
 
-## 2020-07-28
+## 2020-11-08
+
+- DONE: add sql language
+- TODO: add rpg(le) language
+- TODO: add cl(le) language
+- TODO: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE%
+
+## before 2020-11-08
+
+- added second panel in html template to display the code.
+- added cobol code highlighting (prism.js) --> see I:\web-ssd\apps\prism\prism-master.
 
 ### Changed
 

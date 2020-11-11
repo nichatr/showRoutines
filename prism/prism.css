@@ -10,13 +10,13 @@ pre[class*='language-'] {
   background: none;
   text-shadow: 0 1px white;
   font-family: Consolas, Monaco, 'Andale Mono', 'Ubuntu Mono', monospace;
-  font-size: 1em; /* 1em; */
+  font-size: 1em;
   text-align: left;
   white-space: pre;
   word-spacing: normal;
   word-break: normal;
   word-wrap: normal;
-  line-height: 1.3; /* 1.5; */
+  line-height: 1.3;
 
   -moz-tab-size: 4;
   -o-tab-size: 4;
@@ -26,11 +26,6 @@ pre[class*='language-'] {
   -moz-hyphens: none;
   -ms-hyphens: none;
   hyphens: none;
-}
-
-pre[class*='language-'] > code {
-  max-height: 32em;
-  overflow: auto;
 }
 
 pre[class*='language-']::-moz-selection,
@@ -78,6 +73,11 @@ pre[class*='language-'] {
 .token.comment {
   color: #008000;
 }
+
+.token.paragraphOrSection {
+  color: #0000ff;
+}
+
 /* .token.comment, */
 .token.prolog,
 .token.doctype,
@@ -85,8 +85,8 @@ pre[class*='language-'] {
   color: slategray;
 }
 
-.token.operator {
-  color: red;
+.token.punctuation {
+  color: rgb(153, 99, 99);
 }
 
 .token.namespace {
@@ -100,7 +100,7 @@ pre[class*='language-'] {
 .token.constant,
 .token.symbol,
 .token.deleted {
-  color: rgb(117, 53, 88);
+  color: #905;
 }
 
 .token.selector,
@@ -112,12 +112,12 @@ pre[class*='language-'] {
   color: #690;
 }
 
-.token.punctuation,
+.token.operator,
 .token.entity,
 .token.url,
 .language-css .token.string,
 .style .token.string {
-  color: #704b44;
+  color: #9a6e3a;
   /* This background color was intended by the author of this theme. */
   background: hsla(0, 0%, 100%, 0.5);
 }
@@ -125,9 +125,19 @@ pre[class*='language-'] {
 .token.atrule,
 .token.attr-value,
 .token.keyword {
-  color: blue;
+  color: #0000ff;
 }
 
+.token.routine,
+.token.embeddedSQL {
+  color: #dd4a68;
+  font-weight: bold;
+}
+
+.token.routineName {
+  color: #dd4a68;
+  font-weight: bold;
+}
 .token.function,
 .token.class-name {
   color: #dd4a68;
@@ -137,19 +147,14 @@ pre[class*='language-'] {
 .token.important {
   color: #e90;
 }
-
 .token.variable {
-  color: #5e0854;
-}
-.token.paragraphOrSection {
-  color: rgb(55, 92, 8);
+  color: #048cb9;
 }
 
 .token.important,
 .token.bold {
   font-weight: bold;
 }
-
 .token.italic {
   font-style: italic;
 }

@@ -47,6 +47,7 @@
   ; global declarations
   global allRoutines  ; array of class "routine"
   global allCode      ; array of source code to show
+  global language ; indicates the language: rpgle, cobol, clp.
   global currThread ; keeps all routines in the current thread in order to avoid circular dependencies
   global tmpRoutine 
   global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
@@ -354,6 +355,7 @@ exportInBatch() {
   ; save created export into file and open it.
   ;---------------------------------------------------------------------
 saveExportedString(exportedString) {
+  global
   if (exportedString = "") {
     MsgBox, Nothing to export.
     return
@@ -372,22 +374,9 @@ saveExportedString(exportedString) {
       MsgBox, Template file not found (\tree diagram in zTree.html)
       return
     }
-    /*--------------------------------------------------------------------------- 
-     convert ahk array of objects into one string, each item separated by \r.
-     but first, for each statement, remove:
-     example line: [ 0881.00       *                                                  ]
-     example line: [ 0882.00            MOVE LSAA-BUPAREC           TO BUPA-DATA-AREA.]
-       -the line numbers at the begining
-       -the first space, the next 7 spaces.
-       -the date at the end.
-       -the spaces from the right only.
-    -----------------------------------------------------------------------------
-    */
-    Loop, % allCode.MaxIndex() {
-      line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{6}","") ; remove (1 char) + (9999.99) + (6 chars) at BOL
-      line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
-      stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
-    }
+
+    stringCode := cleanCode(allCode, language)
+
     ; transformation will be done by Prism.
     ; Transform, stringCode, HTML, %stringCode% ; convert into html string
     ; the <pre><code> tags are inside the template's body already. The addition of the code is done dynamically with $().html()
@@ -398,6 +387,7 @@ saveExportedString(exportedString) {
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
     ; enclose the code in backticks for multiline functionality.
     OutputVar := RegExReplace(OutputVar, "var myCode = ````", "var myCode = ``" . stringCode . "``")
+    OutputVar := RegExReplace(OutputVar, "cobol", language)
     extension := "html"
   }
 
@@ -426,7 +416,53 @@ saveExportedString(exportedString) {
   FileAppend, %OutputVar%, %filename%
   Run, %filename%
   }
-
+  ;---------------------------------------------------------------
+  ; reamove line numbers, spaces and date from each line of code.
+  ;---------------------------------------------------------------
+cleanCode(allCode, language) {
+  /*--------------------------------------------------------------------------- 
+    convert ahk array of objects into one string, each item separated by \r.
+    but first, for each statement, remove:
+    COBOL:
+    example line: [ 0881.00       *                                                  ]
+    example line: [ 0882.00            MOVE LSAA-BUPAREC           TO BUPA-DATA-AREA.]
+      -the line numbers at the begining
+      -the first space, the next 6 spaces.
+      -the date at the end.
+      -the spaces from the right only.
+    RPG:
+    example line: [ 0187.00     C                   EXSR      R_PROC_SUBR     ]
+      -the line numbers at the begining
+      -the first space, the next 5 spaces + 1 char (H,F,D,I,C,O)
+      -the date at the end.
+      -the spaces from the right only.
+    CLP:
+      -the date at the end.
+      -the spaces from the right only.
+  -----------------------------------------------------------------------------
+  */
+  stringCode := ""
+  if (language = "rpg") {
+    Loop, % allCode.MaxIndex() {
+      line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{5}","") ; remove (1 char) + (9999.99) + (5 chars) at BOL
+      line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
+      stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
+      }
+  }
+  else if (language = "clp") {
+    line := RegExReplace(allCode[A_index], "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
+    stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
+    }
+  else {  ; otherwise it is considered as cobol (default language).
+    Loop, % allCode.MaxIndex() {
+      line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{6}","") ; remove (1 char) + (9999.99) + (6 chars) at BOL
+      line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
+      stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
+      }
+    }
+  
+  return stringCode
+  }
   ;--------------------------------------------
   ; show window with editable settings
   ;--------------------------------------------
@@ -732,7 +768,18 @@ setup() {
   if !FileExist(fullFileRoutines)
     if (!fileSelector(path, "(*.txt)"))
       ExitApp
-	
+
+  ; find the language (used in export and open with notepad++).
+	SplitPath, fullFileCode , codeFileName, codeDir, codeExtension, codeNameNoExt, codeDrive
+  if (RegExMatch(codeExtension, "i)cbl"))
+    language := "cobol"
+  else if (RegExMatch(codeExtension, "i)rpg"))
+    language := "rpg"
+  else if (RegExMatch(codeExtension, "i)cl"))
+    language := "clp"
+  else
+    language := "cobol"
+      
   ; get gui handle.
   Gui  +HwndguiHWND
   ; msgbox, % guiHWND
@@ -1054,13 +1101,6 @@ MyTreeView:
     y := Y_main
 		
     FileEncoding, CP1253 
-    SplitPath, fullFileCode , codeFileName, codeDir, codeExtension, codeNameNoExt, codeDrive
-    if (RegExMatch(codeExtension, "i)cbl"))
-      language := "cobol"
-    else if (RegExMatch(codeExtension, "i)rpg"))
-      language := "rpgle"
-    else
-      language := "cobol"
 
 		if (showOnlyRoutine == "false")
 			if (codeEditor == "notepad++") {
