@@ -1632,11 +1632,12 @@ Prism.languages.js = Prism.languages.javascript;
 Prism.languages.cobol = {
   comment: [
     {
-      pattern: /^\*.*/m,
-      greedy: true,
+      pattern: /^\*.*/m, // m = ^ and $ match the start and end of line (otherwise match the whole string!)
+      // greedy: true,
     },
   ],
 
+  routineName: /[\w\-]+(?=\s+SECTION\s*\.)/im,
   // sections
   important: /\s(?:configuration|data|declaratives|division|environment|file-control|function|function-id|i-o|i-o-control|identification|input-output|input|linkage|local-storage|output|procedure|program-id|program|screen|section|special-names|working-storage|exec|exec-sql|end-exec)(?![\w-])/i,
   keyword: [
