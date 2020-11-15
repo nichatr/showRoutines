@@ -78,7 +78,6 @@ pre[class*='language-'] {
   color: #0000ff;
 }
 
-/* .token.comment, */
 .token.prolog,
 .token.doctype,
 .token.cdata {
@@ -124,6 +123,7 @@ pre[class*='language-'] {
 
 .token.atrule,
 .token.attr-value,
+.token.compositeKeyword,
 .token.keyword {
   color: #0000ff;
 }
@@ -147,8 +147,15 @@ pre[class*='language-'] {
 .token.important {
   color: #e90;
 }
+
 .token.variable {
-  color: #048cb9;
+  color: #6e0658;
+}
+
+.token.callRoutine {
+  color: #b36b00;
+  /* color: #33ccff; */
+  font-weight: bold;
 }
 
 .token.important,
