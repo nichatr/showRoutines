@@ -10,29 +10,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - change new html template to include bootstrap/container/sticky top bar (similar to old template).
 - make the same changes to showPrograms!
 
-## 2020-11-11
-
-- TODO: fix special char "\" conversion in showRoutines.ahk (see ZWFCON2.CBLLE at the start: \notes --> notes)
 - TODO: add cl(le) language
 - TODO: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE% (the last is better).
-- TODO: add button in appbar: show all code (same as refresh-F5).
+
 - TODO: correct the from/to statements for each routine (rpg) or section (cobol):
   - new from = previous to + 1.
   - new to = same as before.
-- TODO: investigate if it is possible.
-  - in ztree when double-clicking on a node --> position to the selected routine/section in the code panel without reload.
 - TODO: cobol
+  - add the sections at the beginning: INPUT-OUTPUT|FILE|WORKING-STORAGE|LINKAGE
+  - also replace the MAIN routine with [PROCEDURE DIVISION].
+- TODO: rpg
+  - add the sections at the beginning: H|F|D|I
+  - also replace the MAIN routine with section [C].
+
+## 2020-11-15
+
+- DONE: add button in appbar: show all code (same as refresh-F5).
+- DONE: fix special char "\" conversion in showRoutines.ahk (see ZWFCON2.CBLLE at the start: \notes --> notes)
+- DONE: cobol
+  - highlight the "EXIT." if possible.
   - similar to rpg routines highlight:
     - use lookahead to highlight the section name.
     - change section highlight to red.
-    - also highlight the "EXIT." if possible.
-  - for cobol add the sections at the beginning:
-    - INPUT-OUTPUT|FILE|WORKING-STORAGE|LINKAGE
-  - also replace the MAIN routine with [PROCEDURE DIVISION].
-- TODO: rpg
-  - for rpg add the sections at the beginning:
-    - H|F|D|I
-  - also replace the MAIN routine with section [C].
+- DONE: investigate if it is possible.
+  - in ztree when double-clicking on a node --> position to the selected routine/section in the code panel without reload.
 
 ## before 2020-11-11
 

@@ -446,6 +446,8 @@ cleanCode(allCode, language) {
     Loop, % allCode.MaxIndex() {
       line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{5}","") ; remove (1 char) + (9999.99) + (5 chars) at BOL
       line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
+      line := RegExReplace(line, "\\","\\") ; replace backslash with double backslash to show correctly!
+      
       stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
       }
   }
@@ -457,6 +459,8 @@ cleanCode(allCode, language) {
     Loop, % allCode.MaxIndex() {
       line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{6}","") ; remove (1 char) + (9999.99) + (6 chars) at BOL
       line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
+      line := RegExReplace(line, "\\","\\") ; replace backslash with double backslash to show correctly!
+
       stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
       }
     }
