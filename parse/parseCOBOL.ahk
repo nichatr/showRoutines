@@ -4,7 +4,7 @@ SetWorkingDir, %A_ScriptDir%
 parsingSteps := [ "identification-division"
                 , "environment-division"
                 , "data-division"
-                , "file-section"
+                ; , "file-section"
                 , "working-storage-section"
                 , "linkage-section"
                 , "procedure-division"]
@@ -12,7 +12,7 @@ parsingSteps := [ "identification-division"
 parsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."
                 , "im)^[^\*]\s*environment\s+division\s*\."
                 , "im)^[^\*]\s*data\s+division\s*\."
-                , "im)^[^\*]\s*file\s+section\s*\."
+                ; , "im)^[^\*]\s*file\s+section\s*\."
                 , "im)^[^\*]\s*working-storage\s+section\s*\."
                 , "im)^[^\*]\s*linkage\s+section\s*\."
                 , "im)^[^\*]\s*procedure\s+division\s*"
@@ -57,7 +57,7 @@ Loop, Read, %fullFileCode%
   ;----------------------------------------
   ; if main sections (1-7) not parsed yet: parse current section.
   ;----------------------------------------
-  if (currentStep <= 7 && RegExMatch(A_LoopReadLine, parsingRegex[currentStep])) {
+  if (currentStep <= 6 && RegExMatch(A_LoopReadLine, parsingRegex[currentStep])) {
     if (currentStep > 1) {
       codeSections[currentStep - 1].endStmt := A_Index - 1
     }
@@ -66,22 +66,25 @@ Loop, Read, %fullFileCode%
     newSection.name := parsingSteps[currentStep]
     newSection.startStmt := currentStep == 1 ? 1 : (A_Index - 1)
     newSection.callingStmt := 0
-    codeSections.push(newSection)
+    
+    ; ignore [procedure division], it is only used as a marker to start processing routines.
+    if (currentStep < 6)
+      codeSections.push(newSection)
     
     currentStep ++
     Continue  ; parse next stmt
   }
 
-  if (currentStep <= 7)
+  if (currentStep <= 6)
     Continue  ; parse next stmt
   
-  ; all 7 main sections are parsed.
+  ; all 6 main sections are parsed.
   ; parse routines.
 
   ;----------------------------------------
   ; check if exists [COPY MAINB.] --> it is a Life400 batch program, so standard routines must be added.
   ;----------------------------------------
-  if (checkForMAINB && RegExMatch(A_LoopReadLine, parsingRegex[8])) {
+  if (checkForMAINB && RegExMatch(A_LoopReadLine, parsingRegex[7])) {
     checkForMAINB := False
     foundMAINB := True
     addLife400BatchRoutines(A_Index)
@@ -150,8 +153,6 @@ Loop, Read, %fullFileCode%
 }
 
 ; update the section [procedure-division] ending stmt = last code stmt.
-; codeSections[currentStep - 1].endStmt := allCode.MaxIndex()
-
 addMainSections()
 saveSection(codeSections)
 
@@ -183,10 +184,10 @@ searchCalledRoutines(routineName) {
 addMainSections() {
   global
 
-  Loop, % parsingSteps.MaxIndex() {
+  Loop, % parsingSteps.MaxIndex() - 1 { ; skip [procedure division]
     
     newSection := {}
-    newSection.name := currentRoutine
+    newSection.name := "MAIN"
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0
@@ -222,10 +223,11 @@ saveSection(codeSections) {
   
   Loop, % codeSections.MaxIndex() {
 
-    line := codeSections[A_Index].startStmt . ", " 
-            . codeSections[A_Index].endStmt . ", "
-            . codeSections[A_Index].callingStmt . ", "
-            . codeSections[A_Index].name . ", "
+    line := Format("{:05}", A_Index) . ", " 
+            . Format("{:04}", codeSections[A_Index].startStmt) . ", " 
+            . Format("{:04}",codeSections[A_Index].endStmt) . ", "
+            . Format("{:04}",codeSections[A_Index].callingStmt) . ","
+            . Format("{:-30}",codeSections[A_Index].name) . ","
             . codeSections[A_Index].calledSection
             . "`n"
     allSections .= line
