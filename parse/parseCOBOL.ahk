@@ -46,11 +46,12 @@ checkForMAINB := True ; when true check if [COPY MAINB.] exists, but after first
 currentStep := 1
 
 ; read all code one line at a time and parse.
-Loop, Read, %fullFileCode% {
+Loop, Read, %fullFileCode%
+{
   allCode.push(A_LoopReadLine)
   
-  ; if main sections parsed or it is comment don't parse this.
-  if (RegExMatch(A_LoopReadLine, "im)^\s*\*.*$"))
+  ; if main sections parsed or it is comment/spaces don't parse this.
+  if (RegExMatch(A_LoopReadLine, "im)^\s*\*.*$") || Trim(A_LoopReadLine) = "")
     Continue  ; parse next stmt
 
   ;----------------------------------------
@@ -91,8 +92,8 @@ Loop, Read, %fullFileCode% {
   ; check for routine call [PERFORM routine-name]
   ;-----------------------------------
   if (RegExMatch(A_LoopReadLine, "im)(?<=perform\s)[\-\w]+", matchedString)) {
-    StringLower, matchedString, matchedString
-    if (matchedString == "varying" || matchedString == "until")
+    StringUpper, matchedString, matchedString
+    if (matchedString == "VARYING" || matchedString == "UNTIL")
       Continue  ; parse next stmt
     
     ; found routine call, save name/stmt if not already saved.
@@ -112,12 +113,13 @@ Loop, Read, %fullFileCode% {
     currentRoutine := matchedString ; keep routine name.
     calledRoutines := []
     calledStmts := []
+    Continue  ; parse next stmt
   }
 
   ;--------------------------------
   ; check for end of routine [EXIT. or GOBACK.]
   ;--------------------------------
-  if (RegExMatch(A_LoopReadLine, "im)\s*(?:exit|goback)\s*\.")) {
+  if (RegExMatch(A_LoopReadLine, "im)\s+(?:exit|goback)\s*\.")) {
     endStmt := A_Index
     
     if (calledRoutines.MaxIndex() > 0) {  ; save current routine with all routines called.
@@ -142,6 +144,7 @@ Loop, Read, %fullFileCode% {
         
         codeSections.push(newSection)
     }
+    Continue  ; parse next stmt
   }
 
 }
