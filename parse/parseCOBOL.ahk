@@ -1,13 +1,13 @@
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 
-parsingSteps := [ "identification-division"
-                , "environment-division"
-                , "data-division"
+parsingSteps := [ "IDENTIFICATION"
+                , "ENVIRONMENT"
+                , "DATA"
                 ; , "file-section"
-                , "working-storage-section"
-                , "linkage-section"
-                , "procedure-division"]
+                , "WORKING-STORAGE"
+                , "LINKAGE"
+                , "PROCEDURE"]
 
 parsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."
                 , "im)^[^\*]\s*environment\s+division\s*\."

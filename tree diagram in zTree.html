@@ -106,10 +106,15 @@
        *--------------------------------------------------------------------- */
       function gotoRoutine(routineName) {
 
+        var myTag = $("span.routineName:contains('" + routineName + "')")
+
+        // if it is division --> try with division's name.
+        if (myTag.length == 0)
+          myTag = $("span.keyword:contains('" + routineName + "')")
+
         // first scroll to top and then scroll to requested routine.
         $("div.code").scrollTop(0);
 
-        var myTag = $("span.routineName:contains('" + routineName + "')")
         var myOffset = myTag.offset().top - 150;
         // console.log(myOffset)
         // $('#code').animate({scrollTop: myTag.offset().top},1);
@@ -133,9 +138,10 @@
             const endStmt = parseInt(item.end);
             // count lines until the previous from the start statement (to take into account a possible comment line.)
             // then add rest lines up to end statement to the code variable.
-            myCode.split(/^/m).reduce((a, c, i) => {
-            if (i >= startStmt - 1 && i <= endStmt)
-              selectedCode = selectedCode + c;
+            selectedCode = myCode.split(/^/m).reduce((acc, curr, index) => {
+            if (index >= startStmt - 1 && index <= endStmt)
+              selectedCode = acc + curr;
+              return selectedCode
             });
           })
         } else {
