@@ -86,7 +86,7 @@ mainProcess() {
   populateCode()
   loadTreeview()
   file_to_save := A_ScriptDir . "\data\allRoutines.txt"
-  saveRoutines(file_to_save, header, true)
+  ; saveRoutines(file_to_save, header, true)
   updateStatusBar()
   if (!exportInBatch)
     showGui()
@@ -417,7 +417,7 @@ saveExportedString(exportedString) {
   Run, %filename%
   }
   ;---------------------------------------------------------------
-  ; reamove line numbers, spaces and date from each line of code.
+  ; remove line numbers, spaces and date from each line of code.
   ;---------------------------------------------------------------
 cleanCode(allCode, language) {
   /*--------------------------------------------------------------------------- 
@@ -775,7 +775,7 @@ setup() {
 
   ; find the language (used in export and open with notepad++).
 	SplitPath, fullFileCode , codeFileName, codeDir, codeExtension, codeNameNoExt, codeDrive
-  if (RegExMatch(codeExtension, "i)cbl"))
+  if (RegExMatch(codeExtension, "im)cbl"))
     language := "cobol"
   else if (RegExMatch(codeExtension, "i)rpg"))
     language := "rpg"

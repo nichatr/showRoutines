@@ -13,9 +13,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TODO: add cl(le) language
 - TODO: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE% (the last is better).
 
-- TODO: correct the from/to statements for each routine (rpg) or section (cobol):
-  - new from = previous to + 1.
-  - new to = same as before.
 - TODO: cobol
   - add the sections at the beginning: INPUT-OUTPUT|FILE|WORKING-STORAGE|LINKAGE
   - also replace the MAIN routine with [PROCEDURE DIVISION].
@@ -25,6 +22,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 2020-11-15
 
+- DONE: correct the from/to statements for each routine (rpg) or section (cobol):
+  - new from = previous to + 1.
+  - new to = same as before.
 - DONE: add button in appbar: show all code (same as refresh-F5).
 - DONE: fix special char "\" conversion in showRoutines.ahk (see ZWFCON2.CBLLE at the start: \notes --> notes)
 - DONE: cobol
