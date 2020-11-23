@@ -118,55 +118,26 @@ parseCode() {
       }
       Continue  ; parse next stmt
     }
-
     ;-----------------------------------
     ; check for beginning of routine [routine-name BEGSR]
     ;-----------------------------------
     if (RegExMatch(A_LoopReadLine, "im)[\w]+(?=\s+BEGSR)", matchedString)) {
-      StringUpper, matchedString, matchedString
-      startStmt := A_Index  ; keep first stmt of current routine.
-      currentRoutine := matchedString ; keep routine name.
-      calledRoutines := []
-      calledStmts := []
+      if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR
+        processENDSR()
+        firstRoutine := False
+      }
 
-      ; mark if exists routine *INZSR to attach it to MAIN at the end.
-      if (matchedString == "*INZSR")
-        foundINZSR := True
-      
+      processBEGSR()
       Continue  ; parse next stmt
     }
-
     ;--------------------------------
     ; check for end of routine [ENDSR]
     ;--------------------------------
     if (RegExMatch(A_LoopReadLine, "im)\s(?:endsr)(?![\w-])")) {
       endStmt := A_Index
-      
-      if (calledRoutines.MaxIndex() > 0) {  ; save current routine with all routines called.
-        Loop, % calledRoutines.MaxIndex() {
-          
-          newSection := {}
-          newSection.name := currentRoutine
-          newSection.startStmt := startStmt
-          newSection.endStmt := endStmt
-          newSection.callingStmt := calledStmts[A_Index]
-          newSection.calledSection := calledRoutines[A_Index]
-          
-          codeSections.push(newSection)
-        }
-      } else {
-          newSection := {}  ; save current routine with zero calls.
-          newSection.name := currentRoutine
-          newSection.startStmt := startStmt
-          newSection.endStmt := endStmt
-          newSection.callingStmt := 0
-          newSection.calledSection := ""
-          
-          codeSections.push(newSection)
-      }
+      processENDSR()
       Continue  ; parse next stmt
     }
-
   }
 
 }
@@ -174,13 +145,44 @@ parseCode() {
   ; process beginning of routine.
   ;---------------------------------------------------------------
 processBEGSR() {
+  global
+  StringUpper, matchedString, matchedString
+  startStmt := A_Index  ; keep first stmt of current routine.
+  currentRoutine := matchedString ; keep routine name.
+  calledRoutines := []
+  calledStmts := []
 
+  ; mark if exists routine *INZSR to attach it to MAIN at the end.
+  if (matchedString == "*INZSR")
+    foundINZSR := True
 }
   ;---------------------------------------------------------------
   ; process end of routine.
   ;---------------------------------------------------------------
 processENDSR() {
-
+  global
+  if (calledRoutines.MaxIndex() > 0) {  ; save current routine with all routines called.
+    Loop, % calledRoutines.MaxIndex() {
+      
+      newSection := {}
+      newSection.name := currentRoutine
+      newSection.startStmt := startStmt
+      newSection.endStmt := endStmt
+      newSection.callingStmt := calledStmts[A_Index]
+      newSection.calledSection := calledRoutines[A_Index]
+      
+      codeSections.push(newSection)
+    }
+  } else {
+      newSection := {}  ; save current routine with zero calls.
+      newSection.name := currentRoutine
+      newSection.startStmt := startStmt
+      newSection.endStmt := endStmt
+      newSection.callingStmt := 0
+      newSection.calledSection := ""
+      
+      codeSections.push(newSection)
+  }
 }
   ;---------------------------------------------------------------
   ; search if a routine is already saved in the called routines array.
