@@ -4,15 +4,13 @@ SetWorkingDir, %A_ScriptDir%
 parsingSteps := [ "IDENTIFICATION"
                 , "ENVIRONMENT"
                 , "DATA"
-                ; , "file-section"
                 , "WORKING-STORAGE"
                 , "LINKAGE"
                 , "PROCEDURE"]
 
-parsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."
+parsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."  ; |not *|0..space(s)|identification|1..space(s)|division|0..space(s)|.|
                 , "im)^[^\*]\s*environment\s+division\s*\."
                 , "im)^[^\*]\s*data\s+division\s*\."
-                ; , "im)^[^\*]\s*file\s+section\s*\."
                 , "im)^[^\*]\s*working-storage\s+section\s*\."
                 , "im)^[^\*]\s*linkage\s+section\s*\."
                 , "im)^[^\*]\s*procedure\s+division\s*"
@@ -50,8 +48,8 @@ Loop, Read, %fullFileCode%
 {
   allCode.push(A_LoopReadLine)
   
-  ; if main sections parsed or it is comment/spaces don't parse this.
-  if (RegExMatch(A_LoopReadLine, "im)^\s*\*.*$") || Trim(A_LoopReadLine) = "")
+  ; if it is comment/spaces don't parse this.
+  if (RegExMatch(A_LoopReadLine, "im)^\s*\*.*$") || Trim(A_LoopReadLine) = "")  ; (must consume the whole line!)
     Continue  ; parse next stmt
 
   ;----------------------------------------
@@ -154,12 +152,12 @@ Loop, Read, %fullFileCode%
 
 ; update the section [procedure-division] ending stmt = last code stmt.
 addMainSections()
-saveSection(codeSections)
+saveSections(codeSections)
 
 ; match non-comment line containing "environment division."
 ; ^[^\*]\s*environment\s+division\s*\.
 
-filename := A_ScriptDir . "\codeCalls.txt"
+filename := A_ScriptDir . "\codeCalls_COBOL.txt"
 if FileExist(filename)
   FileDelete, %filename%
 
@@ -169,7 +167,7 @@ FileAppend, %allSections%, %filename%
 ExitApp
 
   ;---------------------------------------------------------------
-  ; 
+  ; search if a routine is already saved in the called routines array.
   ;---------------------------------------------------------------
 searchCalledRoutines(routineName) {
   Loop, % calledRoutines.MaxIndex() {
@@ -218,7 +216,7 @@ addLife400BatchRoutines(stmt) {
   ;---------------------------------------------------------------
   ; 
   ;---------------------------------------------------------------
-saveSection(codeSections) {
+saveSections(codeSections) {
   global
   
   Loop, % codeSections.MaxIndex() {
