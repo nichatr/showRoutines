@@ -1,15 +1,9 @@
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 
-global parsingSteps := [ "File"
-  , "Data"
-  , "Input"
-  , "Calc"]
+global parsingGroups := [ "File", "Data", "Input", "Calc", "Output"]
 
-global parsingRegex := [ "im)^[FH]"  ; |F|H|
-  , "im)^D"
-  , "im)^I"
-  , "im)^C"]
+global parsingRegex := [ "im)^[FH]", "im)^D", "im)^I", "im)^C", "im)^O"]
 
 path := A_ScriptDir . "\..\data\"
 fileCode := "PGROUTR2-TRIMMED.rpgle"
@@ -17,14 +11,7 @@ fullFileCode := path . fileCode
 language := "rpg"
 FileEncoding, CP1253
 
-global allCode := []
-global allSections := ""
-global codeSections := []
-global currentRoutine := "MAIN"
-global routineName
-global calledRoutines := [], calledStmts := []
-global foundINZSR := False
-global currentStep := 1
+global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
 
 main()
 ExitApp
@@ -54,10 +41,21 @@ main() {
 
 }
   ;---------------------------------------------------------------
+  ; parse the rpg code.
+  ; populate: allCode[]= code lines, 
   ; 
   ;---------------------------------------------------------------
 parseCode() {
   global
+  allCode := []
+  mainSections := []
+  codeSections := []
+  calledRoutines := []
+  calledStmts := []
+  foundINZSR := False
+  currentRoutine := "MAIN"
+  currentGroup := 1
+  firstRoutine := True
 
   ; read all code one line at a time and parse.
   Loop, Read, %fullFileCode%
@@ -68,36 +66,39 @@ parseCode() {
     if (RegExMatch(A_LoopReadLine, "im)^.\*.*$") || Trim(A_LoopReadLine) = "")  ; |any 1 char|*|any chars up to EOL| (must consume the whole line!)
       Continue  ; parse next stmt
 
-    current_code_line := A_Index  ; save index to use in inner loops.
+    current_line := A_Index  ; save index to use in inner loops.
 
     ;----------------------------------------
     ; if main sections (1-5) not parsed yet: parse any found.
     ;----------------------------------------
-    if (currentStep <= 4) {
-      Loop, % 5 - currentStep
+    if (currentGroup <= 4) {
+      searchIndex := currentGroup
+
+      Loop, % 5 - currentGroup
       {
-        if (RegExMatch(A_LoopReadLine, parsingRegex[A_Index])) {
-          if (currentStep > 1)
-            codeSections[currentStep - 1].endStmt := current_code_line - 1
+        if (RegExMatch(A_LoopReadLine, parsingRegex[searchIndex])) {
+          if (!isEmptyOrEmptyStringsOnly(codeSections))
+            codeSections[codeSections.MaxIndex()].endStmt := current_line - 1
 
           newSection := {}
-          newSection.name := parsingSteps[currentStep]
-          newSection.startStmt := currentStep == 1 ? 1 : (A_Index - 1)
+          newSection.name := parsingGroups[searchIndex]
+          newSection.startStmt := isEmptyOrEmptyStringsOnly(codeSections) ? 1 : (current_line - 1)
           newSection.callingStmt := 0
           
-          ; ignore [procedure division], it is only used as a marker to start processing routines.
-          if (currentStep < 5)
+          ; ignore [Calc], it is only used as a marker to start processing routines.
+          if (searchIndex < 4) {
+            mainSections.push(parsingGroups[searchIndex])
             codeSections.push(newSection)
+          }
           
-          currentStep ++
+          currentGroup := searchIndex + 1
+          Break  ; parse next stmt
         }
-      Continue  ; parse next stmt
+        searchIndex ++
+      }
     }
-    }
 
-
-
-    if (currentStep <= 4)
+    if (currentGroup <= 4)
       Continue  ; parse next stmt
     
     ; all 5 main sections are parsed.
@@ -170,6 +171,18 @@ parseCode() {
 
 }
   ;---------------------------------------------------------------
+  ; process beginning of routine.
+  ;---------------------------------------------------------------
+processBEGSR() {
+
+}
+  ;---------------------------------------------------------------
+  ; process end of routine.
+  ;---------------------------------------------------------------
+processENDSR() {
+
+}
+  ;---------------------------------------------------------------
   ; search if a routine is already saved in the called routines array.
   ;---------------------------------------------------------------
 searchCalledRoutines(routineName) {
@@ -185,14 +198,14 @@ searchCalledRoutines(routineName) {
 addMainSections() {
   global
 
-  Loop, % parsingSteps.MaxIndex() - 1 { ; skip [Calc-section]
-    
+  Loop, % mainSections.MaxIndex()
+  {
     newSection := {}
     newSection.name := "MAIN"
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0
-    newSection.calledSection := parsingSteps[A_Index]
+    newSection.calledSection := mainSections[A_Index]
 
     codeSections.InsertAt(A_Index, newSection)
   }
@@ -218,6 +231,7 @@ addINZSR() {
   ;---------------------------------------------------------------
 saveSections(codeSections) {
   global
+  allSections := ""
   
   Loop, % codeSections.MaxIndex() {
 
@@ -230,4 +244,13 @@ saveSections(codeSections) {
             . "`n"
     allSections .= line
   }
+}
+
+isEmptyOrEmptyStringsOnly(inputArray) {
+	for each, value in inputArray {
+		if !(value == "") {
+			return false ;one of the values is not an empty string therefore the array is not empty or empty strings only
+		}
+	}
+	return true ;all the values have passed the test or no values where inside the array
 }

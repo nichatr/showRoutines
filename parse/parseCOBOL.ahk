@@ -26,7 +26,7 @@ life400StandardRoutines := [ "0900-RESTART"
                            , "4000-CLOSE" ]
 
 path := A_ScriptDir . "\..\data\"
-fileCode := "B9Y36.cblle"  ; "ZWFCON2 copy.CBLLE"
+fileCode := "ZWFCON2_TRIMMED.CBLLE"        ; "B9Y36.cblle"  ; "ZWFCON2 copy.CBLLE"
 fullFileCode := path . fileCode
 language := "cobol"
 FileEncoding, CP1253
@@ -37,11 +37,13 @@ global codeSections := []
 global currentRoutine := "MAIN"
 global routineName
 global calledRoutines := [], calledStmts := []
+global firstRoutine
 
 foundMAINB := False ; when true add standard sections 1000-,2000-,3000-,4000-
 checkForMAINB := True ; when true check if [COPY MAINB.] exists, but after first procedure division's section is found stop checking.
 
 currentStep := 1
+firstRoutine := True
 
 ; read all code one line at a time and parse.
 Loop, Read, %fullFileCode%
@@ -86,6 +88,7 @@ Loop, Read, %fullFileCode%
     checkForMAINB := False
     foundMAINB := True
     addLife400BatchRoutines(A_Index)
+    firstRoutine := False
     Continue  ; parse next stmt
   }
 
@@ -111,7 +114,13 @@ Loop, Read, %fullFileCode%
   ;-----------------------------------
   if (RegExMatch(A_LoopReadLine, "im)[\w\-]+(?=\s+SECTION\s*\.)", matchedString)) {
     startStmt := A_Index  ; keep first stmt of current routine.
-    currentRoutine := matchedString ; keep routine name.
+    if (!firstRoutine)
+      currentRoutine := matchedString ; keep routine name.
+    else {
+      currentRoutine := "MAIN"
+      firstRoutine := False
+    }
+
     calledRoutines := []
     calledStmts := []
     Continue  ; parse next stmt
