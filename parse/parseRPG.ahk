@@ -5,13 +5,13 @@ global parsingGroups := [ "File", "Data", "Input", "Calc", "Output"]
 
 global parsingRegex := [ "im)^[FH]", "im)^D", "im)^I", "im)^C", "im)^O"]
 
+global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
+
 path := A_ScriptDir . "\..\data\"
 fileCode := "PGROUTR2-TRIMMED.rpgle"
 fullFileCode := path . fileCode
 language := "rpg"
 FileEncoding, CP1253
-
-global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
 
 main()
 ExitApp
@@ -28,9 +28,6 @@ main() {
 
   addMainSections()
   saveSections(codeSections)
-
-  ; match non-comment line containing "environment division."
-  ; ^[^\*]\s*environment\s+division\s*\.
 
   filename := A_ScriptDir . "\codeCalls_RPG.txt"
   if FileExist(filename)
@@ -68,13 +65,13 @@ parseCode() {
 
     current_line := A_Index  ; save index to use in inner loops.
 
-    ;----------------------------------------
+    ;---------------------------------------------------------
     ; if main sections (1-5) not parsed yet: parse any found.
-    ;----------------------------------------
+    ;---------------------------------------------------------
     if (currentGroup <= 4) {
       searchIndex := currentGroup
 
-      Loop, % 5 - currentGroup
+      Loop, % 5 - currentGroup  ; search 4 groups
       {
         if (RegExMatch(A_LoopReadLine, parsingRegex[searchIndex])) {
           if (!isEmptyOrEmptyStringsOnly(codeSections))
@@ -101,13 +98,13 @@ parseCode() {
     if (currentGroup <= 4)
       Continue  ; parse next stmt
     
-    ; all 5 main sections are parsed.
-    ; parse routines.
+    ; all 4 main sections are parsed: parse routines.
 
-    ;-----------------------------------
+    ;-------------------------------------------------
     ; check for routine call [EXSR|CAS routine-name]
-    ;-----------------------------------
-    if (RegExMatch(A_LoopReadLine, "im)(?<=EXSR\s{6})[\w]+", matchedString) || RegExMatch(A_LoopReadLine, "im)(?<=CAS\.{21})[\w]+", matchedString)) {
+    ;-------------------------------------------------
+    if (RegExMatch(A_LoopReadLine, "im)(?<=EXSR\s{6})[\w]+", matchedString) 
+        || RegExMatch(A_LoopReadLine, "im)(?<=CAS\.{21})[\w]+", matchedString)) {
       StringUpper, matchedString, matchedString
       
       ; found routine call, save name/stmt if not already saved.
@@ -118,11 +115,11 @@ parseCode() {
       }
       Continue  ; parse next stmt
     }
-    ;-----------------------------------
+    ;-----------------------------------------------------
     ; check for beginning of routine [routine-name BEGSR]
-    ;-----------------------------------
+    ;-----------------------------------------------------
     if (RegExMatch(A_LoopReadLine, "im)[\w]+(?=\s+BEGSR)", matchedString)) {
-      if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR
+      if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
         processENDSR()
         firstRoutine := False
       }
@@ -130,16 +127,15 @@ parseCode() {
       processBEGSR()
       Continue  ; parse next stmt
     }
-    ;--------------------------------
+    ;----------------------------------
     ; check for end of routine [ENDSR]
-    ;--------------------------------
+    ;----------------------------------
     if (RegExMatch(A_LoopReadLine, "im)\s(?:endsr)(?![\w-])")) {
       endStmt := A_Index
       processENDSR()
       Continue  ; parse next stmt
     }
   }
-
 }
   ;---------------------------------------------------------------
   ; process beginning of routine.
@@ -247,7 +243,9 @@ saveSections(codeSections) {
     allSections .= line
   }
 }
-
+  ;---------------------------------------------------------------
+  ; check if an array is empty.
+  ;---------------------------------------------------------------
 isEmptyOrEmptyStringsOnly(inputArray) {
 	for each, value in inputArray {
 		if !(value == "") {
