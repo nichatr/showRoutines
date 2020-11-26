@@ -111,7 +111,7 @@ parseCode() {
       routineName := matchedString
       if (!searchCalledRoutines(routineName)) {
         calledRoutines.push(routineName)
-        calledStmts.push(A_Index)
+        calledStmts.push(current_line)
       }
       Continue  ; parse next stmt
     }
@@ -131,7 +131,7 @@ parseCode() {
     ; check for end of routine [ENDSR]
     ;----------------------------------
     if (RegExMatch(A_LoopReadLine, "im)\s(?:endsr)(?![\w-])")) {
-      endStmt := A_Index
+      endStmt := current_line
       processENDSR()
       Continue  ; parse next stmt
     }
@@ -143,7 +143,7 @@ parseCode() {
 processBEGSR() {
   global
   StringUpper, matchedString, matchedString
-  startStmt := A_Index  ; keep first stmt of current routine.
+  startStmt := current_line  ; keep first stmt of current routine.
   currentRoutine := matchedString ; keep routine name.
   calledRoutines := []
   calledStmts := []

@@ -27,9 +27,9 @@ global life400StandardRoutines := [ "0900-RESTART"
 
 global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
 
-path := A_ScriptDir . "\..\data\"
-; fileCode := "ZWFCON2_TRIMMED - Copy.CBLLE"        ; "B9Y36.cblle"  ; "ZWFCON2 copy.CBLLE"
-fileCode := "ZWFCON2_TRIMMED.CBLLE"        ; "B9Y36.cblle"  ; "ZWFCON2 copy.CBLLE"
+path := A_ScriptDir . "\data\"
+fileCode := "ZSAUTOQ_TRIMMED.CBL"
+; fileCode := "ZWFCON2_TRIMMED.CBLLE"        ; "B9Y36.cblle"  ; "ZWFCON2 copy.CBLLE"
 fullFileCode := path . fileCode
 language := "cobol"
 FileEncoding, CP1253
@@ -44,11 +44,10 @@ main() {
   parseCode()
 
   ; update the section [procedure-division] ending stmt = last code stmt.
-  ; addMainSections()
+  addMainSections()
   saveSections(codeSections)
 
-  filename := A_ScriptDir . "\ZWFCON2_TRIMMED - Copy.txt"
-  ; filename := A_ScriptDir . "\codeCalls_COBOL.txt"
+  filename := A_ScriptDir . "\data\ZSAUTOQ_PARSED.txt"
   if FileExist(filename)
     FileDelete, %filename%
 
@@ -79,8 +78,10 @@ parseCode() {
   {
     allCode.push(A_LoopReadLine)
     
+    My_LoopReadLine := SubStr(A_LoopReadLine, 1, 58)  ; remove dummy string.
+
     ; if it is comment/spaces don't parse this.
-    if (RegExMatch(A_LoopReadLine, "im)^\s*\*.*$") || Trim(A_LoopReadLine) = "")  ; (must consume the whole line!)
+    if (RegExMatch(My_LoopReadLine, "im)^\s*\*.*$") || Trim(My_LoopReadLine) = "")  ; (must consume the whole line!)
       Continue  ; parse next stmt
 
     current_line := A_Index  ; save index to use in inner loops.
@@ -93,13 +94,13 @@ parseCode() {
 
       Loop, % 7 - currentGroup  ; search 6 groups
       {
-        if (RegExMatch(A_LoopReadLine, parsingRegex[searchIndex])) {
+        if (RegExMatch(My_LoopReadLine, parsingRegex[searchIndex])) {
           if (!isEmptyOrEmptyStringsOnly(codeSections))
-            codeSections[codeSections.MaxIndex()].endStmt := current_line - 1
+            codeSections[codeSections.MaxIndex()].endStmt := current_line ; - 1 TODO
 
           newSection := {}
           newSection.name := parsingGroups[searchIndex]
-          newSection.startStmt := isEmptyOrEmptyStringsOnly(codeSections) ? 1 : (current_line - 1)
+          newSection.startStmt := isEmptyOrEmptyStringsOnly(codeSections) ? 1 : current_line ; (current_line - 1) TODO
           newSection.callingStmt := 0
           
           ; ignore [procedure division], it is only used as a marker to start processing routines.
@@ -123,10 +124,10 @@ parseCode() {
     ;----------------------------------------
     ; check if exists [COPY MAINB.] --> it is a Life400 batch program, so standard routines must be added.
     ;----------------------------------------
-    if (checkForMAINB && RegExMatch(A_LoopReadLine, parsingRegex[7])) {
+    if (checkForMAINB && RegExMatch(My_LoopReadLine, parsingRegex[7])) {
       checkForMAINB := False
       foundMAINB := True
-      addLife400BatchRoutines(A_Index)
+      addLife400BatchRoutines(current_line)
       ; firstRoutine := False
       Continue  ; parse next stmt
     }
@@ -134,7 +135,7 @@ parseCode() {
     ;------------------------------------------------
     ; check for routine call [PERFORM routine-name]
     ;------------------------------------------------
-    if (RegExMatch(A_LoopReadLine, "im)(?<=perform\s)\s*[\-\w]+", matchedString)) { ; the [\s*] is required to catch multiple spaces between perform and routine name.
+    if (RegExMatch(My_LoopReadLine, "im)(?<=\sperform\s)\s*[\-\w]+", matchedString)) { ; the [\s*] is required to catch multiple spaces between perform and routine name.
       StringUpper, matchedString, matchedString
       matchedString := Trim(matchedString)
 
@@ -146,14 +147,15 @@ parseCode() {
       routineName := matchedString
       if (!searchCalledRoutines(routineName)) {
         calledRoutines.push(routineName)
-        calledStmts.push(A_Index)
+        calledStmts.push(current_line)
       }
       Continue  ; parse next stmt
     }
     ;--------------------------------------------------------
     ; check for beginning of routine [routine-name SECTION.]
     ;--------------------------------------------------------
-    if (RegExMatch(A_LoopReadLine, "im)[\w\-]+(?=\s+SECTION\s*\.)", matchedString)) {
+    if (RegExMatch(My_LoopReadLine, "im)[\w\-]+(?=\s+SECTION\s*\.)", matchedString)) {
+
       if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
         processENDSR()
         firstRoutine := False
@@ -166,8 +168,8 @@ parseCode() {
     ;--------------------------------
     ; check for end of routine [EXIT. or GOBACK.]
     ;--------------------------------
-    if (RegExMatch(A_LoopReadLine, "im)\s+(?:exit|goback)\s*\.")) {
-      endStmt := A_Index
+    if (RegExMatch(My_LoopReadLine, "im)\s+(?:exit|goback)\s*\.")) {
+      endStmt := current_line
       processENDSR()     
       Continue  ; parse next stmt
     }
@@ -179,7 +181,7 @@ parseCode() {
 processBEGSR() {
   global
   StringUpper, matchedString, matchedString
-  startStmt := A_Index  ; keep first stmt of current routine.
+  startStmt := current_line  ; keep first stmt of current routine.
   currentRoutine := matchedString ; keep routine name.
   calledRoutines := []
   calledStmts := []
@@ -268,12 +270,16 @@ saveSections(codeSections) {
   Loop, % codeSections.MaxIndex() {
 
     line := Format("{:05}", A_Index) . ", " 
-            . Format("{:04}", codeSections[A_Index].startStmt) . ", " 
-            . Format("{:04}",codeSections[A_Index].endStmt) . ", "
-            . Format("{:04}",codeSections[A_Index].callingStmt) . ","
+            . Format("{:06}", codeSections[A_Index].startStmt) . ", " 
+            . Format("{:06}",codeSections[A_Index].endStmt) . ", "
+            . Format("{:06}",codeSections[A_Index].callingStmt) . ","
             . Format("{:-30}",codeSections[A_Index].name) . ","
             . codeSections[A_Index].calledSection
             . "`n"
+
+    ; line :=  Format("{:-30}",codeSections[A_Index].name) . ","
+    ;         . codeSections[A_Index].calledSection
+    ;         . "`n"
     allSections .= line
   }
 }

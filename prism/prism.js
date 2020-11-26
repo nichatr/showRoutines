@@ -1640,7 +1640,7 @@ Prism.languages.cobol = {
   routineName: /[\w\-]+(?=\s+SECTION\s*\.)/im,
   compositeKeyword: /\s(?:perform\s+until|perform\s+varying)(?![\w-])/im,
   callRoutine: {
-    pattern: /(?<=perform\s)\s*[\-\w]+/im, // positive lookbehind: if [perform XXXX] --> XXXX = routine executed.
+    pattern: /(?<=\sperform\s)\s*[\-\w]+/im, // positive lookbehind: if [perform XXXX] --> XXXX = routine executed.
     // pattern: /(?<=perform\s)[\-\w]+/im, // wrong when [perform    routine]
     lookbehind: true,
   },
