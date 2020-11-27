@@ -13,10 +13,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TODO: add cl(le) language
 - TODO: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE% (the last is better).
 
-- TODO: cobol
+## 2020-11-27
+
+- showRoutines:
+  - fixed recursive routines calls: A -> B -> C -> A
+- DONE: cobol
   - add the sections at the beginning: INPUT-OUTPUT|FILE|WORKING-STORAGE|LINKAGE
   - also replace the MAIN routine with [PROCEDURE DIVISION].
-- TODO: rpg
+- DONE: rpg
   - add the sections at the beginning: H|F|D|I
   - also replace the MAIN routine with section [C].
 

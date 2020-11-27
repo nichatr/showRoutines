@@ -84,9 +84,9 @@ mainProcess() {
   setup()
   populateRoutines()
   populateCode()
-  file_to_save := A_ScriptDir . "\data\allRoutines.txt"
-  saveRoutines(file_to_save, header, true)
   loadTreeview()
+  ; file_to_save := A_ScriptDir . "\data\allRoutines.txt"
+  ; saveRoutines(file_to_save, header, true)
   updateStatusBar()
   if (!exportInBatch)
     showGui()
@@ -1713,9 +1713,9 @@ processRoutine(currRoutine, parentID=0, parentName="") {
   ; check if new routine exists in this thread: if it exists don't process it again.
   currentName := currRoutine.routineName
 
-  if (currentName = "X3000-READ-T8Z38") {
+  ; if (currentName = "X3000-READ-T8Z38") {
     ;  MsgBox, % currentName
-   }
+  ;  }
 
   threadIndex := searchArray(currentName)
   if (threadIndex > 0)
