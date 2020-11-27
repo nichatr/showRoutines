@@ -78,7 +78,7 @@ parseCode() {
   {
     allCode.push(A_LoopReadLine)
     
-    My_LoopReadLine := SubStr(A_LoopReadLine, 1, 58)  ; remove dummy string.
+    My_LoopReadLine := SubStr(A_LoopReadLine, 1, 69)  ; remove dummy string.
 
     ; if it is comment/spaces don't parse this.
     if (RegExMatch(My_LoopReadLine, "im)^\s*\*.*$") || Trim(My_LoopReadLine) = "")  ; (must consume the whole line!)
@@ -156,10 +156,14 @@ parseCode() {
     ;--------------------------------------------------------
     if (RegExMatch(My_LoopReadLine, "im)[\w\-]+(?=\s+SECTION\s*\.)", matchedString)) {
 
-      if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
-        processENDSR()
-        firstRoutine := False
-      }
+      ; if this section is "dummy" ignore it.
+      if (firstRoutine && !calledRoutines.MaxIndex() > 0)
+        Continue  ; parse next stmt
+
+      ; if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
+      ;   processENDSR()
+      ;   firstRoutine := False
+      ; }
 
       processBEGSR()
       Continue  ; parse next stmt
@@ -180,6 +184,7 @@ parseCode() {
   ;---------------------------------------------------------------
 processBEGSR() {
   global
+  firstRoutine := False
   StringUpper, matchedString, matchedString
   startStmt := current_line  ; keep first stmt of current routine.
   currentRoutine := matchedString ; keep routine name.

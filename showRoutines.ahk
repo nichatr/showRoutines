@@ -84,9 +84,9 @@ mainProcess() {
   setup()
   populateRoutines()
   populateCode()
-  loadTreeview()
   file_to_save := A_ScriptDir . "\data\allRoutines.txt"
-  ; saveRoutines(file_to_save, header, true)
+  saveRoutines(file_to_save, header, true)
+  loadTreeview()
   updateStatusBar()
   if (!exportInBatch)
     showGui()
@@ -1695,9 +1695,10 @@ searchItemInCode(searchText, direction) {
 loadTreeview() {
 	if (allRoutines.MaxIndex() <= 0)    ; no called routines
 		return
-	
+  
     ; first item is always = "MAIN" (the parent routine of all)
 	currRoutine := allRoutines[1]
+  currThread := []
 	processRoutine(currRoutine)
   }
     ;---------------------------------------------------------------------
@@ -1711,11 +1712,17 @@ processRoutine(currRoutine, parentID=0, parentName="") {
 
   ; check if new routine exists in this thread: if it exists don't process it again.
   currentName := currRoutine.routineName
+
+  if (currentName = "X3000-READ-T8Z38") {
+    ;  MsgBox, % currentName
+   }
+
   threadIndex := searchArray(currentName)
   if (threadIndex > 0)
     return
   
   currentLevel ++
+
   currThread.push(currentName)  ; add new routine to this thread.
 	itemId := addToTreeview(currRoutine, currentLevel, parentID, parentName)
 	; itemId := addToTreeview(currentName, currentLevel, parentID, parentName)
