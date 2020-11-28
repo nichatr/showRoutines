@@ -1,33 +1,40 @@
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 
-global RpgParsingGroups := [ "File", "Data", "Input", "Calc", "Output"]
+global parsingGroups := [ "File", "Data", "Input", "Calc", "Output"]
 
-global RpgParsingRegex := [ "im)^[FH]", "im)^D", "im)^I", "im)^C", "im)^O"]
+global parsingRegex := [ "im)^[FH]", "im)^D", "im)^I", "im)^C", "im)^O"]
 
 global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
 
+path := A_ScriptDir . "\..\data\"
+fileCode := "PGROUTR2-TRIMMED.rpgle"
+fullFileCode := path . fileCode
+language := "rpg"
+FileEncoding, CP1253
+
+main()
+ExitApp
   ;---------------------------------------------------------------
   ; parse the file.
   ;---------------------------------------------------------------
-parseRpg() {
-  global
+main() {
 
-  language := "rpg"
-  FileEncoding, CP1253
-
-  mainRpg()
+  parseCode()
 
   ; update the section [procedure-division] ending stmt = last code stmt.
-  addRpgMainSections()
-  saveRpgSections(codeSections)
+  if (foundINZSR)
+    addINZSR()
 
-  outputFile := fullFileRoutines
-  if FileExist(outputFile)
-    FileDelete, %outputFile%
+  addMainSections()
+  saveSections(codeSections)
+
+  filename := A_ScriptDir . "\codeCalls_RPG.txt"
+  if FileExist(filename)
+    FileDelete, %filename%
 
   FileEncoding, UTF-8
-  FileAppend, %allSections%, %outputFile%
+  FileAppend, %allSections%, %filename%
 
 }
   ;---------------------------------------------------------------
@@ -35,8 +42,9 @@ parseRpg() {
   ; populate: allCode[]= code lines, 
   ; 
   ;---------------------------------------------------------------
-mainRpg() {
+parseCode() {
   global
+  allCode := []
   mainSections := []
   codeSections := []
   calledRoutines := []
@@ -47,11 +55,12 @@ mainRpg() {
   firstRoutine := True
 
   ; read all code one line at a time and parse.
-  Loop, % allCode.MaxIndex()
+  Loop, Read, %fullFileCode%
   {
-    current_code := allCode[A_Index]
+    allCode.push(A_LoopReadLine)
+    
     ; if it is comment/spaces don't parse this.
-    if (RegExMatch(current_code, "im)^.\*.*$") || Trim(current_code) = "")  ; |any 1 char|*|any chars up to EOL| (must consume the whole line!)
+    if (RegExMatch(A_LoopReadLine, "im)^.\*.*$") || Trim(A_LoopReadLine) = "")  ; |any 1 char|*|any chars up to EOL| (must consume the whole line!)
       Continue  ; parse next stmt
 
     current_line := A_Index  ; save index to use in inner loops.
@@ -64,18 +73,18 @@ mainRpg() {
 
       Loop, % 5 - currentGroup  ; search 4 groups
       {
-        if (RegExMatch(current_code, RpgParsingRegex[searchIndex])) {
-          if (!RpgisEmptyOrEmptyStringsOnly(codeSections))
+        if (RegExMatch(A_LoopReadLine, parsingRegex[searchIndex])) {
+          if (!isEmptyOrEmptyStringsOnly(codeSections))
             codeSections[codeSections.MaxIndex()].endStmt := current_line - 1
 
           newSection := {}
-          newSection.name := RpgParsingGroups[searchIndex]
-          newSection.startStmt := RpgisEmptyOrEmptyStringsOnly(codeSections) ? 1 : (current_line - 1)
+          newSection.name := parsingGroups[searchIndex]
+          newSection.startStmt := isEmptyOrEmptyStringsOnly(codeSections) ? 1 : (current_line - 1)
           newSection.callingStmt := 0
           
           ; ignore [Calc], it is only used as a marker to start processing routines.
           if (searchIndex < 4) {
-            mainSections.push(RpgParsingGroups[searchIndex])
+            mainSections.push(parsingGroups[searchIndex])
             codeSections.push(newSection)
           }
           
@@ -94,13 +103,13 @@ mainRpg() {
     ;-------------------------------------------------
     ; check for routine call [EXSR|CAS routine-name]
     ;-------------------------------------------------
-    if (RegExMatch(current_code, "im)(?<=EXSR\s{6})[\w]+", matchedString) 
-        || RegExMatch(current_code, "im)(?<=CAS\.{21})[\w]+", matchedString)) {
+    if (RegExMatch(A_LoopReadLine, "im)(?<=EXSR\s{6})[\w]+", matchedString) 
+        || RegExMatch(A_LoopReadLine, "im)(?<=CAS\.{21})[\w]+", matchedString)) {
       StringUpper, matchedString, matchedString
       
       ; found routine call, save name/stmt if not already saved.
       routineName := matchedString
-      if (!searchRpgCalledRoutines(routineName)) {
+      if (!searchCalledRoutines(routineName)) {
         calledRoutines.push(routineName)
         calledStmts.push(current_line)
       }
@@ -109,21 +118,21 @@ mainRpg() {
     ;-----------------------------------------------------
     ; check for beginning of routine [routine-name BEGSR]
     ;-----------------------------------------------------
-    if (RegExMatch(current_code, "im)[\w]+(?=\s+BEGSR)", matchedString)) {
+    if (RegExMatch(A_LoopReadLine, "im)[\w]+(?=\s+BEGSR)", matchedString)) {
       if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
-        processRpgENDSR()
+        processENDSR()
         firstRoutine := False
       }
 
-      processRpgBEGSR()
+      processBEGSR()
       Continue  ; parse next stmt
     }
     ;----------------------------------
     ; check for end of routine [ENDSR]
     ;----------------------------------
-    if (RegExMatch(current_code, "im)\s(?:endsr)(?![\w-])")) {
+    if (RegExMatch(A_LoopReadLine, "im)\s(?:endsr)(?![\w-])")) {
       endStmt := current_line
-      processRpgENDSR()
+      processENDSR()
       Continue  ; parse next stmt
     }
   }
@@ -131,7 +140,7 @@ mainRpg() {
   ;---------------------------------------------------------------
   ; process beginning of routine.
   ;---------------------------------------------------------------
-processRpgBEGSR() {
+processBEGSR() {
   global
   StringUpper, matchedString, matchedString
   startStmt := current_line  ; keep first stmt of current routine.
@@ -146,7 +155,7 @@ processRpgBEGSR() {
   ;---------------------------------------------------------------
   ; process end of routine.
   ;---------------------------------------------------------------
-processRpgENDSR() {
+processENDSR() {
   global
   if (calledRoutines.MaxIndex() > 0) {  ; save current routine with all routines called.
     Loop, % calledRoutines.MaxIndex() {
@@ -174,7 +183,7 @@ processRpgENDSR() {
   ;---------------------------------------------------------------
   ; search if a routine is already saved in the called routines array.
   ;---------------------------------------------------------------
-searchRpgCalledRoutines(routineName) {
+searchCalledRoutines(routineName) {
   Loop, % calledRoutines.MaxIndex() {
     if (routineName == calledRoutines[A_Index])
       return A_Index
@@ -184,7 +193,7 @@ searchRpgCalledRoutines(routineName) {
   ;---------------------------------------------------------------
   ; insert the main sections at the beginning of the array
   ;---------------------------------------------------------------
-addRpgMainSections() {
+addMainSections() {
   global
 
   Loop, % mainSections.MaxIndex()
@@ -218,7 +227,7 @@ addINZSR() {
   ;---------------------------------------------------------------
   ; 
   ;---------------------------------------------------------------
-saveRpgSections(codeSections) {
+saveSections(codeSections) {
   global
   allSections := ""
   
@@ -237,7 +246,7 @@ saveRpgSections(codeSections) {
   ;---------------------------------------------------------------
   ; check if an array is empty.
   ;---------------------------------------------------------------
-RpgisEmptyOrEmptyStringsOnly(inputArray) {
+isEmptyOrEmptyStringsOnly(inputArray) {
 	for each, value in inputArray {
 		if !(value == "") {
 			return false ;one of the values is not an empty string therefore the array is not empty or empty strings only

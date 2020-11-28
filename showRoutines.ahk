@@ -43,10 +43,13 @@
 
   #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
   #Include %A_ScriptDir%\XML\xml.ahk  ; for building html (xml)
+  #Include %A_ScriptDir%\parse\parseCOBOL.ahk
+  #Include %A_ScriptDir%\parse\parseRPG.ahk
 
   ; global declarations
   global allRoutines  ; array of class "routine"
   global allCode      ; array of source code to show
+  global parseCode  ; true=parse code to create the text file with the routine calls.
   global language ; indicates the language: rpgle, cobol, clp.
   global currThread ; keeps all routines in the current thread in order to avoid circular dependencies
   global tmpRoutine 
@@ -82,8 +85,20 @@ mainProcess()
 
 mainProcess() {
   setup()
-  populateRoutines()
   populateCode()
+  cleanCode(allCode, language)  ; trim line numbers, spaces, dates.
+
+  if (parseCode) {
+    Switch language
+    {
+      Case "rpg":
+        parseRPG()
+      Case "cobol":
+        parseCOBOL()
+    }
+  }
+
+  populateRoutines()
   loadTreeview()
   ; file_to_save := A_ScriptDir . "\data\allRoutines.txt"
   ; saveRoutines(file_to_save, header, true)
@@ -375,7 +390,9 @@ saveExportedString(exportedString) {
       return
     }
 
-    stringCode := cleanCode(allCode, language)
+    Loop, % allCode.MaxIndex() {
+      stringCode .= allCode[A_Index] . "`r" ; `n adds another <br> --> 2 linefeeds!
+    }
 
     ; transformation will be done by Prism.
     ; Transform, stringCode, HTML, %stringCode% ; convert into html string
@@ -448,12 +465,12 @@ cleanCode(allCode, language) {
       line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
       line := RegExReplace(line, "\\","\\") ; replace backslash with double backslash to show correctly!
       
-      stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
+      allCode[A_index] := line
       }
   }
   else if (language = "clp") {
     line := RegExReplace(allCode[A_index], "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
-    stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
+    allCode[A_index] := line
     }
   else {  ; otherwise it is considered as cobol (default language).
     Loop, % allCode.MaxIndex() {
@@ -461,11 +478,10 @@ cleanCode(allCode, language) {
       line := RegExReplace(line, "\d{6}.?$","") ; remove (999999) + (0/1) char at EOL
       line := RegExReplace(line, "\\","\\") ; replace backslash with double backslash to show correctly!
 
-      stringCode .= RTrim(line)"`r"  ; `n adds another <br> --> 2 linefeeds!
+      allCode[A_index] := line
       }
     }
   
-  return stringCode
   }
   ;--------------------------------------------
   ; show window with editable settings
@@ -682,78 +698,78 @@ initialize() {
   }
 
   ; the global variable scriptNameNoExt is used for accessing the .INI file from multiple places
-  ; so it is defined at the beggining.
+  ; so it is defined at the beginning.
 	SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
 	
-	if (A_Args[1] <> "" and A_Args[2] <> "" and A_Args[3] <> ""  and A_Args[4] <> "")
+	if (A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
 		params_exist = true
 	
+  ; decide if a <routine calls> file exists or not.
+  parseCode := A_Args[1] != "" ? False : True
+
 	user := getSystem()
+  IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
+  IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 	
     ; set default filenames when run from my home.
 	if (user ="SYSTEM_HOME") {
-      IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
-			IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-	}
+    if (!fileSelector(path))
+      ExitApp
+
+    Return
+  }
 	
   ; otherwise get filenames from params.
-	if (user = "SYSTEM_WORK") {
 		
-    ; use existing files(*NEW/*OLD):
-    ;   load the files either from showRoutines.ini or from arguments.
+  ; use existing files(*NEW/*OLD):
+  ; load the files either from showRoutines.ini or from arguments.
+  if (trim(A_Args[4]) = "*NEW" or trim(A_Args[4]) = "*OLD") {
+    fileRoutines := A_Args[1] != "" ? A_Args[1] : fileRoutines ; routines calls file
+    fileCode := params_exist ? A_Args[2] : fileCode ; routines code file
+  }
 		
-		if (trim(A_Args[4]) = "*NEW" or trim(A_Args[4]) = "*OLD") {
-			
-			IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
-			IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-			
-      ; routines calls file
-			fileRoutines := params_exist ? A_Args[1] : fileRoutines
-      ; routines code file
-			fileCode := params_exist ? A_Args[2] : fileCode
-		}
-		
-    ; use existing files(*no):
-    ;   move file.txt & file.XXXXX.txt (XXXXX=rpgle/cblle/cbl) from ieffect folder to \data
-		
-		if (trim(A_Args[4]) = "*NEW") {
-			pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
-			if (!FileExist(pathIeffect)) {
-				msgbox, "Folder " . %pathIeffect% . " doesn't exist. Press enter and select file"
-				fileRoutines := ""      ; clear in order next to show file selector!
-			} else {
-				Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
-				FileMove, %pathIeffect%%fileRoutines% , %path% , 1  ; 1=overwrite file
-				if (ErrorLevel <> 0) {
-					msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
-				}
-				Progress, Off
-				
-        ; cut .txt from filename.XXXXX.txt (XXXXX=rpgle/cblle/cbl)
-				OLDfileCode := fileCode
-        ; below not necessary because command cvtsrc command does the rename from FILENAME.XXXXX.TXT to FILENAME.XXXXX
-        ; fileCode := RegExReplace(fileCode, ".txt$", Replacement = "")
+  ; use existing files(*no):
+  ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
+  if (trim(A_Args[4]) = "*NEW") {
 
-				Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
-				FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite file
-				if (ErrorLevel <> 0) {
-					msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
-				}
-				Progress, Off
-			}
-		}
-		
-      ; use existing files(*select) or ini file has not corresponding entry: open file selector
-		
-		if (A_Args[4] = "*SELECT" or fileRoutines = "") {
-			if (!fileSelector(path, "(*.txt)"))
-				ExitApp
-		}
+    pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
     
-    if (trim(A_Args[5]) = "*EXPORT") {
-      exportInBatch := true
+    if (!FileExist(pathIeffect)) {
+      msgbox, "Folder " . %pathIeffect% . " doesn't exist. Press enter and select file"
+      ; fileRoutines := ""      ; clear in order next to show file selector!
+      ExitApp
+    } 
+
+    ; move <routine calls> file to work folder.
+    if (!parseCode) {
+      Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
+      FileMove, %pathIeffect%%fileRoutines% , %path% , 1  ; 1=overwrite file
+      if (ErrorLevel <> 0) {
+        msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
+      }
+      Progress, Off
     }
-	}
+    
+    ; move <code> file to work folder.
+    OLDfileCode := fileCode
+    Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
+    FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite file
+    if (ErrorLevel <> 0) {
+      msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
+    }
+    Progress, Off
+  }
+		
+    ; use existing files(*select) or ini file has not corresponding entry: open file selector
+  
+  if (A_Args[4] = "*SELECT" or fileCode = "") {
+    if (!fileSelector(path))
+      ExitApp
+  }
+  
+  if (trim(A_Args[5]) = "*EXPORT") {
+    exportInBatch := true
+  }
   }
     ;--------------------------------------------
     ; set environment, populate data structures
@@ -769,8 +785,8 @@ setup() {
 	fullFileRoutines := path . fileRoutines
 	fullFileCode := path . fileCode
 
-  if !FileExist(fullFileRoutines)
-    if (!fileSelector(path, "(*.txt)"))
+  if !FileExist(fullFileCode)
+    if (!fileSelector(path))
       ExitApp
 
   ; find the language (used in export and open with notepad++).
@@ -779,8 +795,8 @@ setup() {
     language := "cobol"
   else if (RegExMatch(codeExtension, "i)rpg"))
     language := "rpg"
-  else if (RegExMatch(codeExtension, "i)cl"))
-    language := "clp"
+  ; else if (RegExMatch(codeExtension, "i)cl"))
+  ;   language := "clp"
   else
     language := "cobol"
       
@@ -1217,7 +1233,7 @@ GuiContextMenu:
     ;-----------------------------------------------------------
 MenuHandler:
   if (A_ThisMenuItem = "&Open file") {
-    if (!fileSelector(path, "(*.txt)"))
+    if (!fileSelector(path))
       return
     Gui, 1:Destroy
     mainProcess()
@@ -2448,36 +2464,19 @@ getSystem() {
   ; get file selection from user, using given path and file filter.
   ; populates global fields: fullFileRoutines, fullFileCode
   ;------------------------------------------------------------------
-fileSelector(homePath, filter) {
-	FileSelectFile, fullFileRoutines, 1, %homePath% , Select routines file, %filter%
+fileSelector(homePath) {
+  filter := "(*.cbl*; *.rpg*)"
+	FileSelectFile, fullFileCode, 1, %homePath% , Select routines file, %filter%
 	
 	if (ErrorLevel = 1) {    ; cancelled by user
 		return False
 	}
 	
-	SplitPath, fullFileRoutines , FileName, Dir, Extension, NameNoExt, Drive
+	SplitPath, fullFileCode , FileName, Dir, Extension, NameNoExt, Drive
+  fileCode := FileName
+  fileRoutines := NameNoExt . ".txt"
 
-  Loop, Files, %Dir%\%NameNoExt%.*
-    {
-      if (A_LoopFileExt != "txt") {
-        fileCode := A_LoopFileName
-        break
-      }
-    }
-
-	; FoundPos := InStr(FileName, ".cbl.txt" , CaseSensitive:=false)
-	; if (foundPos > 0) {
-	; 	Filename := SubStr(FileName, 1, foundPos-1) . ".txt"
-	; 	NameNoExt := SubStr(FileName, 1, foundPos-1)
-	; }
-	
-	fileRoutines := FileName
-	; fileCode := NameNoExt . ".cbl"
-  ; msgbox, %fileCode%
 	return true
-	
-  ; msgbox, % fileRoutines . "`n" fileCode . "`n" . fullFileRoutines . "`n" . fullFileCode
-  ; ExitApp
   }
   ;---------------------------------------------------------------------
   ; save array of routines to text file.

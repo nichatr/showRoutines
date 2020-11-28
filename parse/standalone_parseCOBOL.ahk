@@ -1,14 +1,14 @@
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 
-global CobolParsingGroups := [ "IDENTIFICATION"
+global parsingGroups := [ "IDENTIFICATION"
                 , "ENVIRONMENT"
                 , "DATA"
                 , "WORKING-STORAGE"
                 , "LINKAGE"
                 , "PROCEDURE"]
 
-global CobolParsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."  ; |not *|0..space(s)|identification|1..space(s)|division|0..space(s)|.|
+global parsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."  ; |not *|0..space(s)|identification|1..space(s)|division|0..space(s)|.|
                 , "im)^[^\*]\s*environment\s+division\s*\."
                 , "im)^[^\*]\s*data\s+division\s*\."
                 , "im)^[^\*]\s*working-storage\s+section\s*\."
@@ -27,27 +27,32 @@ global life400StandardRoutines := [ "0900-RESTART"
 
 global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
 
+path := A_ScriptDir . "\data\"
+fileCode := "ZSAUTOQ_TRIMMED.CBL"
+; fileCode := "ZWFCON2_TRIMMED.CBLLE"        ; "B9Y36.cblle"  ; "ZWFCON2 copy.CBLLE"
+fullFileCode := path . fileCode
+language := "cobol"
+FileEncoding, CP1253
+
+main()
+ExitApp
   ;---------------------------------------------------------------
   ; parse the file.
   ;---------------------------------------------------------------
-parseCobol() {
-  global
+main() {
 
-  language := "cobol"
-  FileEncoding, CP1253
-
-  mainCobol()
+  parseCode()
 
   ; update the section [procedure-division] ending stmt = last code stmt.
-  addCobolMainSections()
-  saveCobolSections(codeSections)
+  addMainSections()
+  saveSections(codeSections)
 
-  outputFile := fullFileRoutines
-  if FileExist(outputFile)
-    FileDelete, %outputFile%
+  filename := A_ScriptDir . "\data\ZSAUTOQ_PARSED.txt"
+  if FileExist(filename)
+    FileDelete, %filename%
 
   FileEncoding, UTF-8
-  FileAppend, %allSections%, %outputFile%
+  FileAppend, %allSections%, %filename%
 
 }
   ;---------------------------------------------------------------
@@ -55,8 +60,9 @@ parseCobol() {
   ; populate: allCode[]= code lines, 
   ; 
   ;---------------------------------------------------------------
-mainCobol() {
+parseCode() {
   global
+  allCode := []
   allSections := ""
   codeSections := []
   calledRoutines := []
@@ -68,10 +74,11 @@ mainCobol() {
   firstRoutine := True
 
 ; read all code one line at a time and parse.
-  Loop, % allCode.MaxIndex()
+  Loop, Read, %fullFileCode%
   {
-    current_code := allCode[A_Index]
-    My_LoopReadLine := SubStr(current_code, 1, 69)  ; remove dummy string.
+    allCode.push(A_LoopReadLine)
+    
+    My_LoopReadLine := SubStr(A_LoopReadLine, 1, 69)  ; remove dummy string.
 
     ; if it is comment/spaces don't parse this.
     if (RegExMatch(My_LoopReadLine, "im)^\s*\*.*$") || Trim(My_LoopReadLine) = "")  ; (must consume the whole line!)
@@ -87,18 +94,18 @@ mainCobol() {
 
       Loop, % 7 - currentGroup  ; search 6 groups
       {
-        if (RegExMatch(My_LoopReadLine, CobolParsingRegex[searchIndex])) {
-          if (!CobolisEmptyOrEmptyStringsOnly(codeSections))
+        if (RegExMatch(My_LoopReadLine, parsingRegex[searchIndex])) {
+          if (!isEmptyOrEmptyStringsOnly(codeSections))
             codeSections[codeSections.MaxIndex()].endStmt := current_line ; - 1 TODO
 
           newSection := {}
-          newSection.name := CobolParsingGroups[searchIndex]
-          newSection.startStmt := CobolisEmptyOrEmptyStringsOnly(codeSections) ? 1 : current_line ; (current_line - 1) TODO
+          newSection.name := parsingGroups[searchIndex]
+          newSection.startStmt := isEmptyOrEmptyStringsOnly(codeSections) ? 1 : current_line ; (current_line - 1) TODO
           newSection.callingStmt := 0
           
           ; ignore [procedure division], it is only used as a marker to start processing routines.
           if (searchIndex < 6) {
-            mainSections.push(CobolParsingGroups[searchIndex])
+            mainSections.push(parsingGroups[searchIndex])
             codeSections.push(newSection)
           }
           
@@ -117,7 +124,7 @@ mainCobol() {
     ;----------------------------------------
     ; check if exists [COPY MAINB.] --> it is a Life400 batch program, so standard routines must be added.
     ;----------------------------------------
-    if (checkForMAINB && RegExMatch(My_LoopReadLine, CobolParsingRegex[7])) {
+    if (checkForMAINB && RegExMatch(My_LoopReadLine, parsingRegex[7])) {
       checkForMAINB := False
       foundMAINB := True
       addLife400BatchRoutines(current_line)
@@ -138,7 +145,7 @@ mainCobol() {
       
       ; found routine call, save name/stmt if not already saved.
       routineName := matchedString
-      if (!searchCobolCalledRoutines(routineName)) {
+      if (!searchCalledRoutines(routineName)) {
         calledRoutines.push(routineName)
         calledStmts.push(current_line)
       }
@@ -154,11 +161,11 @@ mainCobol() {
         Continue  ; parse next stmt
 
       ; if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
-      ;   processCobolENDSR()
+      ;   processENDSR()
       ;   firstRoutine := False
       ; }
 
-      processCobolBEGSR()
+      processBEGSR()
       Continue  ; parse next stmt
     }
 
@@ -167,7 +174,7 @@ mainCobol() {
     ;--------------------------------
     if (RegExMatch(My_LoopReadLine, "im)\s+(?:exit|goback)\s*\.")) {
       endStmt := current_line
-      processCobolENDSR()     
+      processENDSR()     
       Continue  ; parse next stmt
     }
   }
@@ -175,7 +182,7 @@ mainCobol() {
   ;---------------------------------------------------------------
   ; process beginning of routine.
   ;---------------------------------------------------------------
-processCobolBEGSR() {
+processBEGSR() {
   global
   firstRoutine := False
   StringUpper, matchedString, matchedString
@@ -187,7 +194,7 @@ processCobolBEGSR() {
   ;---------------------------------------------------------------
   ; process end of routine.
   ;---------------------------------------------------------------
-processCobolENDSR() {
+processENDSR() {
   global
   if (calledRoutines.MaxIndex() > 0) {  ; save current routine with all routines called.
     Loop, % calledRoutines.MaxIndex() {
@@ -215,7 +222,7 @@ processCobolENDSR() {
   ;---------------------------------------------------------------
   ; search if a routine is already saved in the called routines array.
   ;---------------------------------------------------------------
-searchCobolCalledRoutines(routineName) {
+searchCalledRoutines(routineName) {
   Loop, % calledRoutines.MaxIndex() {
     if (routineName == calledRoutines[A_Index])
       return A_Index
@@ -225,17 +232,17 @@ searchCobolCalledRoutines(routineName) {
   ;---------------------------------------------------------------
   ; insert the main sections at the beginning of the array
   ;---------------------------------------------------------------
-addCobolMainSections() {
+addMainSections() {
   global
 
-  Loop, % CobolParsingGroups.MaxIndex() - 1 { ; skip [procedure division]
+  Loop, % parsingGroups.MaxIndex() - 1 { ; skip [procedure division]
     
     newSection := {}
     newSection.name := "MAIN"
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0
-    newSection.calledSection := CobolParsingGroups[A_Index]
+    newSection.calledSection := parsingGroups[A_Index]
 
     codeSections.InsertAt(A_Index, newSection)
   }
@@ -262,7 +269,7 @@ addLife400BatchRoutines(stmt) {
   ;---------------------------------------------------------------
   ; 
   ;---------------------------------------------------------------
-saveCobolSections(codeSections) {
+saveSections(codeSections) {
   global
   
   Loop, % codeSections.MaxIndex() {
@@ -284,7 +291,7 @@ saveCobolSections(codeSections) {
   ;---------------------------------------------------------------
   ; check if an array is empty.
   ;---------------------------------------------------------------
-CobolisEmptyOrEmptyStringsOnly(inputArray) {
+isEmptyOrEmptyStringsOnly(inputArray) {
 	for each, value in inputArray {
 		if !(value == "") {
 			return false ;one of the values is not an empty string therefore the array is not empty or empty strings only
