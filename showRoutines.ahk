@@ -1205,12 +1205,12 @@ GuiClose:  ; Exit the script when the user closes the TreeView's GUI window.
 ButtonOK: 
   {
 	GuiControlGet, searchText, ,MyEdit_routine  ;get search text from input field
-	if (searchText <> "")
+	if (searchText != "")
 		searchItemInRoutine(searchText, "next")
 	else {
 		GuiControlGet, searchText, ,MyEdit_code  ;get search text from input field
-		if (searchText <> "")
-			item = searchItemInCode(searchText, "next")
+		if (searchText != "")
+			item := searchItemInCode(searchText, "next")
 		GuiControl, Choose, MyListBox, item
 	}
 	return
@@ -2377,6 +2377,8 @@ populateRoutines() {
 	Loop, Read, %fullFileRoutines%
 	{
 		tmpRoutine := parseLine(A_LoopReadLine)     ; parse line into separate fields.
+    if (A_Index = 1)
+      tmpRoutine.STMLAST := allCode.MaxIndex()
 		
 		if (trim(tmpRoutine.IDNUM) = "")     ; if blank ignore line
 			continue
