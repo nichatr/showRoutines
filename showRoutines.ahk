@@ -1087,8 +1087,8 @@ setup() {
 
     Msgbox, %output%
     return
-
-#IfWinActive
+  
+  #IfWinActive
     ;-----------------------------------------------------------
     ; Handle user actions (such as clicking). 
     ;-----------------------------------------------------------
@@ -1211,7 +1211,8 @@ ButtonOK:
 		GuiControlGet, searchText, ,MyEdit_code  ;get search text from input field
 		if (searchText != "")
 			item := searchItemInCode(searchText, "next")
-		GuiControl, Choose, MyListBox, item
+    if (item > 0)
+		  GuiControl, Choose, MyListBox, %item%
 	}
 	return
   }

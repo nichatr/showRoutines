@@ -25,7 +25,7 @@ global life400StandardRoutines := [ "0900-RESTART"
                            , "3600-ROLLBACK"
                            , "4000-CLOSE" ]
 
-global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
+global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundMAINB, currentGroup
 
   ;---------------------------------------------------------------
   ; parse the file.
@@ -152,11 +152,6 @@ mainCobol() {
       ; if this section is "dummy" ignore it.
       if (firstRoutine && !calledRoutines.MaxIndex() > 0)
         Continue  ; parse next stmt
-
-      ; if (firstRoutine) { ; if it is the first routine, write the main routine which does not have BEGSR/ENDSR
-      ;   processCobolENDSR()
-      ;   firstRoutine := False
-      ; }
 
       processCobolBEGSR()
       Continue  ; parse next stmt
