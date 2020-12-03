@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - TODO: add cl(le) language
 - TODO: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE% (the last is better).
 
+## 2020-11-30
+
+- parseCOBOL.ahk: added 'exit program' keyword similar to 'goback' and 'exit'.
+- moved prism.js and prism.css into main folder: otherwise cannot build the showRoutines.EXE program.
+- tree diagram in zTree.html: changed refs to '..\prism.js/css'.
+
 ## 2020-11-27
 
 - showRoutines:

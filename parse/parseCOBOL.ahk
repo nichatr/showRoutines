@@ -33,7 +33,6 @@ global allCode, allSections, mainSections, codeSections, currentRoutine, routine
 parseCobol() {
   global
 
-  language := "cobol"
   FileEncoding, CP1253
 
   mainCobol()
@@ -160,7 +159,7 @@ mainCobol() {
     ;--------------------------------
     ; check for end of routine [EXIT. or GOBACK.]
     ;--------------------------------
-    if (RegExMatch(My_LoopReadLine, "im)\s+(?:exit|goback)\s*\.")) {
+    if (RegExMatch(My_LoopReadLine, "im)\s+(?:exit|goback|exit\s+program)\s*\.")) {
       endStmt := current_line
       processCobolENDSR()     
       Continue  ; parse next stmt

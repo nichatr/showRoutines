@@ -36,10 +36,10 @@
   ; used for building the executable.
   FileInstall, tree diagram in zTree.html, tree diagram in zTree.html 
   FileInstall, tree diagram in CSS.html, tree diagram in CSS.html
-  FileInstall, prism.js, prism.js
-  FileInstall, prism.css, prism.css
   FileInstall, showRoutines.ini, showRoutines.ini
   FileInstall, showRoutines.bat, showRoutines.bat
+  FileInstall, prism.js, prism.js
+  FileInstall, prism.css, prism.css
 
   #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
   #Include %A_ScriptDir%\XML\xml.ahk  ; for building html (xml)
@@ -88,15 +88,21 @@ mainProcess() {
   populateCode()
   cleanCode(allCode, language)  ; trim line numbers, spaces, dates.
 
-  if (parseCode) {
-    Switch language
-    {
-      Case "rpg":
-        parseRPG()
-      Case "cobol":
-        parseCOBOL()
-    }
-  }
+  if (language="rpg")
+    parseRPG()
+  else
+    parseCOBOL()
+
+
+  ; if (parseCode) {
+  ;   Switch language
+  ;   {
+  ;     Case "rpg":
+  ;       parseRPG()
+  ;     Case "cobol":
+  ;       parseCOBOL()
+  ;   }
+  ; }
 
   populateRoutines()
   loadTreeview()
@@ -701,23 +707,26 @@ initialize() {
   ; so it is defined at the beginning.
 	SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
 	
-	if (A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
+	if (A_Args[1] != "" and A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
 		params_exist = true
 	
   ; decide if a <routine calls> file exists or not.
-  parseCode := A_Args[1] != "" ? False : True
+  if (A_Args[1] == "_.txt" || A_Args[1] = "")
+    parseCode := True
+  else
+    parseCode := False
 
 	user := getSystem()
   IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
   IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 	
     ; set default filenames when run from my home.
-	if (user ="SYSTEM_HOME") {
-    if (!fileSelector(path))
-      ExitApp
+	; if (user ="SYSTEM_HOME") {
+  ;   if (!fileSelector(path))
+  ;     ExitApp
 
-    Return
-  }
+  ;   Return
+  ; }
 	
   ; otherwise get filenames from params.
 		
@@ -763,6 +772,7 @@ initialize() {
     ; use existing files(*select) or ini file has not corresponding entry: open file selector
   
   if (A_Args[4] = "*SELECT" or fileCode = "") {
+    ; msgbox, % line 775
     if (!fileSelector(path))
       ExitApp
   }
@@ -785,9 +795,11 @@ setup() {
 	fullFileRoutines := path . fileRoutines
 	fullFileCode := path . fileCode
 
-  if !FileExist(fullFileCode)
+  if !FileExist(fullFileCode) {
+    ; msgbox, % line 799
     if (!fileSelector(path))
       ExitApp
+  }
 
   ; find the language (used in export and open with notepad++).
 	SplitPath, fullFileCode , codeFileName, codeDir, codeExtension, codeNameNoExt, codeDrive

@@ -13,7 +13,6 @@ global allCode, allSections, mainSections, codeSections, currentRoutine, routine
 parseRpg() {
   global
 
-  language := "rpg"
   FileEncoding, CP1253
 
   mainRpg()
