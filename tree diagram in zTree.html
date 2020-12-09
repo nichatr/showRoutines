@@ -96,7 +96,7 @@
        * click event handler:
        *  scroll to clicked routine.
        *--------------------------------------------------------------------- */
-       function myOnRightClick(event, treeId, treeNode) {
+       function myOnClick(event, treeId, treeNode) {
 
         var routineName = treeNode.name
         gotoRoutine(routineName)
@@ -122,10 +122,10 @@
         $("div.code").scrollTop(myOffset);
       }
       /**---------------------------------------------------------------------
-       * click event handler:
+       * right click event handler:
        *  for each selected node: load corresponding code segment.
        *--------------------------------------------------------------------- */
-      function myOnClick(event, treeId, treeNode) {
+      function myOnRightClick(event, treeId, treeNode) {
         
         var zTree = $.fn.zTree.getZTreeObj('treeDemo');
         var sNodes = zTree.getSelectedNodes();
@@ -447,16 +447,13 @@
                 F5: refresh (reload all code)
               </li>
               <li class="list-group-item">
-                Control + f: search for string
+                Control + F: search for string
               </li>
               <li class="list-group-item">
-                Left click (tree): show only selected routine
+                Left click (tree): locate routine
               </li>
               <li class="list-group-item">
-                Control + Left click (tree): show more routines/hide routines
-              </li>
-              <li class="list-group-item">
-                Right click (tree): locate routine
+                Right click (tree): show only selected routine
               </li>
             </ul>
           </div>

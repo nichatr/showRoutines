@@ -695,8 +695,6 @@ initialize() {
 	params_exist = false
 	user := ""
 	path := A_ScriptDir . "\data\"
-	fileRoutines := ""
-	fileCode := ""
   exportInBatch := false
   
   if !FileExist(path) {
@@ -709,34 +707,29 @@ initialize() {
 	
 	if (A_Args[1] != "" and A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
 		params_exist = true
+
+	fileRoutines := A_Args[1]
+	fileCode := A_Args[2]
 	
   ; decide if a <routine calls> file exists or not.
-  if (A_Args[1] == "_.txt" || A_Args[1] = "")
+  if (A_Args[1] = "")
     parseCode := True
+  ; <routine calls> derives from <code> file but instead the cbl/rpg extension is txt.
+  else if (A_Args[1] == "_.txt") {
+    parseCode := True
+    SplitPath, A_Args[2], file, dir, fileNoExt, drive
+    fileRoutines := fileNoExt . ".txt"
+  }
   else
     parseCode := False
 
 	user := getSystem()
-  IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
-  IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-	
-    ; set default filenames when run from my home.
-	; if (user ="SYSTEM_HOME") {
-  ;   if (!fileSelector(path))
-  ;     ExitApp
 
-  ;   Return
-  ; }
+  if (fileRoutines = "")
+    IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
+  if (fileCode = "")
+    IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
 	
-  ; otherwise get filenames from params.
-		
-  ; use existing files(*NEW/*OLD):
-  ; load the files either from showRoutines.ini or from arguments.
-  if (trim(A_Args[4]) = "*NEW" or trim(A_Args[4]) = "*OLD") {
-    fileRoutines := A_Args[1] != "" ? A_Args[1] : fileRoutines ; routines calls file
-    fileCode := params_exist ? A_Args[2] : fileCode ; routines code file
-  }
-		
   ; use existing files(*no):
   ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
   if (trim(A_Args[4]) = "*NEW") {
