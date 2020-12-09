@@ -717,7 +717,8 @@ initialize() {
   ; <routine calls> derives from <code> file but instead the cbl/rpg extension is txt.
   else if (A_Args[1] == "_.txt") {
     parseCode := True
-    SplitPath, A_Args[2], file, dir, fileNoExt, drive
+    filename := A_Args[2]
+    SplitPath, filename, file, dir, fileNoExt, drive
     fileRoutines := fileNoExt . ".txt"
   }
   else
