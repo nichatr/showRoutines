@@ -726,11 +726,13 @@ initialize() {
 
 	user := getSystem()
 
-  if (fileRoutines = "")
-    IniRead, fileRoutines, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileRoutines
   if (fileCode = "")
     IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-	
+  if (fileRoutines = "") {
+    SplitPath, fileCode, file, dir, fileNoExt, drive
+    fileRoutines := fileNoExt . ".txt"
+  }
+
   ; use existing files(*no):
   ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
   if (trim(A_Args[4]) = "*NEW") {
