@@ -711,14 +711,17 @@ initialize() {
 	fileRoutines := A_Args[1]
 	fileCode := A_Args[2]
 	
+  ; StringLower, args1, A_Args[1]
+  SplitPath, A_Args[1], ,,, arg1noext
+
   ; decide if a <routine calls> file exists or not.
   if (A_Args[1] = "")
     parseCode := True
   ; <routine calls> derives from <code> file but instead the cbl/rpg extension is txt.
-  else if (A_Args[1] == "_.txt") {
+  else if (arg1noext = "_") {
     parseCode := True
     filename := A_Args[2]
-    SplitPath, filename, file, dir, fileNoExt, drive
+    SplitPath, filename, file, dir, ext, fileNoExt, drive
     fileRoutines := fileNoExt . ".txt"
   }
   else
@@ -729,7 +732,7 @@ initialize() {
   if (fileCode = "")
     IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
   if (fileRoutines = "") {
-    SplitPath, fileCode, file, dir, fileNoExt, drive
+    SplitPath, fileCode, file, dir, ext, fileNoExt, drive
     fileRoutines := fileNoExt . ".txt"
   }
 
