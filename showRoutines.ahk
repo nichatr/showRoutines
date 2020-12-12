@@ -739,34 +739,38 @@ initialize() {
 
   ; use existing files(*no):
   ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
-  if (trim(A_Args[4]) = "*NEW") {
+  Loop, 1
+  {
+    if (trim(A_Args[4]) = "*NEW") {
 
-    pathIeffect := params_exist ? A_Args[3] : "z:\bussup\txt\"
-    
-    if (!FileExist(pathIeffect)) {
-      msgbox, % "Folder " . pathIeffect . " doesn't exist. Press enter and select file"
-      ; fileRoutines := ""      ; clear in order next to show file selector!
-      ExitApp
-    } 
+      pathIeffect := params_exist ? A_Args[3] : "z:\bussup\txt\"
+      
+      if (!FileExist(pathIeffect)) {
+        msgbox, % "Folder " . pathIeffect . " doesn't exist. Perhaps a map drive is required. Press enter and select file"
+        fileRoutines := ""      ; clear in order next to show file selector!
+        fileCode := ""
+        Break
+      } 
 
-    ; move <routine calls> file to work folder.
-    if (!parseCode) {
-      Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
-      FileMove, %pathIeffect%%fileRoutines% , %path% , 1  ; 1=overwrite file
+      ; move <routine calls> file to work folder.
+      if (!parseCode) {
+        Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileRoutines . " to folder " . path
+        FileMove, %pathIeffect%%fileRoutines% , %path% , 1  ; 1=overwrite file
+        if (ErrorLevel <> 0) {
+          msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
+        }
+        Progress, Off
+      }
+      
+      ; move <code> file to work folder.
+      OLDfileCode := fileCode
+      Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
+      FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite file
       if (ErrorLevel <> 0) {
-        msgbox, % "Cannot move file " . pathIeffect . fileRoutines . " to folder " . path
+        msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
       }
       Progress, Off
     }
-    
-    ; move <code> file to work folder.
-    OLDfileCode := fileCode
-    Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
-    FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite file
-    if (ErrorLevel <> 0) {
-      msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
-    }
-    Progress, Off
   }
 		
     ; use existing files(*select) or ini file has not corresponding entry: open file selector
