@@ -712,7 +712,8 @@ initialize() {
 	fileCode := A_Args[2]
 	
   ; StringLower, args1, A_Args[1]
-  SplitPath, A_Args[1], ,,, arg1noext
+  arg1 := A_Args[1]
+  SplitPath, arg1, ,,, arg1noext
 
   ; decide if a <routine calls> file exists or not.
   if (A_Args[1] = "")
@@ -740,10 +741,10 @@ initialize() {
   ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
   if (trim(A_Args[4]) = "*NEW") {
 
-    pathIeffect := parms_exist ? A_Args[3] : "z:\bussup\txt\"
+    pathIeffect := params_exist ? A_Args[3] : "z:\bussup\txt\"
     
     if (!FileExist(pathIeffect)) {
-      msgbox, "Folder " . %pathIeffect% . " doesn't exist. Press enter and select file"
+      msgbox, % "Folder " . pathIeffect . " doesn't exist. Press enter and select file"
       ; fileRoutines := ""      ; clear in order next to show file selector!
       ExitApp
     } 
