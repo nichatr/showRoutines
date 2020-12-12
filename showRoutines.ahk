@@ -708,6 +708,12 @@ initialize() {
 	if (A_Args[1] != "" and A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
 		params_exist = true
 
+  if (!params_exist) {
+    if (!fileSelector(path))
+      ExitApp ; if no file was selected exit application.
+    Return  ; if file was selected return to calling routine.
+  }
+
 	fileRoutines := A_Args[1]
 	fileCode := A_Args[2]
 	
@@ -728,14 +734,12 @@ initialize() {
   else
     parseCode := False
 
-	user := getSystem()
-
-  if (fileCode = "")
-    IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-  if (fileRoutines = "") {
-    SplitPath, fileCode, file, dir, ext, fileNoExt, drive
-    fileRoutines := fileNoExt . ".txt"
-  }
+  ; if (fileCode = "")
+  ;   IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
+  ; if (fileRoutines = "") {
+  ;   SplitPath, fileCode, file, dir, ext, fileNoExt, drive
+  ;   fileRoutines := fileNoExt . ".txt"
+  ; }
 
   ; use existing files(*no):
   ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
@@ -743,10 +747,10 @@ initialize() {
   {
     if (trim(A_Args[4]) = "*NEW") {
 
-      pathIeffect := params_exist ? A_Args[3] : "z:\bussup\txt\"
+      pathIeffect := A_Args[3]
       
       if (!FileExist(pathIeffect)) {
-        msgbox, % "Folder " . pathIeffect . " doesn't exist. Perhaps a map drive is required. Press enter and select file"
+        msgbox, % "Folder " . pathIeffect . " doesn't exist. Perhaps a map drive is required. Please select an existing file"
         fileRoutines := ""      ; clear in order next to show file selector!
         fileCode := ""
         Break
@@ -776,14 +780,12 @@ initialize() {
     ; use existing files(*select) or ini file has not corresponding entry: open file selector
   
   if (A_Args[4] = "*SELECT" or fileCode = "") {
-    ; msgbox, % line 775
     if (!fileSelector(path))
       ExitApp
   }
   
-  if (trim(A_Args[5]) = "*EXPORT") {
+  if (trim(A_Args[5]) = "*EXPORT")
     exportInBatch := true
-  }
   }
     ;--------------------------------------------
     ; set environment, populate data structures
@@ -2468,16 +2470,6 @@ class routine {
 	endStmt := ""
 	callingStmt := ""
 	calls := []
-  }
-  ;-----------------------------------------------------------
-  ; find system script is running.
-  ;-----------------------------------------------------------
-getSystem() {
-	StringLower, user, A_UserName
-	if (user != "nic")
-		return "SYSTEM_WORK"
-	Else
-		return "SYSTEM_HOME"
   }
   ;------------------------------------------------------------------
   ; get file selection from user, using given path and file filter.
