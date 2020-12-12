@@ -734,13 +734,6 @@ initialize() {
   else
     parseCode := False
 
-  ; if (fileCode = "")
-  ;   IniRead, fileCode, %A_ScriptDir%\%scriptNameNoExt%.ini, files, fileCode
-  ; if (fileRoutines = "") {
-  ;   SplitPath, fileCode, file, dir, ext, fileNoExt, drive
-  ;   fileRoutines := fileNoExt . ".txt"
-  ; }
-
   ; use existing files(*no):
   ;   move file.txt & file.XXXXX (XXXXX=rpgle/cblle/cbl) from ieffect folder to .\data
   Loop, 1
