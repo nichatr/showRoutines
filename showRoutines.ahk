@@ -767,11 +767,10 @@ initialize() {
       }
       
       ; move <code> file to work folder.
-      OLDfileCode := fileCode
       Progress, zh0 fs10, % "Trying to move file " . pathIeffect . fileCode . " to folder/file " . path
-      FileMove, %pathIeffect%%OLDfileCode% ,  %path%%fileCode% , 1     ; 1=ovewrite file
+      FileMove, %pathIeffect%%fileCode% ,  %path%, 1     ; 1=ovewrite file
       if (ErrorLevel <> 0) {
-        msgbox, % "Cannot move file " . pathIeffect . OLDfileCode . " to folder " . path
+        msgbox, % "Cannot move file " . pathIeffect . fileCode . " to folder " . path
       }
       Progress, Off
     }
@@ -2486,6 +2485,7 @@ fileSelector(homePath) {
 	SplitPath, fullFileCode , FileName, Dir, Extension, NameNoExt, Drive
   fileCode := FileName
   fileRoutines := NameNoExt . ".txt"
+  parseCode := True
 
 	return true
   }
