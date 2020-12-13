@@ -14,6 +14,7 @@
   ;               *OLD = use existing file found in showRoutines.ini
   ;               *SELECT = open file selector
   ;   A_Args[5] = "*DISPLAY" show gui, "*EXPORT": load and export to html without showing gui.
+  ;   A_Args[6] = "1" do not show gui, application is running for extracting the 'fileinstall' files.
   ;
   ;--------------------------------------------------------------------------------------
   ; 1. read text file CBTREEF5.TXT containing the output of program CBTREER5:
@@ -34,7 +35,7 @@
   #NoEnv  ; Recommended for performance and compatibility with future AutoHotkey releases.
 
   ; used for building the executable.
-  FileInstall, tree diagram in zTree.html, tree diagram in zTree.html 
+  FileInstall, tree diagram in zTree.html, tree diagram in zTree.html
   FileInstall, tree diagram in CSS.html, tree diagram in CSS.html
   FileInstall, showRoutines.ini, showRoutines.ini
   FileInstall, showRoutines.bat, showRoutines.bat
@@ -697,6 +698,9 @@ initialize() {
 	path := A_ScriptDir . "\data\"
   exportInBatch := false
   
+  if (A_Args[6] = "1")  ; if application is running for extracting the files, then exit.
+    ExitApp
+
   if !FileExist(path) {
     FileCreateDir, %path%
   }
