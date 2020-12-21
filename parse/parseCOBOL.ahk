@@ -62,7 +62,7 @@ mainCobol() {
   calledStmts := []
   foundMAINB := False ; when true add standard sections 1000-,2000-,3000-,4000-
   checkForMAINB := True ; when true check if [COPY MAINB.] exists, but after first procedure division's section is found stop checking.
-  currentRoutine := "MAIN"
+  currentRoutine := fileCode  ; "MAIN"
   currentGroup := 1
   firstRoutine := True
 
@@ -225,7 +225,7 @@ addCobolMainSections() {
   Loop, % CobolParsingGroups.MaxIndex() - 1 { ; skip [procedure division]
     
     newSection := {}
-    newSection.name := "MAIN"
+    newSection.name := fileCode ; "MAIN"
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0

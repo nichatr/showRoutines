@@ -107,8 +107,8 @@ mainProcess() {
 
   populateRoutines()
   loadTreeview()
-  ; file_to_save := A_ScriptDir . "\data\allRoutines.txt"
-  ; saveRoutines(file_to_save, header, true)
+  file_to_save := A_ScriptDir . "\data\allRoutines.txt"
+  saveRoutines(file_to_save, header, true)
   updateStatusBar()
   if (!exportInBatch)
     showGui()
@@ -378,6 +378,7 @@ exportInBatch() {
   ;---------------------------------------------------------------------
 saveExportedString(exportedString) {
   global
+  stringCode := ""
   if (exportedString = "") {
     MsgBox, Nothing to export.
     return
@@ -465,7 +466,6 @@ cleanCode(allCode, language) {
       -the spaces from the right only.
   -----------------------------------------------------------------------------
   */
-  stringCode := ""
   if (language = "rpg") {
     Loop, % allCode.MaxIndex() {
       line := RegExReplace(allCode[A_index], "^.\d{4}\.\d{2}.{5}","") ; remove (1 char) + (9999.99) + (5 chars) at BOL
@@ -2472,6 +2472,7 @@ class routine {
   ; populates global fields: fullFileRoutines, fullFileCode
   ;------------------------------------------------------------------
 fileSelector(homePath) {
+  Global
   filter := "(*.cbl*; *.rpg*)"
 	FileSelectFile, fullFileCode, 1, %homePath% , Select routines file, %filter%
 	

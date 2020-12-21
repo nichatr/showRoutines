@@ -41,7 +41,7 @@ mainRpg() {
   calledRoutines := []
   calledStmts := []
   foundINZSR := False
-  currentRoutine := "MAIN"
+  currentRoutine := fileCode  ; "MAIN"
   currentGroup := 1
   firstRoutine := True
 
@@ -189,7 +189,7 @@ addRpgMainSections() {
   Loop, % mainSections.MaxIndex()
   {
     newSection := {}
-    newSection.name := "MAIN"
+    newSection.name := fileCode ; "MAIN"
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0
@@ -205,7 +205,7 @@ addINZSR() {
   global
 
   newSection := {}
-  newSection.name := "MAIN"
+  newSection.name := fileCode ; "MAIN"
   newSection.startStmt := codeSections[1].startStmt
   newSection.endStmt := codeSections[1].endStmt
   newSection.callingStmt := codeSections[1].startStmt

@@ -7,11 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Todo]
 
-- change new html template to include bootstrap/container/sticky top bar (similar to old template).
-- make the same changes to showPrograms!
+- showPrograms:
 
-- TODO: add cl(le) language
-- TODO: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE% (the last is better).
+  - find method to insert more spaces between program names and their descriptions.
+  - add text to nodes of a boxed tree?
+
+- showRoutines: move the declaration sections to a main routine (name= declarations).
+
+  - place declarations below MAIN.
+    - cobol: environment|data|working-storage|linkage
+    - rpg: file|data|input|output ??
+
+- parseRPG: the output section is not processed.
+
+- showRoutines: replace MAIN with the program name, example: B9Y56. Applies to display, export.
+- showRoutines/showPrograms: move menu items Settings, Help one level up.
+
+## 2020-12-13
+
+- DONE: replace fixed paths in batch script with %APPDATA% or %LOCALDATA% or %ONEDRIVE% (the last is better).
 
 ## 2020-11-30
 
