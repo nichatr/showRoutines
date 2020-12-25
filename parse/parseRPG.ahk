@@ -1,9 +1,9 @@
 #SingleInstance, Force
 SetWorkingDir, %A_ScriptDir%
 
-global RpgParsingGroups := [ "File", "Data", "Input", "Calc", "Output"]
+global RpgParsingGroups := [ "File", "Data", "Input", "Calc"]
 
-global RpgParsingRegex := [ "im)^[FH]", "im)^D", "im)^I", "im)^C", "im)^O"]
+global RpgParsingRegex := [ "im)^[FH]", "im)^D", "im)^I", "im)^C"]
 
 global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundINZSR, currentGroup
 
@@ -44,6 +44,8 @@ mainRpg() {
   currentRoutine := fileCode  ; "MAIN"
   currentGroup := 1
   firstRoutine := True
+  startStmt := 0
+  firstExecutableStmt := 0
 
   ; read all code one line at a time and parse.
   Loop, % allCode.MaxIndex()
@@ -56,7 +58,7 @@ mainRpg() {
     current_line := A_Index  ; save index to use in inner loops.
 
     ;---------------------------------------------------------
-    ; if main sections (1-5) not parsed yet: parse any found.
+    ; if main sections (1-4) not parsed yet: parse any found.
     ;---------------------------------------------------------
     if (currentGroup <= 4) {
       searchIndex := currentGroup
@@ -65,17 +67,20 @@ mainRpg() {
       {
         if (RegExMatch(current_code, RpgParsingRegex[searchIndex])) {
           if (!RpgisEmptyOrEmptyStringsOnly(codeSections))
-            codeSections[codeSections.MaxIndex()].endStmt := current_line - 1
+            codeSections[codeSections.MaxIndex()].endStmt := current_line ; - 1
 
           newSection := {}
           newSection.name := RpgParsingGroups[searchIndex]
-          newSection.startStmt := RpgisEmptyOrEmptyStringsOnly(codeSections) ? 1 : (current_line - 1)
+          newSection.startStmt := RpgisEmptyOrEmptyStringsOnly(codeSections) ? 1 : current_line ; (current_line - 1)
           newSection.callingStmt := 0
           
           ; ignore [Calc], it is only used as a marker to start processing routines.
           if (searchIndex < 4) {
             mainSections.push(RpgParsingGroups[searchIndex])
             codeSections.push(newSection)
+          } else {
+            startStmt := current_line  ; keep first stmt of main routine.
+            firstExecutableStmt := current_line
           }
           
           currentGroup := searchIndex + 1
@@ -186,17 +191,32 @@ searchRpgCalledRoutines(routineName) {
 addRpgMainSections() {
   global
 
+  declarationsSection := "Declarations"
+  endStmt := 0
+
   Loop, % mainSections.MaxIndex()
   {
     newSection := {}
-    newSection.name := fileCode ; "MAIN"
+    newSection.name := declarationsSection
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0
     newSection.calledSection := mainSections[A_Index]
+    endStmt := 0
 
     codeSections.InsertAt(A_Index, newSection)
   }
+
+  ; attach declarations group to main program.
+  newSection := {}
+  newSection.name := fileCode ; "MAIN"
+  newSection.startStmt := firstExecutableStmt
+  newSection.endStmt := 1
+  newSection.callingStmt := 0
+  newSection.calledSection := declarationsSection
+
+  codeSections.InsertAt(1, newSection)
+  
 }
   ;---------------------------------------------------------------
   ; attach *INZSR to MAIN routine.

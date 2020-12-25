@@ -709,7 +709,8 @@ initialize() {
   ; so it is defined at the beginning.
 	SplitPath, A_ScriptFullPath , scriptFileName, scriptDir, scriptExtension, scriptNameNoExt, scriptDrive
 	
-	if (A_Args[1] != "" and A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
+	; if (A_Args[1] != "" and A_Args[2] != "" and A_Args[3] != ""  and A_Args[4] != "")
+  if (A_Args.Length() >= 4) ; if at least 4 params exist...
 		params_exist = true
 
   if (!params_exist) {

@@ -65,8 +65,10 @@ mainCobol() {
   currentRoutine := fileCode  ; "MAIN"
   currentGroup := 1
   firstRoutine := True
+  startStmt := 0
+  firstExecutableStmt := 0
 
-; read all code one line at a time and parse.
+  ; read all code one line at a time and parse.
   Loop, % allCode.MaxIndex()
   {
     current_code := allCode[A_Index]
@@ -78,9 +80,9 @@ mainCobol() {
 
     current_line := A_Index  ; save index to use in inner loops.
 
-    ;----------------------------------------
-    ; if main sections (1-7) not parsed yet: parse current section.
-    ;----------------------------------------
+    ;-----------------------------------------------------------------
+    ; if main sections (1-6) not parsed yet: parse current section.
+    ;-----------------------------------------------------------------
     if (currentGroup <= 6) {
       searchIndex := currentGroup
 
@@ -97,8 +99,10 @@ mainCobol() {
           
           ; ignore [procedure division], it is only used as a marker to start processing routines.
           if (searchIndex < 6) {
-            mainSections.push(CobolParsingGroups[searchIndex])
             codeSections.push(newSection)
+          } else {
+            startStmt := current_line  ; keep first stmt of main routine.
+            firstExecutableStmt := current_line
           }
           
           currentGroup := searchIndex + 1
@@ -222,17 +226,33 @@ searchCobolCalledRoutines(routineName) {
 addCobolMainSections() {
   global
 
-  Loop, % CobolParsingGroups.MaxIndex() - 1 { ; skip [procedure division]
-    
+  declarationsSection := "Declarations"
+  endStmt := 0
+
+  ; Loop, % CobolParsingGroups.MaxIndex() - 1  ; skip [procedure division]
+  Loop, % CobolParsingGroups.MaxIndex()
+  {
     newSection := {}
-    newSection.name := fileCode ; "MAIN"
+    newSection.name := declarationsSection
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := 0
     newSection.calledSection := CobolParsingGroups[A_Index]
+    endStmt := 0
 
     codeSections.InsertAt(A_Index, newSection)
   }
+
+  ; attach declarations group to main program.
+  newSection := {}
+  newSection.name := fileCode ; "MAIN"
+  newSection.startStmt := firstExecutableStmt
+  newSection.endStmt := 1
+  newSection.callingStmt := 0
+  newSection.calledSection := declarationsSection
+
+  codeSections.InsertAt(1, newSection)
+  
 }
   ;---------------------------------------------------------------
   ; add the Life400 batch program <standard routines>.

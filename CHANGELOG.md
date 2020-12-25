@@ -20,8 +20,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - parseRPG: the output section is not processed.
 
-- showRoutines: replace MAIN with the program name, example: B9Y56. Applies to display, export.
 - showRoutines/showPrograms: move menu items Settings, Help one level up.
+
+## 2020-12-21
+
+- DONE: showRoutines: replace MAIN with the program name, example: B9Y56. Applies to display, export.
 
 ## 2020-12-13
 
