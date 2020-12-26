@@ -214,8 +214,8 @@ showExport() {
   CheckedAS400 := exportConnectorsType == "AS400" ? "Checked" : ""
 
   Gui, 3:Add, GroupBox, xm+20 y120 w150 h150, Output format
-  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML1% xp+15 yp+30, folding tree
-  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, boxed tree
+  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML1% xp+15 yp+30, web page
+  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, flowchart
   Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedTXT%, txt
   Gui, 3:Add, Radio, g3Check xm+35 yp+25 %CheckedJSON%, json
 

@@ -12,15 +12,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - find method to insert more spaces between program names and their descriptions.
   - add text to nodes of a boxed tree?
 
+- parseRPG: the output section is not processed.
+
+- showRoutines/showPrograms: move menu items Settings, Help one level up.
+
+## 2020-12-25
+
 - showRoutines: move the declaration sections to a main routine (name= declarations).
 
   - place declarations below MAIN.
     - cobol: environment|data|working-storage|linkage
     - rpg: file|data|input|output ??
-
-- parseRPG: the output section is not processed.
-
-- showRoutines/showPrograms: move menu items Settings, Help one level up.
 
 ## 2020-12-21
 
