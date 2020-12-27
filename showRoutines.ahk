@@ -1938,10 +1938,13 @@ exportNodesAsTXT(expandAll, index1, index2) {
     currentLevel := itemLevels[currIndex, 2]
     
     ; ignore current node if it's level is greater than requested.
-    if (currentLevel > exportMaxLevel) {
+    ; ignore all the declarations.
+    if (currentLevel > exportMaxLevel 
+      || itemLevels[currIndex, 3] = "Declarations"      ; child routine name
+      || itemLevels[currIndex, 5] = "Declarations") {   ; parent routine name
       currIndex ++
       continue
-    }
+    } 
 
     ; calc prefix string length (before the |__routine ).
     prefixCount := (currentLevel - 1) * 3   ; 3 spaces for each previous level.
@@ -2072,7 +2075,6 @@ exportNodesAsHTML2(expandAll, index1, index2) {
   exportedString := ""
   currIndex := index1
   isRoot := True
-  firstChild := True
 
   try
     ; create an XMLDOMDocument object
@@ -2092,10 +2094,13 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     currentLevel := itemLevels[currIndex, 2]
     
     ; ignore current node if it's level is greater than requested.
-    if (currentLevel > exportMaxLevel) {
+    ; ignore all the declarations.
+    if (currentLevel > exportMaxLevel 
+      || itemLevels[currIndex, 3] = "Declarations"      ; child routine name
+      || itemLevels[currIndex, 5] = "Declarations") {   ; parent routine name
       currIndex ++
       continue
-    }
+    } 
 
     ;------------------------------------------
     ; for the root item create also the header.
@@ -2109,10 +2114,15 @@ exportNodesAsHTML2(expandAll, index1, index2) {
 
       ; write root's calls as ul/li.
       allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
+      processedFirstCalledRoutine := False
+
       if (allRoutinesIndex > 0) {
         Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+          if (allRoutines[allRoutinesIndex].calls[A_Index] = "Declarations")  ; skip dummy code
+            continue
           ; if first call, write a ul under parent li.
-          if (A_Index = 1) {
+          if (!processedFirstCalledRoutine) {
+            processedFirstCalledRoutine := True
             nodeUL := xmlObj.addElement("ul", nodeLI)
             searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
           }
@@ -2127,7 +2137,6 @@ exportNodesAsHTML2(expandAll, index1, index2) {
 
       isRoot := False
       getNextIndex(currIndex, currentLevel, expandAll)
-      ; currIndex ++
       continue  ; go to next item
     }
 
@@ -2171,6 +2180,59 @@ exportNodesAsHTML2(expandAll, index1, index2) {
   ; transform into xml and return for further processing.
   xmlObj.transformXML()
   return xmlObj.xml ; this contains the full xml
+  }
+  ;-------------------------------------------------------------------------------
+  ; export nodes to powerpoint - show as flowchart
+  ;   expandAll = true : export all nodes / false : export only the shown nodes
+  ;   index1, index2 = from item to item
+  ;-------------------------------------------------------------------------------
+exportNodesAsPPTX(expandAll, index1, index2) {
+  exportedString := ""
+  currIndex := index1
+  isRoot := True
+  ; pptx enumerators.
+  ppLayoutBlank := 12
+  msoShapeRectangle := 1
+  msoConnectorStraight := 1
+  msoConnectorElbow := 2
+
+  ; create the main powerpoint containers.
+  oApp := ComObjCreate("PowerPoint.Application") ; create powerpoint.
+  oApp.Visible := True
+  oPres := oApp.Presentations.Add() ; create presentation.
+  ; create a slide
+  PpSlideLayout := ppLayoutBlank 
+  oSlide := oPres.Slides.Add(1, PpSlideLayout )
+  oShapes := oPres.Slides(1).Shapes
+
+  ;-----------------------------------------------------------------
+  ; Traverse all nodes and select only the required.
+  ; Attach each selected node to it's parent.
+  ; Each node is displayed as a rectangle connected to it's parent.
+  ;-----------------------------------------------------------------
+  while (currIndex <= index2) {
+  
+    currentLevel := itemLevels[currIndex, 2]
+    
+    ; ignore current node if it's level is greater than requested.
+    ; ignore all the declarations.
+    if (currentLevel > exportMaxLevel 
+      || itemLevels[currIndex, 3] = "Declarations"      ; child routine name
+      || itemLevels[currIndex, 5] = "Declarations") {   ; parent routine name
+      currIndex ++
+      continue
+    }    
+
+    if (isRoot) {
+      
+      isRoot := False
+      getNextIndex(currIndex, currentLevel, expandAll)
+      continue  ; go to next item
+    }
+
+
+  }
+
   }
   ;-------------------------------------------------------------------------------
   ; used when exporting only visible nodes.
