@@ -80,6 +80,8 @@
   global ExportSelected, nodesToExport, ExportWhatYouSee, exportInBatch
   global guiHWND
 
+  global CONST_DECLARATIONS := "Declarations"
+
 initialize()
 mainProcess()
   return
@@ -1940,8 +1942,8 @@ exportNodesAsTXT(expandAll, index1, index2) {
     ; ignore current node if it's level is greater than requested.
     ; ignore all the declarations.
     if (currentLevel > exportMaxLevel 
-      || itemLevels[currIndex, 3] = "Declarations"      ; child routine name
-      || itemLevels[currIndex, 5] = "Declarations") {   ; parent routine name
+      || itemLevels[currIndex, 3] = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex, 5] = CONST_DECLARATIONS) {   ; parent routine name
       currIndex ++
       continue
     } 
@@ -2096,8 +2098,8 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     ; ignore current node if it's level is greater than requested.
     ; ignore all the declarations.
     if (currentLevel > exportMaxLevel 
-      || itemLevels[currIndex, 3] = "Declarations"      ; child routine name
-      || itemLevels[currIndex, 5] = "Declarations") {   ; parent routine name
+      || itemLevels[currIndex, 3] = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex, 5] = CONST_DECLARATIONS) {   ; parent routine name
       currIndex ++
       continue
     } 
@@ -2116,16 +2118,20 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
       processedFirstCalledRoutine := False
 
-      if (allRoutinesIndex > 0) {
+      if (allRoutinesIndex > 0) { ; if routine name was found in allRoutines
+
+        ; for each called routine create a separate output node.
         Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
-          if (allRoutines[allRoutinesIndex].calls[A_Index] = "Declarations")  ; skip dummy code
+          if (allRoutines[allRoutinesIndex].calls[A_Index] = CONST_DECLARATIONS)  ; skip dummy routine
             continue
+
           ; if first call, write a ul under parent li.
           if (!processedFirstCalledRoutine) {
             processedFirstCalledRoutine := True
             nodeUL := xmlObj.addElement("ul", nodeLI)
             searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
           }
+
           newnode:= xmlObj.addElement("li", nodeUL)
           calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]            
           xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
@@ -2160,10 +2166,12 @@ exportNodesAsHTML2(expandAll, index1, index2) {
             msgbox, % "itemLevels[currIndex, 6] is null for currIndex =" . currIndex . "-" . itemLevels[currIndex, 5] . "`nallRoutinesIndex =" . allRoutinesIndex . "-" . itemLevels[currIndex, 3]
             currIndex ++
             continue
-          }            
+          }
+
           nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
           searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
         }
+
         newnode:= xmlObj.addElement("li", nodeUL)
         calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]          
         xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
@@ -2174,7 +2182,6 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     }
 
     getNextIndex(currIndex, currentLevel, expandAll)
-    ; currIndex ++
   }
 
   ; transform into xml and return for further processing.
@@ -2196,13 +2203,19 @@ exportNodesAsPPTX(expandAll, index1, index2) {
   msoConnectorStraight := 1
   msoConnectorElbow := 2
 
+  ; rectangle dimensions.
+  CONST_FIRST_X := 400
+  CONST_FIRST_Y := 50
+  CONST_W := 200
+  CONST_H := 100
+
   ; create the main powerpoint containers.
   oApp := ComObjCreate("PowerPoint.Application") ; create powerpoint.
   oApp.Visible := True
   oPres := oApp.Presentations.Add() ; create presentation.
   ; create a slide
   PpSlideLayout := ppLayoutBlank 
-  oSlide := oPres.Slides.Add(1, PpSlideLayout )
+  oSlide := oPres.Slides.Add(1, PpSlideLayout)
   oShapes := oPres.Slides(1).Shapes
 
   ;-----------------------------------------------------------------
@@ -2217,20 +2230,40 @@ exportNodesAsPPTX(expandAll, index1, index2) {
     ; ignore current node if it's level is greater than requested.
     ; ignore all the declarations.
     if (currentLevel > exportMaxLevel 
-      || itemLevels[currIndex, 3] = "Declarations"      ; child routine name
-      || itemLevels[currIndex, 5] = "Declarations") {   ; parent routine name
+      || itemLevels[currIndex, 3] = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex, 5] = CONST_DECLARATIONS) {   ; parent routine name
       currIndex ++
       continue
     }    
 
+    ;
     if (isRoot) {
+      rectX := CONST_FIRST_X
+      rectY := CONST_FIRST_Y
+      rectW := CONST_W
+      rectH := CONST_H
+
+      ; create root box.
+      shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
+      itemLevels[currIndex, 6] := shapeParent  ; save root box for later reference.
       
+      ; write root's calls as boxes under the parent.
+      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
+      processedFirstCalledRoutine := False
+
+
       isRoot := False
       getNextIndex(currIndex, currentLevel, expandAll)
       continue  ; go to next item
     }
 
 
+
+
+
+
+
+    getNextIndex(currIndex, currentLevel, expandAll)
   }
 
   }

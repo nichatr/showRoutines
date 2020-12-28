@@ -191,7 +191,7 @@ searchRpgCalledRoutines(routineName) {
 addRpgMainSections() {
   global
 
-  declarationsSection := "Declarations"
+  declarationsSection := CONST_DECLARATIONS
   endStmt := 0
 
   Loop, % mainSections.MaxIndex()

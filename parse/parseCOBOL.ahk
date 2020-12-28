@@ -226,7 +226,7 @@ searchCobolCalledRoutines(routineName) {
 addCobolMainSections() {
   global
 
-  declarationsSection := "Declarations"
+  declarationsSection := CONST_DECLARATIONS
   endStmt := 0
 
   ; Loop, % CobolParsingGroups.MaxIndex() - 1  ; skip [procedure division]
