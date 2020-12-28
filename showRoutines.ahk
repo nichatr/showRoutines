@@ -1857,7 +1857,8 @@ exportNodes(expandAll, index1=0, index2=0) {
     treeString := exportNodesAsTXT(expandAll, index1, index2)
   
   if (exportOutputFormat = "html2")
-    treeString := exportNodesAsHTML2(expandAll, index1, index2)
+    treeString := exportNodesAsPPTX(expandAll, index1, index2)
+    ; treeString := exportNodesAsHTML2(expandAll, index1, index2)
   
   return treeString
   }
@@ -2123,6 +2124,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
 
         ; for each called routine create a separate output node.
         Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+          
           if (allRoutines[allRoutinesIndex].calls[A_Index] = CONST_DECLARATIONS)  ; skip dummy routine
             continue
 
@@ -2134,10 +2136,11 @@ exportNodesAsHTML2(expandAll, index1, index2) {
           }
 
           newnode:= xmlObj.addElement("li", nodeUL)
+
           calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]            
           xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
-          index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName )
-          searchRoutine_fromIndex := index_in_itemLevels + 1  ; to avoid getting the wrong routine when duplicates exist : ignore previous items.
+          index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
+          searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
           itemLevels[index_in_itemLevels].node := newnode  ; save current li node for later reference.
         }
       }
@@ -2203,6 +2206,8 @@ exportNodesAsPPTX(expandAll, index1, index2) {
   msoShapeRectangle := 1
   msoConnectorStraight := 1
   msoConnectorElbow := 2
+  topBoxSide := 1
+  bottomBoxSide := 3
 
   ; rectangle dimensions.
   CONST_FIRST_X := 400
@@ -2243,30 +2248,107 @@ exportNodesAsPPTX(expandAll, index1, index2) {
       rectY := CONST_FIRST_Y
       rectW := CONST_W
       rectH := CONST_H
+      INCREASE_X := 250
+      INCREASE_Y := 150
 
       ; create root box.
       shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
+      shapeParent.TextFrame.TextRange.Text := itemLevels[currIndex].routine
+
       itemLevels[currIndex].node := shapeParent  ; save root box for later reference.
+      itemLevels[currIndex].rectX := rectX
+      itemLevels[currIndex].rectY := rectY
       
       ; write root's calls as boxes under the parent.
       allRoutinesIndex := searchRoutine(itemLevels[currIndex].routine) ; find the calls of current routine.
-      processedFirstCalledRoutine := False
+      rectX := 100  ; first box starting point
+      rectY := rectY + INCREASE_Y  ; under parent
+      searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
 
+      if (allRoutinesIndex > 0) { ; if routine name was found in allRoutines
+
+        ; for each called routine create a separate box.
+        Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+
+          calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]
+          if (calledRoutineName = CONST_DECLARATIONS)  ; skip dummy routine
+            continue
+
+          shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
+          shapeChild.TextFrame.TextRange.Text := calledRoutineName
+
+          connector1 := oShapes.AddConnector(msoConnectorElbow, 0, 0, 0, 0)
+          connector1.ConnectorFormat.BeginConnect(shapeParent, bottomBoxSide)
+          connector1.ConnectorFormat.EndConnect(shapeChild, topBoxSide)
+
+          index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
+          searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
+          itemLevels[index_in_itemLevels].node := shapeChild  ; save child box for later reference.
+          itemLevels[index_in_itemLevels].rectX := rectX
+          itemLevels[index_in_itemLevels].rectY := rectY
+          rectX += INCREASE_X  ; next child box to the right of current child.
+        }
+      }
 
       isRoot := False
       getNextIndex(currIndex, currentLevel, expandAll)
       continue  ; go to next item
     }
 
+    ;-------------------------------------------
+    ; for the children write the called routines
+    ;-------------------------------------------
+    allRoutinesIndex := searchRoutine(itemLevels[currIndex].routine) ; find the calls of current routine.
+
+    if (allRoutinesIndex > 0) {
+
+      ; if requested "export what you see" and node is folded: skip the called routines.
+      if (!expandAll and !TV_Get(itemLevels[currIndex].tvID, "Expanded")) {
+        getNextIndex(currIndex, currentLevel, expandAll)
+        continue  ; go to next item
+      }
+
+      shapeParent := itemLevels[currIndex].node
+      rectX := itemLevels[currIndex].rectX
+      rectY := itemLevels[currIndex].rectY + INCREASE_Y
+
+      ; for each called routine create a separate box.
+      Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
+
+        if (A_Index = 1)
+          searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
+      
+        calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]
+
+        shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
+        shapeChild.TextFrame.TextRange.Text := calledRoutineName
+
+        connector1 := oShapes.AddConnector(msoConnectorElbow, 0, 0, 0, 0)
+        connector1.ConnectorFormat.BeginConnect(shapeParent, bottomBoxSide)
+        connector1.ConnectorFormat.EndConnect(shapeChild, topBoxSide)
+
+        index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
+        searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
+        itemLevels[index_in_itemLevels].node := shapeChild  ; save child box for later reference.
+        itemLevels[index_in_itemLevels].rectX := rectX
+        itemLevels[index_in_itemLevels].rectY := rectY
+        rectX += INCREASE_X  ; next child box to the right of current child.
+      }
+
+    }
 
 
 
-
-
+    ; TODO: remove
+    ; break
 
     getNextIndex(currIndex, currentLevel, expandAll)
   }
 
+  outfile := A_ScriptDir . "\test.pptx"
+  if FileExist(outfile)
+    FileDelete, %outfile%
+  oPres.SaveAs(outfile)
   }
   ;-------------------------------------------------------------------------------
   ; used when exporting only visible nodes.
