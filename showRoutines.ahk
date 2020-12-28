@@ -57,7 +57,7 @@
   global fullFileRoutines, fileRoutines     ; text file with all routine calls, is the output from AS400.
   global fullFileCode, fileCode         ; text file with source code.
   global path
-  global itemLevels, levels_LastIndex
+  global itemLevels
   global saveOnExit ; declares if settings are saved on app exit.
   global openLevelOnStartup ; level to unfold on startup
   global scriptNameNoExt
@@ -796,7 +796,6 @@ setup() {
 	tmpRoutine  := {}
 	itemLevels := []
   nodesToExport := []
-	levels_LastIndex := 0
 	fullFileRoutines := path . fileRoutines
 	fullFileCode := path . fileCode
 
@@ -1178,9 +1177,9 @@ MyTreeView:
 updateStatusBar(currentRoutine := "MAIN") {
   ; first find the routine names from the bookmarks
   index1 := findBookmark(nodesToExport[1])
-  routine1 := itemLevels[index1, 3]
+  routine1 := itemLevels[index1].routine
   index2 := findBookmark(nodesToExport[2])
-  routine2 := itemLevels[index2, 3]
+  routine2 := itemLevels[index2].routine
   bookmarks := routine1 <> "" ? ("[" . routine1 . "]" . (routine2 <> "" ? "---" . "[" . routine2 . "]" : "")) : (routine2 <> ? "[" . routine2 . "]" : "")
 
   SB_SetText("Routines:" . allRoutines.MaxIndex() . " | Current level: " . gCurrentLevel . " | Bookmarks:" . bookmarks)
@@ -1505,7 +1504,7 @@ processAll(mode) {
 	
     ; if no selected item, select root.
 	if (selectedItemId = 0)
-		selectedItemId := itemLevels[1, 1]
+		selectedItemId := itemLevels[1].tvID
 	
 	GuiControl, +Redraw, MyTreeView
 	TV_Modify(selectedItemId, "VisFirst")     ;re-select old item & make it visible!
@@ -1524,21 +1523,21 @@ processChildren(currentItemID, mode) {
 	Loop {
 		current_index += 1
 		
-		if (current_index > levels_LastIndex)    ; if end of array items, exit
+		if (current_index > itemLevels.MaxIndex())    ; if end of array items, exit
 			Break
 		
-		if (itemLevels[current_index,1] = currentItemID)
+		if (itemLevels[current_index].tvID = currentItemID)
 		{
 			from_index := current_index
-			TV_Modify(itemLevels[current_index, 1], mode)
+			TV_Modify(itemLevels[current_index].tvID, mode)
 		}
 		
         ; find first item with level <= selected item level (parent, sibling, other)
-		if ((from_index > 0) and (current_index > from_index) and (itemLevels[current_index,2] <= itemLevels[from_index,2]))
+		if ((from_index > 0) and (current_index > from_index) and (itemLevels[current_index].level <= itemLevels[from_index].level))
 			break
 		
 		if (from_index > 0)
-			TV_Modify(itemLevels[current_index, 1], mode)
+			TV_Modify(itemLevels[current_index].tvID, mode)
 	}
 	
 	
@@ -1562,13 +1561,13 @@ processSameLevel(currentItemID, mode) {
 	Loop {
 		current_index += 1
 		
-		if (current_index > levels_LastIndex)    ; if end of array items, exit
+		if (current_index > itemLevels.MaxIndex())    ; if end of array items, exit
 			Break
 		
         ; find same id to get level.
-		if (itemLevels[current_index, 1] = currentItemID) {
+		if (itemLevels[current_index].tvID = currentItemID) {
 			selected_index := current_index
-			selected_level := itemLevels[current_index, 2]
+			selected_level := itemLevels[current_index].level
 			break
 		}
 	}
@@ -1578,12 +1577,12 @@ processSameLevel(currentItemID, mode) {
 	Loop {
 		current_index += 1
 		
-		if (current_index > levels_LastIndex)    ; if end of array items, exit
+		if (current_index > itemLevels.MaxIndex())    ; if end of array items, exit
 			Break
 		
         ; find same id to get level.
-		if (itemLevels[current_index, 2] = selected_level) {
-			TV_Modify(itemLevels[current_index, 1], mode)
+		if (itemLevels[current_index].level = selected_level) {
+			TV_Modify(itemLevels[current_index].tvID, mode)
 		}
 	}
 	
@@ -1601,23 +1600,23 @@ processLevel(selected_level) {
   global
   current_index := 0
   GuiControl, -Redraw, MyTreeView
-  TV_Modify(itemLevels[1, 1], "Expand")
+  TV_Modify(itemLevels[1].tvID, "Expand")
 
   ; find all nodes with same level and fold.
   Loop {
     current_index += 1
       
-    if (current_index > levels_LastIndex)    ; if end of array items, exit
+    if (current_index > itemLevels.MaxIndex())    ; if end of array items, exit
       Break
       
-    if (itemLevels[current_index, 2] >= selected_level)
-      TV_Modify(itemLevels[current_index, 1], "-Expand")
+    if (itemLevels[current_index].level >= selected_level)
+      TV_Modify(itemLevels[current_index].tvID, "-Expand")
     else
-      TV_Modify(itemLevels[current_index, 1], "Expand")
+      TV_Modify(itemLevels[current_index].tvID, "Expand")
   }
 
   GuiControl, +Redraw, MyTreeView
-  TV_Modify(itemLevels[1, 1], "VisFirst")
+  TV_Modify(itemLevels[1].tvID, "VisFirst")
   gCurrentLevel := selected_level
   updateStatusbar()
   }
@@ -1641,15 +1640,15 @@ searchItemInRoutine(searchText, direction) {
 	selected_index := 0
 	selectedItemId := TV_GetSelection()   ;get selected item id
 	if (selectedItemId = 0)
-		selectedItemId := itemLevels[1, 1]
+		selectedItemId := itemLevels[1].tvID
 	
     ; find selected item index
 	Loop {
 		current_index += 1
-		if (current_index > levels_LastIndex)    ; if end of array items, exit
+		if (current_index > itemLevels.MaxIndex())    ; if end of array items, exit
 			Break    
         ; find same id to get index.
-		if (itemLevels[current_index, 1] = selectedItemId) {
+		if (itemLevels[current_index].tvID = selectedItemId) {
 			selected_index := current_index
 			break
 		}        
@@ -1661,7 +1660,7 @@ searchItemInRoutine(searchText, direction) {
 	Loop {
 		if (direction = "next") {
 			current_index += 1
-			if (current_index > levels_LastIndex) {   ; if end of array items, exit
+			if (current_index > itemLevels.MaxIndex()) {   ; if end of array items, exit
 				current_index := 1
 				if (found = false) {
 					msgbox, end of search
@@ -1671,7 +1670,7 @@ searchItemInRoutine(searchText, direction) {
 		} else {
 			current_index -= 1
 			if (current_index < 1) {   ; if begin of array items, exit
-				current_index := levels_LastIndex
+				current_index := itemLevels.MaxIndex()
 				if (found = false) {
 					msgbox, end of search
 					Break
@@ -1679,9 +1678,9 @@ searchItemInRoutine(searchText, direction) {
 			}           
 		}
         ; check if search text exists in current node.
-		foundPos := InStr(itemLevels[current_index, 3], searchText, CaseSensitive:=false, 1)
+		foundPos := InStr(itemLevels[current_index].routine, searchText, CaseSensitive:=false, 1)
 		if (foundPos > 0) {
-			TV_Modify(itemLevels[current_index, 1])     ;select found node
+			TV_Modify(itemLevels[current_index].tvID)     ;select found node
 			found := true
 			break
 		}        
@@ -1781,18 +1780,18 @@ addToTreeview(currRoutine, currentLevel, parentId, parentName) {
 	currentId := TV_add(currRoutine.routineName, parentId, "Expand")
 	
     ; save routine level for later tree traversal.
-	levels_LastIndex += 1
-  itemLevels[levels_LastIndex, 1] := currentId    ; current node's TV id
-  itemLevels[levels_LastIndex, 2] := currentLevel ; current node's level
-  itemLevels[levels_LastIndex, 3] := currRoutine.routineName  ; current node's TV text
-  itemLevels[levels_LastIndex, 4] := parentId     ; parent node's TV id
-  itemLevels[levels_LastIndex, 5] := parentName
-  itemLevels[levels_LastIndex, 6] := "" ; used only in export to html2 (flowchart)
+  routineLevel := {}
+  routineLevel.tvID := currentId    ; current node's TV id
+  routineLevel.level := currentLevel ; current node's level
+  routineLevel.routine := currRoutine.routineName  ; current node's TV text
+  routineLevel.parentTvID := parentId     ; parent node's TV id
+  routineLevel.parentRoutine := parentName
+  routineLevel.node := "" ; used only in export to html2 (flowchart)
 
   followsSibling := false
   parentIndex := searchItemId(parentId)
   if (parentIndex > 0) {
-    parentName := itemLevels[parentIndex, 3]
+    parentName := itemLevels[parentIndex].routine
     callsIndex := searchRoutine(parentName)
     if (callsIndex > 0) {
       Loop, % allRoutines[callsIndex].calls.MaxIndex() - 1 {
@@ -1801,10 +1800,12 @@ addToTreeview(currRoutine, currentLevel, parentId, parentName) {
       }
     }
   }
-  itemLevels[levels_LastIndex, 7] := followsSibling  ; if it has a sibling after itself.
-  itemLevels[levels_LastIndex, 8] := currRoutine.startStmt  ; routine starting stmt
-  itemLevels[levels_LastIndex, 9] := currRoutine.endStmt  ; routine ending stmt
+  routineLevel.followsSibling := followsSibling  ; if it has a sibling after itself.
+  routineLevel.startStmt := currRoutine.startStmt  ; routine starting stmt
+  routineLevel.endStmt := currRoutine.endStmt  ; routine ending stmt
 	
+  itemLevels.push(routineLevel)
+
 	return currentId
   }
  ;---------------------------------------------------------------------
@@ -1877,13 +1878,13 @@ exportNodesAsHTML1(expandAll, index1, index2) {
   while (currIndex <= index2) {
 
     ; ignore current node if it's level is greater than requested.
-    if (itemLevels[currIndex, 2] > exportMaxLevel) {
+    if (itemLevels[currIndex].level > exportMaxLevel) {
       currIndex ++
       continue
     }
 
     if (expandAll = false) {
-      if (TV_Get(itemLevels[currIndex, 1], "Expanded"))
+      if (TV_Get(itemLevels[currIndex].tvID, "Expanded"))
         isOpen := "true"
       else
         isOpen := "false"
@@ -1892,22 +1893,22 @@ exportNodesAsHTML1(expandAll, index1, index2) {
     
     newNode := {}
     newNode.open := isOpen
-    newNode.id := itemLevels[currIndex, 1]
-    newNode.pId := itemLevels[currIndex, 4]
+    newNode.id := itemLevels[currIndex].tvID
+    newNode.pId := itemLevels[currIndex].parentTvID
 
-    routineName := itemLevels[currIndex, 3]
+    routineName := itemLevels[currIndex].routine
 
     if (exportDescriptions = "true") {
       ; used only in showPrograms.ahk
-      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex, 2])
+      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex].level)
       ; outputRoutineName .= searchRoutineDescription(routineName)
       outputRoutineName := routineName
     } else
       outputRoutineName := routineName
 
     newNode.name := outputRoutineName
-    newNode.start := itemLevels[currIndex, 8]
-    newNode.end := itemLevels[currIndex, 9]
+    newNode.start := itemLevels[currIndex].startStmt
+    newNode.end := itemLevels[currIndex].endStmt
 
     nodesArray.push(newNode)
     currIndex ++
@@ -1937,13 +1938,13 @@ exportNodesAsTXT(expandAll, index1, index2) {
 
   while (currIndex <= index2) {
   
-    currentLevel := itemLevels[currIndex, 2]
+    currentLevel := itemLevels[currIndex].level
     
     ; ignore current node if it's level is greater than requested.
     ; ignore all the declarations.
     if (currentLevel > exportMaxLevel 
-      || itemLevels[currIndex, 3] = CONST_DECLARATIONS      ; child routine name
-      || itemLevels[currIndex, 5] = CONST_DECLARATIONS) {   ; parent routine name
+      || itemLevels[currIndex].routine = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex].parentRoutine = CONST_DECLARATIONS) {   ; parent routine name
       currIndex ++
       continue
     } 
@@ -1953,8 +1954,8 @@ exportNodesAsTXT(expandAll, index1, index2) {
     if (currLine > 1) {
       prefix := SubStr(exportedRoutines[currLine - 1], 2, prefixCount)
 
-      parentIndex := searchItemId(itemLevels[currIndex, 4])
-      parentHasSibling := itemLevels[parentIndex, 7]
+      parentIndex := searchItemId(itemLevels[currIndex].parentTvID)
+      parentHasSibling := itemLevels[parentIndex].followsSibling
       ; if parent has sibling clear the last 2 chars and replace ├ with │
       if (parentHasSibling)
         prefix := SubStr(prefix, 1, StrLen(prefix) - 3) . connector3
@@ -1967,22 +1968,22 @@ exportNodesAsTXT(expandAll, index1, index2) {
     }
 
     if (currentLevel > 1)
-      if (itemLevels[currIndex, 7] = true)
+      if (itemLevels[currIndex].followsSibling = true)
         prefix .= connector1 ; has sibling after itself
       else
         prefix .= connector2 ; has no sibling after itself
 
-    oneLine := prefix . itemLevels[currIndex, 3]  ; add routine name.
+    oneLine := prefix . itemLevels[currIndex].routine  ; add routine name.
 
     exportedRoutines.push(oneLine)
 
     ; if requested only visible nodes
     ; and current node is folded, find next node with level <= current node's level.
-    if (!expandAll and !TV_Get(itemLevels[currIndex, 1], "Expanded")) {
+    if (!expandAll and !TV_Get(itemLevels[currIndex].tvID, "Expanded")) {
       found := false
       while (currIndex < itemLevels.MaxIndex()) {
         currIndex ++
-        if (itemLevels[currIndex, 2] <= currentLevel) {
+        if (itemLevels[currIndex].level <= currentLevel) {
           found := true
           break
         }
@@ -2016,7 +2017,7 @@ exportNodesAsPUG(expandAll, index1, index2) {
 
   while (currIndex <= index2) {
   
-    currentLevel := itemLevels[currIndex, 2]
+    currentLevel := itemLevels[currIndex].level
     
     ; ignore current node if it's level is greater than requested.
     if (currentLevel > exportMaxLevel) {
@@ -2034,9 +2035,9 @@ exportNodesAsPUG(expandAll, index1, index2) {
       exportedRoutines.push(oneLine)
       oneLine := "`n  li"
       exportedRoutines.push(oneLine)
-      oneLine := "`n   code " . itemLevels[currIndex, 3]  ; add routine name.
+      oneLine := "`n   code " . itemLevels[currIndex].routine  ; add routine name.
       exportedRoutines.push(oneLine)
-      previousLevel := itemLevels[currIndex, 2]
+      previousLevel := itemLevels[currIndex].level
       
       isRoot := False
       currIndex ++
@@ -2055,7 +2056,7 @@ exportNodesAsPUG(expandAll, index1, index2) {
     exportedRoutines.push(oneLine)
 
     currPos ++
-    oneLine := "`n" . Spaces(currPos - 1) . "code " . itemLevels[currIndex, 3]  ; add routine name.
+    oneLine := "`n" . Spaces(currPos - 1) . "code " . itemLevels[currIndex].routine  ; add routine name.
     exportedRoutines.push(oneLine)
 
     previousLevel := currentLevel
@@ -2093,13 +2094,13 @@ exportNodesAsHTML2(expandAll, index1, index2) {
 
   while (currIndex <= index2) {
   
-    currentLevel := itemLevels[currIndex, 2]
+    currentLevel := itemLevels[currIndex].level
     
     ; ignore current node if it's level is greater than requested.
     ; ignore all the declarations.
     if (currentLevel > exportMaxLevel 
-      || itemLevels[currIndex, 3] = CONST_DECLARATIONS      ; child routine name
-      || itemLevels[currIndex, 5] = CONST_DECLARATIONS) {   ; parent routine name
+      || itemLevels[currIndex].routine = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex].parentRoutine = CONST_DECLARATIONS) {   ; parent routine name
       currIndex ++
       continue
     } 
@@ -2111,11 +2112,11 @@ exportNodesAsHTML2(expandAll, index1, index2) {
       xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")
       xmlObj.addElement("ul", "figure", {class: "tree"})              ; <ul class="tree">
       nodeLI := xmlObj.addElement("li", "//ul")                         ; <li></li>
-      xmlObj.addElement("code", "//li", itemLevels[currIndex, 3])     ; <code>root routine</code>
-      itemLevels[currIndex, 6] := nodeLI  ; save root node object for later reference.
+      xmlObj.addElement("code", "//li", itemLevels[currIndex].routine)     ; <code>root routine</code>
+      itemLevels[currIndex].node := nodeLI  ; save root node object for later reference.
 
       ; write root's calls as ul/li.
-      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
+      allRoutinesIndex := searchRoutine(itemLevels[currIndex].routine) ; find the calls of current routine.
       processedFirstCalledRoutine := False
 
       if (allRoutinesIndex > 0) { ; if routine name was found in allRoutines
@@ -2137,7 +2138,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
           xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
           index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName )
           searchRoutine_fromIndex := index_in_itemLevels + 1  ; to avoid getting the wrong routine when duplicates exist : ignore previous items.
-          itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.
+          itemLevels[index_in_itemLevels].node := newnode  ; save current li node for later reference.
         }
       }
 
@@ -2149,11 +2150,11 @@ exportNodesAsHTML2(expandAll, index1, index2) {
     ;-------------------------------------------
     ; for the children write the calls as ul/li.
     ;-------------------------------------------
-    allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
+    allRoutinesIndex := searchRoutine(itemLevels[currIndex].routine) ; find the calls of current routine.
     if (allRoutinesIndex > 0) {
 
       ; if requested "export what you see" and node is folded: skip the called routines.
-      if (!expandAll and !TV_Get(itemLevels[currIndex, 1], "Expanded")) {
+      if (!expandAll and !TV_Get(itemLevels[currIndex].tvID, "Expanded")) {
         getNextIndex(currIndex, currentLevel, expandAll)
         continue  ; go to next item
       }
@@ -2162,13 +2163,13 @@ exportNodesAsHTML2(expandAll, index1, index2) {
 
         ; if first call, write a ul under parent li.
         if (A_Index = 1) {
-          if (itemLevels[currIndex, 6] == null) {
-            msgbox, % "itemLevels[currIndex, 6] is null for currIndex =" . currIndex . "-" . itemLevels[currIndex, 5] . "`nallRoutinesIndex =" . allRoutinesIndex . "-" . itemLevels[currIndex, 3]
+          if (itemLevels[currIndex].node == null) {
+            msgbox, % "itemLevels[currIndex].node is null for currIndex =" . currIndex . "-" . itemLevels[currIndex].parentRoutine . "`nallRoutinesIndex =" . allRoutinesIndex . "-" . itemLevels[currIndex].routine
             currIndex ++
             continue
           }
 
-          nodeUL := xmlObj.addElement("ul", itemLevels[currIndex, 6]) ; nodeLI = parent's li
+          nodeUL := xmlObj.addElement("ul", itemLevels[currIndex].node) ; nodeLI = parent's li
           searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
         }
 
@@ -2177,7 +2178,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
         xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
         index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
         searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
-        itemLevels[index_in_itemLevels, 6] := newnode  ; save current li node for later reference.                    
+        itemLevels[index_in_itemLevels].node := newnode  ; save current li node for later reference.                    
       }        
     }
 
@@ -2225,13 +2226,13 @@ exportNodesAsPPTX(expandAll, index1, index2) {
   ;-----------------------------------------------------------------
   while (currIndex <= index2) {
   
-    currentLevel := itemLevels[currIndex, 2]
+    currentLevel := itemLevels[currIndex].level
     
     ; ignore current node if it's level is greater than requested.
     ; ignore all the declarations.
     if (currentLevel > exportMaxLevel 
-      || itemLevels[currIndex, 3] = CONST_DECLARATIONS      ; child routine name
-      || itemLevels[currIndex, 5] = CONST_DECLARATIONS) {   ; parent routine name
+      || itemLevels[currIndex].routine = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex].parentRoutine = CONST_DECLARATIONS) {   ; parent routine name
       currIndex ++
       continue
     }    
@@ -2245,10 +2246,10 @@ exportNodesAsPPTX(expandAll, index1, index2) {
 
       ; create root box.
       shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
-      itemLevels[currIndex, 6] := shapeParent  ; save root box for later reference.
+      itemLevels[currIndex].node := shapeParent  ; save root box for later reference.
       
       ; write root's calls as boxes under the parent.
-      allRoutinesIndex := searchRoutine(itemLevels[currIndex, 3]) ; find the calls of current routine.
+      allRoutinesIndex := searchRoutine(itemLevels[currIndex].routine) ; find the calls of current routine.
       processedFirstCalledRoutine := False
 
 
@@ -2273,11 +2274,11 @@ exportNodesAsPPTX(expandAll, index1, index2) {
 getNextIndex(Byref currIndex, currentLevel, expandAll) {
   ; if requested only visible nodes
   ; and current node is folded, find next node with level <= current node's level.
-  if (!expandAll and !TV_Get(itemLevels[currIndex, 1], "Expanded")) {
+  if (!expandAll and !TV_Get(itemLevels[currIndex].tvID, "Expanded")) {
     found := false
     while (currIndex < itemLevels.MaxIndex()) {
       currIndex ++
-      if (itemLevels[currIndex, 2] <= currentLevel) {
+      if (itemLevels[currIndex].level <= currentLevel) {
         found := true
         break
       }
@@ -2317,7 +2318,7 @@ exportMarked() {
     }
   else {  ; if not set find last sub node of the selected node.
     index2 := findLastSubnode(index1)
-    bookmark2 := itemLevels[index2, 1]
+    bookmark2 := itemLevels[index2].tvID
   }
   
   if (index1 = 0 or index2 = 0)
@@ -2342,7 +2343,7 @@ exportMarked() {
   ;-------------------------------------------------------------------------------
 findBookmark(bookmark) {
   Loop, % itemLevels.MaxIndex() {
-    if (bookmark = itemLevels[A_Index, 1])
+    if (bookmark = itemLevels[A_Index].tvID)
       return A_Index
   }
   return 0
@@ -2354,11 +2355,11 @@ findLastSubnode(index) {
   if (index < 1 or index > itemLevels.MaxIndex())
     return 0
 
-  currentLevel := itemLevels[index, 2]
+  currentLevel := itemLevels[index].level
 
   Loop, % itemLevels.MaxIndex() - index {
     index++
-    if (currentLevel >= itemLevels[index, 2])
+    if (currentLevel >= itemLevels[index].level)
       return --index
   }
   return index
@@ -2380,7 +2381,7 @@ searchRoutine(routineName) {
 searchRoutine_inItemLevels(searchRoutine_fromIndex, routineName, parentName) {
   index := searchRoutine_fromIndex
   while (index <= itemLevels.MaxIndex()) {
-		if (routineName = itemLevels[index, 3] && parentName = itemLevels[index, 5]) {
+		if (routineName = itemLevels[index].routine && parentName = itemLevels[index].parentRoutine) {
 			return index
 		}
     index ++
@@ -2403,7 +2404,7 @@ searchArray(searchfor) {
   ;-------------------------------------------------------------------------------
 searchItemId(itemID) {
   Loop, % itemLevels.MaxIndex() {
-      if (itemID = itemLevels[A_Index, 1]) {
+      if (itemID = itemLevels[A_Index].tvID) {
           return A_index
       }
   }
@@ -2612,7 +2613,7 @@ saveRoutines(filename, header, delete) {
   row .= "-----------------------------------------------------------------------------------------------------------------------------`n"
 
   Loop, % itemLevels.MaxIndex() {
-    row .= Format("{:3}", A_Index) . " : " . Format("{:10}", itemLevels[A_Index, 1]) . " - " . Format("{:5}", itemLevels[A_Index, 2]) . " - " . Format("{:-20}", itemLevels[A_Index, 3]) . " - " . Format("{:10}", itemLevels[A_Index, 4]) . " - " . Format("{:-20}", itemLevels[A_Index, 5]) . " - " . Format("{:5}", itemLevels[A_Index, 7]) . " - " . Format("{:10}", itemLevels[A_Index, 8]) . " - " . Format("{:10}", itemLevels[A_Index, 9]) . "`n"
+    row .= Format("{:3}", A_Index) . " : " . Format("{:10}", itemLevels[A_Index].tvID) . " - " . Format("{:5}", itemLevels[A_Index].level) . " - " . Format("{:-20}", itemLevels[A_Index].routine) . " - " . Format("{:10}", itemLevels[A_Index].parentTvID) . " - " . Format("{:-20}", itemLevels[A_Index].parentRoutine) . " - " . Format("{:5}", itemLevels[A_Index].followsSibling) . " - " . Format("{:10}", itemLevels[A_Index].startStmt) . " - " . Format("{:10}", itemLevels[A_Index].endStmt) . "`n"
   }
     FileAppend, %row%, %filename%
   } 
