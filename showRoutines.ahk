@@ -1851,14 +1851,14 @@ exportNodes(expandAll, index1=0, index2=0) {
     exportMaxLevel := 999
 
   if (exportOutputFormat = "json" or exportOutputFormat = "html1")
-    treeString := exportNodesAsHTML1(expandAll, index1, index2)
+    treeString := export_zTree_vertical(expandAll, index1, index2)
 
   if (exportOutputFormat = "txt")
-    treeString := exportNodesAsTXT(expandAll, index1, index2)
+    treeString := export_TXT_vertical(expandAll, index1, index2)
   
   if (exportOutputFormat = "html2")
-    treeString := exportNodesAsPPTX(expandAll, index1, index2)
-    ; treeString := exportNodesAsHTML2(expandAll, index1, index2)
+    treeString := export_PPTX_horizontal(expandAll, index1, index2)
+    ; treeString := export_flowchart_horizontal(expandAll, index1, index2)
   
   return treeString
   }
@@ -1868,7 +1868,7 @@ exportNodes(expandAll, index1=0, index2=0) {
   ;   expandAll = false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
-exportNodesAsHTML1(expandAll, index1, index2) {
+export_zTree_vertical(expandAll, index1, index2) {
   ; used only in showPrograms.ahk
   ; find max level when descriptions are to be exported.
   ; if (exportDescriptions = "true")
@@ -1926,7 +1926,7 @@ exportNodesAsHTML1(expandAll, index1, index2) {
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
-exportNodesAsTXT(expandAll, index1, index2) {
+export_TXT_vertical(expandAll, index1, index2) {
   exportedRoutines := []
   exportedString := ""
   currIndex := index1
@@ -1968,11 +1968,12 @@ exportNodesAsTXT(expandAll, index1, index2) {
       prefix := "`n" . prefix
     }
 
-    if (currentLevel > 1)
+    if (currentLevel > 1) {
       if (itemLevels[currIndex].followsSibling = true)
         prefix .= connector1 ; has sibling after itself
       else
         prefix .= connector2 ; has no sibling after itself
+    }
 
     oneLine := prefix . itemLevels[currIndex].routine  ; add routine name.
 
@@ -1998,72 +1999,6 @@ exportNodesAsTXT(expandAll, index1, index2) {
     currLine ++
   }
   
-  ; exportedString := "1234567890123456789012345678901234567890123456789012345678901234567890`n"
-  Loop, % exportedRoutines.MaxIndex() {
-    exportedString .= exportedRoutines[A_Index]
-  }
-  
-  return exportedString
-  }
-  ;-------------------------------------------------------------------------------
-  ; export nodes to text pug file - show as flowchart
-  ;   expandAll = true : export all nodes / false : export only the shown nodes
-  ;   index1, index2 = from item to item
-  ;-------------------------------------------------------------------------------
-exportNodesAsPUG(expandAll, index1, index2) {
-  exportedRoutines := []
-  exportedString := ""
-  currIndex := index1
-  isRoot := True
-
-  while (currIndex <= index2) {
-  
-    currentLevel := itemLevels[currIndex].level
-    
-    ; ignore current node if it's level is greater than requested.
-    if (currentLevel > exportMaxLevel) {
-      currIndex ++
-      continue
-    }
-
-    ; for the root item create also the header.
-    if (isRoot) {
-      oneLine := "figure"
-      exportedRoutines.push(oneLine)
-      oneLine := "`n figcaption Example DOM structure diagram"
-      exportedRoutines.push(oneLine)
-      oneLine := "`n ul(class='tree')"
-      exportedRoutines.push(oneLine)
-      oneLine := "`n  li"
-      exportedRoutines.push(oneLine)
-      oneLine := "`n   code " . itemLevels[currIndex].routine  ; add routine name.
-      exportedRoutines.push(oneLine)
-      previousLevel := itemLevels[currIndex].level
-      
-      isRoot := False
-      currIndex ++
-      continue  ; go to next item (node)
-    }
-
-    ; for the children create ul/li statements.
-    currPos := 2 * currentLevel
-    if (currentLevel > previousLevel) {
-      oneLine := "`n" . Spaces(currPos - 1) . "ul"
-      exportedRoutines.push(oneLine)
-    }
-
-    currPos ++
-    oneLine := "`n" . Spaces(currPos - 1) . "li"
-    exportedRoutines.push(oneLine)
-
-    currPos ++
-    oneLine := "`n" . Spaces(currPos - 1) . "code " . itemLevels[currIndex].routine  ; add routine name.
-    exportedRoutines.push(oneLine)
-
-    previousLevel := currentLevel
-    currIndex ++
-  }
-  
   Loop, % exportedRoutines.MaxIndex() {
     exportedString .= exportedRoutines[A_Index]
   }
@@ -2075,7 +2010,7 @@ exportNodesAsPUG(expandAll, index1, index2) {
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
-exportNodesAsHTML2(expandAll, index1, index2) {
+export_flowchart_horizontal(expandAll, index1, index2) {
   exportedString := ""
   currIndex := index1
   isRoot := True
@@ -2197,7 +2132,7 @@ exportNodesAsHTML2(expandAll, index1, index2) {
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
-exportNodesAsPPTX(expandAll, index1, index2) {
+export_PPTX_horizontal(expandAll, index1, index2) {
   exportedString := ""
   currIndex := index1
   isRoot := True
@@ -2260,39 +2195,10 @@ exportNodesAsPPTX(expandAll, index1, index2) {
       itemLevels[currIndex].rectY := rectY
       
       ; write root's calls as boxes under the parent.
-      allRoutinesIndex := searchRoutine(itemLevels[currIndex].routine) ; find the calls of current routine.
       rectX := 100  ; first box starting point
       rectY := rectY + INCREASE_Y  ; under parent
-      searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
-
-      if (allRoutinesIndex > 0) { ; if routine name was found in allRoutines
-
-        ; for each called routine create a separate box.
-        Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
-
-          calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]
-          if (calledRoutineName = CONST_DECLARATIONS)  ; skip dummy routine
-            continue
-
-          shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
-          shapeChild.TextFrame.TextRange.Text := calledRoutineName
-
-          connector1 := oShapes.AddConnector(msoConnectorElbow, 0, 0, 0, 0)
-          connector1.ConnectorFormat.BeginConnect(shapeParent, bottomBoxSide)
-          connector1.ConnectorFormat.EndConnect(shapeChild, topBoxSide)
-
-          index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
-          searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
-          itemLevels[index_in_itemLevels].node := shapeChild  ; save child box for later reference.
-          itemLevels[index_in_itemLevels].rectX := rectX
-          itemLevels[index_in_itemLevels].rectY := rectY
-          rectX += INCREASE_X  ; next child box to the right of current child.
-        }
-      }
 
       isRoot := False
-      getNextIndex(currIndex, currentLevel, expandAll)
-      continue  ; go to next item
     }
 
     ;-------------------------------------------
@@ -2311,14 +2217,20 @@ exportNodesAsPPTX(expandAll, index1, index2) {
       shapeParent := itemLevels[currIndex].node
       rectX := itemLevels[currIndex].rectX
       rectY := itemLevels[currIndex].rectY + INCREASE_Y
+      isFirstCall := True
 
       ; for each called routine create a separate box.
       Loop, % allRoutines[allRoutinesIndex].calls.MaxIndex() {
 
-        if (A_Index = 1)
-          searchRoutine_fromIndex := currIndex + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
-      
         calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]
+        
+        if (calledRoutineName = CONST_DECLARATIONS)  ; skip dummy routine
+          continue
+
+        if (isFirstCall) {  ; next routine search : to avoid getting the wrong item when duplicates exist.
+          searchRoutine_fromIndex := currIndex + 1
+          isFirstCall := Falses
+        }
 
         shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
         shapeChild.TextFrame.TextRange.Text := calledRoutineName
@@ -2336,11 +2248,6 @@ exportNodesAsPPTX(expandAll, index1, index2) {
       }
 
     }
-
-
-
-    ; TODO: remove
-    ; break
 
     getNextIndex(currIndex, currentLevel, expandAll)
   }
