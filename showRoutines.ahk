@@ -1789,7 +1789,7 @@ addToTreeview(currRoutine, currentLevel, parentId, parentName) {
   routineLevel.node := "" ; used only in export to html2 (flowchart)
 
   followsSibling := false
-  parentIndex := searchItemId(parentId)
+  parentIndex := searchItemId(parentId) ; find parent node.
   if (parentIndex > 0) {
     parentName := itemLevels[parentIndex].routine
     callsIndex := searchRoutine(parentName)
@@ -1857,7 +1857,8 @@ exportNodes(expandAll, index1=0, index2=0) {
     treeString := export_TXT_vertical(expandAll, index1, index2)
   
   if (exportOutputFormat = "html2")
-    treeString := export_PPTX_horizontal(expandAll, index1, index2)
+    treeString := export_PPTX_vertical(expandAll, index1, index2)
+    ; treeString := export_PPTX_horizontal(expandAll, index1, index2)
     ; treeString := export_flowchart_horizontal(expandAll, index1, index2)
   
   return treeString
@@ -1955,7 +1956,7 @@ export_TXT_vertical(expandAll, index1, index2) {
     if (currLine > 1) {
       prefix := SubStr(exportedRoutines[currLine - 1], 2, prefixCount)
 
-      parentIndex := searchItemId(itemLevels[currIndex].parentTvID)
+      parentIndex := searchItemId(itemLevels[currIndex].parentTvID) ; find parent node.
       parentHasSibling := itemLevels[parentIndex].followsSibling
       ; if parent has sibling clear the last 2 chars and replace ├ with │
       if (parentHasSibling)
@@ -1979,23 +1980,7 @@ export_TXT_vertical(expandAll, index1, index2) {
 
     exportedRoutines.push(oneLine)
 
-    ; if requested only visible nodes
-    ; and current node is folded, find next node with level <= current node's level.
-    if (!expandAll and !TV_Get(itemLevels[currIndex].tvID, "Expanded")) {
-      found := false
-      while (currIndex < itemLevels.MaxIndex()) {
-        currIndex ++
-        if (itemLevels[currIndex].level <= currentLevel) {
-          found := true
-          break
-        }
-      }
-      if (found = false)
-        currIndex ++
-    } else {
-      currIndex ++
-    }
-
+    getNextIndex(currIndex, currentLevel, expandAll)
     currLine ++
   }
   
@@ -2006,7 +1991,7 @@ export_TXT_vertical(expandAll, index1, index2) {
   return exportedString
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to html - show as flowchart
+  ; export nodes to html - show as horizontal flowchart
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
@@ -2128,7 +2113,7 @@ export_flowchart_horizontal(expandAll, index1, index2) {
   return xmlObj.xml ; this contains the full xml
   }
   ;-------------------------------------------------------------------------------
-  ; export nodes to powerpoint - show as flowchart
+  ; export nodes to powerpoint - show as horizontal flowchart
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
@@ -2229,7 +2214,7 @@ export_PPTX_horizontal(expandAll, index1, index2) {
 
         if (isFirstCall) {  ; next routine search : to avoid getting the wrong item when duplicates exist.
           searchRoutine_fromIndex := currIndex + 1
-          isFirstCall := Falses
+          isFirstCall := False
         }
 
         shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
@@ -2248,6 +2233,115 @@ export_PPTX_horizontal(expandAll, index1, index2) {
       }
 
     }
+
+    getNextIndex(currIndex, currentLevel, expandAll)
+  }
+
+  outfile := A_ScriptDir . "\test.pptx"
+  if FileExist(outfile)
+    FileDelete, %outfile%
+  oPres.SaveAs(outfile)
+  }
+  ;-------------------------------------------------------------------------------
+  ; export nodes to powerpoint - show as vertical flowchart
+  ;   expandAll = true : export all nodes / false : export only the shown nodes
+  ;   index1, index2 = from item to item
+  ;-------------------------------------------------------------------------------
+export_PPTX_vertical(expandAll, index1, index2) {
+  exportedString := ""
+  currIndex := index1
+  isRoot := True
+  ; pptx enumerators.
+  ppLayoutBlank := 12
+  msoShapeRectangle := 1
+  msoConnectorStraight := 1
+  msoConnectorElbow := 2
+  topBoxSide := 1
+  bottomBoxSide := 3
+  leftBoxSide := 2
+  ppAutoSizeShapeToFitText := 1
+  ppAutoSizeNone := 0
+
+  ; rectangle dimensions.
+  CONST_FIRST_X := 50
+  CONST_FIRST_Y := 0
+  CONST_W := 200
+  CONST_H := 100
+  INCREASE_X := 150
+  INCREASE_Y := 110
+
+  ; create the main powerpoint containers.
+  oApp := ComObjCreate("PowerPoint.Application") ; create powerpoint.
+  oApp.Visible := True
+  oPres := oApp.Presentations.Add() ; create presentation.
+  ; oPres.PageSetup.SlideWidth := 60 * 72
+  ; oPres.PageSetup.SlideHeight := 100 * 72
+  ; create a slide
+  PpSlideLayout := ppLayoutBlank
+  oSlide := oPres.Slides.Add(1, PpSlideLayout)
+  oShapes := oPres.Slides(1).Shapes
+
+  ;-----------------------------------------------------------------
+  ; Traverse all nodes and select only the required.
+  ; Attach each selected node to it's parent.
+  ; Each node is displayed as a rectangle connected to it's parent.
+  ;-----------------------------------------------------------------
+  while (currIndex <= index2) {
+  
+    currentLevel := itemLevels[currIndex].level
+    
+    ; ignore current node if it's level is greater than requested.
+    ; ignore all the declarations.
+    if (currentLevel > exportMaxLevel 
+      || itemLevels[currIndex].routine = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex].parentRoutine = CONST_DECLARATIONS) {   ; parent routine name
+      currIndex ++
+      continue
+    }    
+
+    ;-------------------------------------------
+    ; write root node without any connectors.
+    ;-------------------------------------------
+    if (isRoot) {
+      rectX := CONST_FIRST_X
+      rectY := CONST_FIRST_Y
+      rectW := CONST_W
+      rectH := CONST_H
+
+      ; create root box.
+      shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
+      ; shapeParent.TextFrame.TextRange.Text := "long routine xxxxxxxxxxxxxxxxxxx"
+      shapeParent.TextFrame.TextRange.Text := itemLevels[currIndex].routine
+      shapeParent.TextFrame.AutoSize := ppAutoSizeShapeToFitText
+      shapeParent.TextFrame.MarginTop := 10
+      shapeParent.TextFrame.MarginBottom := 10
+
+      itemLevels[currIndex].node := shapeParent  ; save root box for later reference from it's children.
+      itemLevels[currIndex].rectX := rectX
+      itemLevels[currIndex].rectY := rectY
+      
+      isRoot := False
+      getNextIndex(currIndex, currentLevel, expandAll)
+      continue  ; go to next item.
+    }
+    ;-----------------------------------------------
+    ; write children and connect with their parents.
+    ;-----------------------------------------------
+    parentIndex := searchItemId(itemLevels[currIndex].parentTvID) ; find parent node.
+    rectX := CONST_FIRST_X + (INCREASE_X * (itemLevels[currIndex].level - 1))
+    rectY += INCREASE_Y
+
+    shapeParent := itemLevels[parentIndex].node
+    shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
+    shapeChild.TextFrame.TextRange.Text := itemLevels[currIndex].routine
+    
+    connector1 := oShapes.AddConnector(msoConnectorElbow, 0, 0, 0, 0)
+    connector1.ConnectorFormat.BeginConnect(shapeParent, bottomBoxSide)
+    connector1.ConnectorFormat.EndConnect(shapeChild, leftBoxSide)
+    
+    itemLevels[currIndex].node := shapeChild  ; save box for later reference from it's children.
+    itemLevels[currIndex].rectX := rectX
+    itemLevels[currIndex].rectY := rectY
 
     getNextIndex(currIndex, currentLevel, expandAll)
   }
