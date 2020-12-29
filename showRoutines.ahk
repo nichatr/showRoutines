@@ -2261,14 +2261,15 @@ export_PPTX_vertical(expandAll, index1, index2) {
   leftBoxSide := 2
   ppAutoSizeShapeToFitText := 1
   ppAutoSizeNone := 0
+  ppSlideSizeCustom := 7
 
   ; rectangle dimensions.
   CONST_FIRST_X := 50
-  CONST_FIRST_Y := 0
-  CONST_W := 200
-  CONST_H := 100
+  CONST_FIRST_Y := 10
+  CONST_W :=  200
+  CONST_H := 70
   INCREASE_X := 150
-  INCREASE_Y := 110
+  INCREASE_Y := 10
 
   ; create the main powerpoint containers.
   oApp := ComObjCreate("PowerPoint.Application") ; create powerpoint.
@@ -2276,7 +2277,6 @@ export_PPTX_vertical(expandAll, index1, index2) {
   oPres := oApp.Presentations.Add() ; create presentation.
   ; oPres.PageSetup.SlideWidth := 60 * 72
   ; oPres.PageSetup.SlideHeight := 100 * 72
-  ; create a slide
   PpSlideLayout := ppLayoutBlank
   oSlide := oPres.Slides.Add(1, PpSlideLayout)
   oShapes := oPres.Slides(1).Shapes
@@ -2312,13 +2312,17 @@ export_PPTX_vertical(expandAll, index1, index2) {
       shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
       ; shapeParent.TextFrame.TextRange.Text := "long routine xxxxxxxxxxxxxxxxxxx"
       shapeParent.TextFrame.TextRange.Text := itemLevels[currIndex].routine
+      shapeParent.TextFrame.MarginTop := 20
+      shapeParent.TextFrame.MarginBottom := 20
+      ; shapeParent.TextFrame.WordWrap := False
       shapeParent.TextFrame.AutoSize := ppAutoSizeShapeToFitText
-      shapeParent.TextFrame.MarginTop := 10
-      shapeParent.TextFrame.MarginBottom := 10
+      previousHeight := shapeParent.Height
+      previousTop := shapeParent.Top
+
+      maxH := shapeParent.Top + shapeParent.Height
+      maxW := shapeParent.Left + shapeParent.Width
 
       itemLevels[currIndex].node := shapeParent  ; save root box for later reference from it's children.
-      itemLevels[currIndex].rectX := rectX
-      itemLevels[currIndex].rectY := rectY
       
       isRoot := False
       getNextIndex(currIndex, currentLevel, expandAll)
@@ -2329,22 +2333,39 @@ export_PPTX_vertical(expandAll, index1, index2) {
     ;-----------------------------------------------
     parentIndex := searchItemId(itemLevels[currIndex].parentTvID) ; find parent node.
     rectX := CONST_FIRST_X + (INCREASE_X * (itemLevels[currIndex].level - 1))
-    rectY += INCREASE_Y
+    rectY := rectY + previousHeight + INCREASE_Y
 
     shapeParent := itemLevels[parentIndex].node
     shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
     shapeChild.TextFrame.TextRange.Text := itemLevels[currIndex].routine
+    shapeChild.TextFrame.MarginTop := 20
+    shapeChild.TextFrame.MarginBottom := 20
+    ; shapeChild.TextFrame.WordWrap := False
+    shapeChild.TextFrame.AutoSize := ppAutoSizeShapeToFitText
+    previousTop += previousHeight + INCREASE_Y
+    previousHeight := shapeChild.Height
+    shapeChild.Top := previousTop
+
+    newH := shapeChild.Top + shapeChild.Height
+    newW := shapeChild.Left + shapeChild.Width
+    maxH := newH > maxH ? newH : maxH
+    maxW := newW > maxW ? newW : maxW
     
     connector1 := oShapes.AddConnector(msoConnectorElbow, 0, 0, 0, 0)
     connector1.ConnectorFormat.BeginConnect(shapeParent, bottomBoxSide)
     connector1.ConnectorFormat.EndConnect(shapeChild, leftBoxSide)
     
     itemLevels[currIndex].node := shapeChild  ; save box for later reference from it's children.
-    itemLevels[currIndex].rectX := rectX
-    itemLevels[currIndex].rectY := rectY
 
     getNextIndex(currIndex, currentLevel, expandAll)
   }
+
+  ; resize slide
+  ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight
+  ; oPres.PageSetup.SlideSize := ppSlideSizeCustom
+  ; oPres.PageSetup.SlideWidth := maxW
+  ; oPres.PageSetup.SlideHeight := maxH
+  ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight
 
   outfile := A_ScriptDir . "\test.pptx"
   if FileExist(outfile)
