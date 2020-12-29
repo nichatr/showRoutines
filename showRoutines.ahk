@@ -2248,6 +2248,11 @@ export_PPTX_horizontal(expandAll, index1, index2) {
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
 export_PPTX_vertical(expandAll, index1, index2) {
+
+  maxLevel := 0
+  routinesCount := 0
+  findexportMaxLevel(expandAll, maxLevel, routinesCount, index1, index2)  ; used for the initial powerpoint slide size.
+
   exportedString := ""
   currIndex := index1
   isRoot := True
@@ -2277,6 +2282,8 @@ export_PPTX_vertical(expandAll, index1, index2) {
   oPres := oApp.Presentations.Add() ; create presentation.
   ; oPres.PageSetup.SlideWidth := 60 * 72
   ; oPres.PageSetup.SlideHeight := 100 * 72
+  oPres.PageSetup.SlideWidth := CONST_FIRST_X + (INCREASE_X * maxLevel) ; (maxLevel - 1))
+  oPres.PageSetup.SlideHeight := routinesCount * (CONST_H + INCREASE_Y)
   PpSlideLayout := ppLayoutBlank
   oSlide := oPres.Slides.Add(1, PpSlideLayout)
   oShapes := oPres.Slides(1).Shapes
@@ -2310,7 +2317,6 @@ export_PPTX_vertical(expandAll, index1, index2) {
 
       ; create root box.
       shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
-      ; shapeParent.TextFrame.TextRange.Text := "long routine xxxxxxxxxxxxxxxxxxx"
       shapeParent.TextFrame.TextRange.Text := itemLevels[currIndex].routine
       shapeParent.TextFrame.MarginTop := 20
       shapeParent.TextFrame.MarginBottom := 20
@@ -2362,15 +2368,44 @@ export_PPTX_vertical(expandAll, index1, index2) {
 
   ; resize slide
   ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight
-  ; oPres.PageSetup.SlideSize := ppSlideSizeCustom
-  ; oPres.PageSetup.SlideWidth := maxW
-  ; oPres.PageSetup.SlideHeight := maxH
+  oPres.PageSetup.SlideSize := ppSlideSizeCustom
+  oPres.PageSetup.SlideWidth := maxW
+  oPres.PageSetup.SlideHeight := maxH
   ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight
 
   outfile := A_ScriptDir . "\test.pptx"
   if FileExist(outfile)
     FileDelete, %outfile%
   oPres.SaveAs(outfile)
+  }
+  ;-------------------------------------------------------------------------------
+  ; find the max level to be exported.
+  ;-------------------------------------------------------------------------------
+findexportMaxLevel(expandAll, ByRef maxLevel, ByRef routinesCount, index1, index2) {
+  maxLevel := 0
+  routinesCount := 0
+  currIndex := index1
+
+  while (currIndex <= index2) {
+  
+    currentLevel := itemLevels[currIndex].level
+    
+    ; ignore current node if it's level is greater than requested.
+    ; ignore all the declarations.
+    if (currentLevel > exportMaxLevel 
+      || itemLevels[currIndex].routine = CONST_DECLARATIONS      ; child routine name
+      || itemLevels[currIndex].parentRoutine = CONST_DECLARATIONS) {   ; parent routine name
+      currIndex ++
+      continue
+    }
+
+    routinesCount ++
+    if (currentLevel > maxLevel)
+      maxLevel := currentLevel
+
+    getNextIndex(currIndex, currentLevel, expandAll)
+    }
+
   }
   ;-------------------------------------------------------------------------------
   ; used when exporting only visible nodes.
