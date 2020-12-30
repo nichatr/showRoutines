@@ -181,7 +181,7 @@ showExport() {
   global subGui3_W, subGui3_H
 
   subGui3_W := 420
-  subGui3_H := 350
+  subGui3_H := 600 ; 350
   WinGetPos, targetX, targetY, targetWidth, targetHeight, A
   newX := targetX + (targetWidth - subGui3_W) / 2
   newY := targetY + (targetHeight - subGui3_H) / 2
@@ -202,8 +202,8 @@ showExport() {
   Gui, 3:Add, UpDown, Range2-999, %exportMaxLevel%
 
   ; include descriptions?
-  CheckedExportDescriptions := exportDescriptions == "true" ? "Checked" : ""
-  Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xp+100 yp+5 %CheckedExportDescriptions% Disabled,   Include routines descriptions
+  ; CheckedExportDescriptions := exportDescriptions == "true" ? "Checked" : ""
+  ; Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xp+100 yp+5 %CheckedExportDescriptions% Disabled,   Include routines descriptions
 
   ; output format
   CheckedHTML1 := exportOutputFormat == "html1" ? "Checked" : ""
@@ -215,9 +215,11 @@ showExport() {
   CheckedUnicode := exportConnectorsType == "Unicode" ? "Checked" : ""
   CheckedAS400 := exportConnectorsType == "AS400" ? "Checked" : ""
 
-  Gui, 3:Add, GroupBox, xm+20 y120 w150 h150, Output format
-  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML1% xp+15 yp+30, web page
-  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, flowchart
+  ; Gui, 3:Add, GroupBox, xm+20 y120 w150 h150, Output format
+  Gui, 3:Add, GroupBox, xm+20 y120 w150 h250, Output format
+  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML1% xp+15 yp+30, web tree
+  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, web horizontal flowchart
+  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, web vertical flowchart
   Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedTXT%, txt
   Gui, 3:Add, Radio, g3Check xm+35 yp+25 %CheckedJSON%, json
 
@@ -228,9 +230,9 @@ showExport() {
 
 
   ; Export, Close buttons
-  Gui, 3:Add, button, xm+30 ym+300 w80 g3ExportAll default, All
-  Gui, 3:Add, button, xp+90 ym+300 w80 g3ExportSelected vExportSelected, Selected
-  Gui, 3:Add, button, xp+90 ym+300 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
+  Gui, 3:Add, button, xm+30 ym+400 w80 g3ExportAll default, All
+  Gui, 3:Add, button, xp+90 ym+400 w80 g3ExportSelected vExportSelected, Selected
+  Gui, 3:Add, button, xp+90 ym+400 w80 g3ExportWhatYouSee vExportWhatYouSee, What you see
   Gui, 3:Add, button, xp+90 w80 g3Close, Cancel
 
   if (nodesToExport.MaxIndex()>0)
@@ -777,7 +779,6 @@ initialize() {
   }
 		
     ; use existing files(*select) or ini file has not corresponding entry: open file selector
-  
   if (A_Args[4] = "*SELECT" or fileCode = "") {
     if (!fileSelector(path))
       ExitApp
@@ -785,10 +786,31 @@ initialize() {
   
   if (trim(A_Args[5]) = "*EXPORT")
     exportInBatch := true
+  
+  loadDefinitions()
   }
-    ;--------------------------------------------
-    ; set environment, populate data structures
-    ;--------------------------------------------
+  ;--------------------------------------------
+  ; retrieve the definitions from definitions.json.
+  ;--------------------------------------------
+loadDefinitions() {
+  Global objDefinitions
+
+  objDefinitions := {}
+  jsonContent := ""
+  jsonFile := A_ScriptDir . "\definitions.json"
+  
+  FileRead, jsonContent, %jsonFile%
+  
+  if (ErrorLevel <> 0) {
+    MsgBox, 16,, Cannot load definitions.json
+    ExitApp
+  }
+
+  objDefinitions := JSON.load(jsonContent)
+  }
+  ;--------------------------------------------
+  ; set environment, populate data structures
+  ;--------------------------------------------
 setup() {
 	global
 	allRoutines := []
