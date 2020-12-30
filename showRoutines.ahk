@@ -64,8 +64,8 @@
   global TreeViewWidth, treeviewWidthStep
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
-  global exportedRoutines, exportDescriptions
-  global exportOutputFormat, exportConnectorsType, exportMaxLevel, includeDescriptions, OutputFormatRadio, ConnectorsTypeRadio, EditorRadio, ExportedFilename
+  global exportedRoutines
+  global exportOutputFormat, exportMaxLevel, OutputFormatRadio, EditorRadio, ExportedFilename
   global winX, winY ; main window position
   global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
@@ -175,13 +175,13 @@ showHelp() {
   ; show export window
   ;---------------------------------------------------------------------
 showExport() {
+  Global
   inputFilename := fileRoutines
 
   Gui, 3:Destroy
-  global subGui3_W, subGui3_H
 
   subGui3_W := 420
-  subGui3_H := 600 ; 350
+  subGui3_H := 450 ; 350
   WinGetPos, targetX, targetY, targetWidth, targetHeight, A
   newX := targetX + (targetWidth - subGui3_W) / 2
   newY := targetY + (targetHeight - subGui3_H) / 2
@@ -194,40 +194,41 @@ showExport() {
   ExportedFilename := "exported_" . NameNoExt     ; . ".html"
   Gui, 3:Add,Text,xm+20 yp+40, Exported filename
   Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %ExportedFilename%
-  ; Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %scriptDir%\data\%inputFilename%
 
   ; max level
-  Gui, 3:Add,Text,xm+20 yp+35, Max level to export
-  Gui, 3:Add,Edit, vexportMaxLevel xp+100 yp-5 w60 +Number
+  Gui, 3:Add,Text, xm+20 yp+35, Max level to export (2 - 999)
+  Gui, 3:Add, Edit, vexportMaxLevel xp+140 yp-5 w60 +Number
   Gui, 3:Add, UpDown, Range2-999, %exportMaxLevel%
 
-  ; include descriptions?
-  ; CheckedExportDescriptions := exportDescriptions == "true" ? "Checked" : ""
-  ; Gui, 3:Add, Checkbox, vincludeDescriptions g3IncludeDescriptions xp+100 yp+5 %CheckedExportDescriptions% Disabled,   Include routines descriptions
-
   ; output format
-  CheckedHTML1 := exportOutputFormat == "html1" ? "Checked" : ""
-  CheckedHTML2 := exportOutputFormat == "html2" ? "Checked" : ""
-  CheckedTXT := exportOutputFormat == "txt" ? "Checked" : ""
-  CheckedJSON := exportOutputFormat == "json" ? "Checked" : ""
+  Checked_zTree := exportOutputFormat == "zTree" ? "Checked" : ""
+  Checked_flowchartVertical := exportOutputFormat == "flowchartVertical" ? "Checked" : ""
+  Checked_flowchartHorizontal := exportOutputFormat == "flowchartHorizontal" ? "Checked" : ""
+  Checked_pptxVertical := exportOutputFormat == "pptxVertical" ? "Checked" : ""
+  Checked_pptxHorizontal := exportOutputFormat == "pptxHorizontal" ? "Checked" : ""
+  Checked_txtUnicode := exportOutputFormat == "txtUnicode" ? "Checked" : ""
+  Checked_txtAS400 := exportOutputFormat == "txtAS400" ? "Checked" : ""
+  Checked_json := exportOutputFormat == "json" ? "Checked" : ""
 
-  ; connectors type
-  CheckedUnicode := exportConnectorsType == "Unicode" ? "Checked" : ""
-  CheckedAS400 := exportConnectorsType == "AS400" ? "Checked" : ""
+  outformat1 := objDefinitions["export-types"]["zTree"].title
+  outformat2 := objDefinitions["export-types"]["flowchartVertical"].title
+  outformat3 := objDefinitions["export-types"]["flowchartHorizontal"].title
+  outformat4 := objDefinitions["export-types"]["pptxVertical"].title
+  outformat5 := objDefinitions["export-types"]["pptxHorizontal"].title
+  outformat6 := objDefinitions["export-types"]["txtUnicode"].title
+  outformat7 := objDefinitions["export-types"]["txtAS400"].title
+  outformat8 := objDefinitions["export-types"]["json"].title
 
   ; Gui, 3:Add, GroupBox, xm+20 y120 w150 h150, Output format
   Gui, 3:Add, GroupBox, xm+20 y120 w150 h250, Output format
-  Gui, 3:Add, Radio, Group g3Check vOutputFormatRadio %CheckedHTML1% xp+15 yp+30, web tree
-  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, web horizontal flowchart
-  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedHTML2%, web vertical flowchart
-  Gui, 3:Add, Radio, g3Check xp yp+25 %CheckedTXT%, txt
-  Gui, 3:Add, Radio, g3Check xm+35 yp+25 %CheckedJSON%, json
-
-  Gui, 3:Add, GroupBox, xp+150 y120 w150 h60, Connectors (only for txt)
-  Gui, 3:Add, Radio, Group g3Check vConnectorsTypeRadio %CheckedUnicode% xp+15 yp+30, Unicode
-  Gui, 3:Add, Radio, g3Check xp+70 yp %CheckedAS400%, AS400
-  ; Gui, 3:Add, Radio, g3Check vAS400 xp+70 yp %CheckedAS400%, AS400
-
+  Gui, 3:Add, Radio, Group xp+15 yp+30 g3Check vOutputFormatRadio %Checked_zTree%, %outformat1%
+  Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_flowchartVertical%, %outformat2%
+  Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_flowchartHorizontal%, %outformat3%
+  Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_pptxVertical%, %outformat4%
+  Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_pptxHorizontal% Disabled, %outformat5% ; not implemented fully.
+  Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_txtUnicode%, %outformat6%
+  Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_txtAS400%, %outformat7%
+  Gui, 3:Add, Radio, xm+35 yp+25 g3Check %Checked_json%, %outformat8%
 
   ; Export, Close buttons
   Gui, 3:Add, button, xm+30 ym+400 w80 g3ExportAll default, All
@@ -246,48 +247,42 @@ showExport() {
   }
 
   ;---------------------------------------------------------------------
-  ; checkbox <include descriptions> handler
-  ;---------------------------------------------------------------------
-3IncludeDescriptions:
-  Gui, 3:Submit, NoHide
-
-  if (includeDescriptions = 1)  ; checked
-    exportDescriptions := "true"
-  else
-    exportDescriptions := "false"
-  return
-
-  ;---------------------------------------------------------------------
   ; radiogroup <exrpot type> handler
   ;---------------------------------------------------------------------
 3Check:
   Gui, 3:Submit, NoHide
 
   if (OutputFormatRadio = 1) {
-    exportOutputFormat := "html1"
-    ; connectorsDisplayMode("Disable")
+    exportOutputFormat := "zTree"
   }
 
   if (OutputFormatRadio = 2) {
-    exportOutputFormat := "html2"
-    ; connectorsDisplayMode("Disable")
+    exportOutputFormat := "flowchartVertical"
   }
 
   if (OutputFormatRadio = 3) {
-    exportOutputFormat := "txt"
-    ; connectorsDisplayMode("Enable")
+    exportOutputFormat := "flowchartHorizontal"
   }
 
   if (OutputFormatRadio = 4) {
-    exportOutputFormat := "json"
-    ; connectorsDisplayMode("Disable")
+    exportOutputFormat := "pptxVertical"
   }
 
-  if (ConnectorsTypeRadio = 1)
-    exportConnectorsType := "Unicode"
+  if (OutputFormatRadio = 5) {
+    exportOutputFormat := "pptxHorizontal"
+  }
 
-  if (ConnectorsTypeRadio = 2)
-    exportConnectorsType := "AS400"
+  if (OutputFormatRadio = 6) {
+    exportOutputFormat := "txtUnicode"
+  }
+
+  if (OutputFormatRadio = 7) {
+    exportOutputFormat := "txtAS400"
+  }
+
+  if (OutputFormatRadio = 8) {
+    exportOutputFormat := "json"
+  }
   
   Return
 
@@ -352,27 +347,13 @@ showExport() {
   Gui, 3:Destroy
   return
   ;---------------------------------------------------------------------
-  ; enable or disable groupbox with connectors type.
-  ;---------------------------------------------------------------------
-connectorsDisplayMode(mode) {
-  if (mode = "Disable") {
-    GuiControl, Disable, ConnectorsTypeRadio
-    GuiControl, Disable, AS400
-  } else {
-    GuiControl, Enable, ConnectorsTypeRadio
-    GuiControl, Enable, AS400
-  }
-  }
-  ;---------------------------------------------------------------------
   ; export in html format with default options (without "export gui")
   ;---------------------------------------------------------------------
 exportInBatch() {
   ; filename to export = "exported_inputFilename.html"
   SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
   ExportedFilename := "exported_" . NameNoExt . ".html"
-  exportDescriptions := "true"
-  exportOutputFormat := "html1"
-  exportConnectorsType := "Unicode"
+  exportOutputFormat := "zTree"
   expandAll := true
   exportedString := exportNodes(expandAll)
   saveExportedString(exportedString)
@@ -389,13 +370,17 @@ saveExportedString(exportedString) {
   }
 
   ; json format needs no processing.
-  if (exportOutputFormat = "json" or exportOutputFormat = "txt") {
+  if (exportOutputFormat = "json") {
     OutputVar := exportedString
     extension := exportOutputFormat
   }
+  else if (exportOutputFormat = "txtUnicode" or exportOutputFormat = "txtAS400") {
+    OutputVar := exportedString
+    extension := "txt"
+  }
   
-  ; html1 format uses specific template.
-  else if (exportOutputFormat = "html1") {
+  ; zTree format uses specific template.
+  else if (exportOutputFormat = "zTree") {
     FileRead, templateContents, %A_ScriptDir%\tree diagram in zTree.html
     if ErrorLevel {
       MsgBox, Template file not found (\tree diagram in zTree.html)
@@ -420,12 +405,21 @@ saveExportedString(exportedString) {
     extension := "html"
   }
 
-  ; html2 format uses specific template.
-  else if (exportOutputFormat = "html2") {
-    FileRead, templateContents, %A_ScriptDir%\tree diagram in CSS.html
-    if ErrorLevel {
-      MsgBox, Template file not found (\tree diagram in CSS.html)
-      return
+  ; flowchart formats use specific templates.
+  else if (exportOutputFormat = "flowchartVertical" or exportOutputFormat = "flowchartHorizontal") {
+
+    if (exportOutputFormat = "flowchartHorizontal") {
+      FileRead, templateContents, %A_ScriptDir%\tree diagram in CSS.html
+      if ErrorLevel {
+        MsgBox, Template file not found (\tree diagram in CSS.html)
+        return
+      }
+    } else {
+      FileRead, templateContents, %A_ScriptDir%\tree diagram in CSS_vertical.html
+      if ErrorLevel {
+        MsgBox, Template file not found (tree diagram in CSS_vertical.html)
+        return
+      }
     }
 
     ; replace dummy strings with actual data.
@@ -868,9 +862,7 @@ setup() {
 	IniRead, valueOfcontrol_color, %A_ScriptDir%\%scriptNameNoExt%.ini, backgroundColor, control
 
   IniRead, exportMaxLevel, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
-  IniRead, exportDescriptions, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
   IniRead, exportOutputFormat, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
-  IniRead, exportConnectorsType, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportConnectorsType
 
 	IniRead, codeEditor, %A_ScriptDir%\%scriptNameNoExt%.ini, general, codeEditor
 	IniRead, openLevelOnStartup, %A_ScriptDir%\%scriptNameNoExt%.ini, general, openLevelOnStartup
@@ -1422,13 +1414,8 @@ saveSettings() {
   ; save export settings
   if (exportMaxLevel <> "")
     IniWrite, %exportMaxLevel%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportMaxLevel
-  if (exportDescriptions <> "")
-    IniWrite, %exportDescriptions%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportDescriptions
   if (exportOutputFormat <> "")
     IniWrite, %exportOutputFormat%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportOutputFormat
-  if (exportConnectorsType <> "")
-    IniWrite, %exportConnectorsType%, %A_ScriptDir%\%scriptNameNoExt%.ini, export, exportConnectorsType
-
 
   ; timestamp
   FormatTime, currentTimestamp,, yyyy-MM-dd hh:mm:ss
@@ -1872,16 +1859,21 @@ exportNodes(expandAll, index1=0, index2=0) {
   if (exportMaxLevel < 2 or exportMaxLevel > 999)
     exportMaxLevel := 999
 
-  if (exportOutputFormat = "json" or exportOutputFormat = "html1")
+  if (exportOutputFormat = "json" or exportOutputFormat = "zTree")
     treeString := export_zTree_vertical(expandAll, index1, index2)
 
-  if (exportOutputFormat = "txt")
-    treeString := export_TXT_vertical(expandAll, index1, index2)
+  if (exportOutputFormat = "flowchartVertical")
+    ; treeString := export_flowchart_vertical(expandAll, index1, index2)
+    
+
+  if (exportOutputFormat = "flowchartHorizontal")
+    treeString := export_flowchart_horizontal(expandAll, index1, index2)
   
-  if (exportOutputFormat = "html2")
+  if (exportOutputFormat = "pptxVertical")
     treeString := export_PPTX_vertical(expandAll, index1, index2)
-    ; treeString := export_PPTX_horizontal(expandAll, index1, index2)
-    ; treeString := export_flowchart_horizontal(expandAll, index1, index2)
+
+  if (exportOutputFormat = "txtUnicode" or exportOutputFormat = "txtAS400")
+    treeString := export_TXT_vertical(expandAll, index1, index2)
   
   return treeString
   }
@@ -1892,10 +1884,7 @@ exportNodes(expandAll, index1=0, index2=0) {
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
 export_zTree_vertical(expandAll, index1, index2) {
-  ; used only in showPrograms.ahk
-  ; find max level when descriptions are to be exported.
-  ; if (exportDescriptions = "true")
-  ;   maxLevel := findexportMaxLevel(index1, index2) 
+
   nodesArray := []
   currIndex := index1
 
@@ -1921,14 +1910,7 @@ export_zTree_vertical(expandAll, index1, index2) {
     newNode.pId := itemLevels[currIndex].parentTvID
 
     routineName := itemLevels[currIndex].routine
-
-    if (exportDescriptions = "true") {
-      ; used only in showPrograms.ahk
-      ; outputRoutineName := addDashesToRoutineName(routineName, itemLevels[currIndex].level)
-      ; outputRoutineName .= searchRoutineDescription(routineName)
-      outputRoutineName := routineName
-    } else
-      outputRoutineName := routineName
+    outputRoutineName := routineName
 
     newNode.name := outputRoutineName
     newNode.start := itemLevels[currIndex].startStmt
@@ -1956,9 +1938,9 @@ export_TXT_vertical(expandAll, index1, index2) {
   currLine := 1
   prefix := ""
 
-  connector1 := exportConnectorsType == "Unicode" ? "├──" : "|__"
-  connector2 := exportConnectorsType == "Unicode" ? "└──" : "\__"
-  connector3 := exportConnectorsType == "Unicode" ? "│  " : "|  "
+  connector1 := exportOutputFormat == "txtUnicode" ? "├──" : "|__"
+  connector2 := exportOutputFormat == "txtUnicode" ? "└──" : "\__"
+  connector3 := exportOutputFormat == "txtUnicode" ? "│  " : "|  "
 
   while (currIndex <= index2) {
   

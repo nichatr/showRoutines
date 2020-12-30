@@ -21,29 +21,29 @@
       "INCREASE_Y": 10
     }
   },
-  "export types": {
+  "export-types": {
     "zTree": {
       "title": "web tree"
     },
     "json": {
       "title": "json file"
     },
-    "txt unicode": {
+    "txtUnicode": {
       "title": "text tree"
     },
-    "txt AS400": {
+    "txtAS400": {
       "title": "text tree for AS400"
     },
-    "flowchart vertical": {
+    "flowchartVertical": {
       "title": "vertical flowchart"
     },
-    "flowchart horizontal": {
+    "flowchartHorizontal": {
       "title": "horizontal flowchart"
     },
-    "pptx vertical": {
+    "pptxVertical": {
       "title": "vertical powerpoint"
     },
-    "pptx horizontal": {
+    "pptxHorizontal": {
       "title": "horizontal powerpoint",
       "disabled": "True"
     }
