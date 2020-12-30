@@ -382,7 +382,7 @@ saveExportedString(exportedString) {
   global
   stringCode := ""
   if (exportedString = "") {
-    MsgBox, Nothing to export.
+    ; MsgBox, Nothing to export.
     return
   }
 
@@ -2269,8 +2269,8 @@ export_PPTX_vertical(expandAll, index1, index2) {
   ppSlideSizeCustom := 7
 
   ; rectangle dimensions.
-  CONST_FIRST_X := 50
-  CONST_FIRST_Y := 10
+  CONST_FIRST_X := 70
+  CONST_FIRST_Y := 100
   CONST_W :=  200
   CONST_H := 70
   INCREASE_X := 150
@@ -2280,9 +2280,9 @@ export_PPTX_vertical(expandAll, index1, index2) {
   oApp := ComObjCreate("PowerPoint.Application") ; create powerpoint.
   oApp.Visible := True
   oPres := oApp.Presentations.Add() ; create presentation.
-  ; oPres.PageSetup.SlideWidth := 60 * 72
-  ; oPres.PageSetup.SlideHeight := 100 * 72
-  oPres.PageSetup.SlideWidth := CONST_FIRST_X + (INCREASE_X * maxLevel) ; (maxLevel - 1))
+  ; oPres.PageSetup.Sli deWidth := 60 * 72
+  ; oPres.PageSetup.Slid eHeight := 100 * 72
+  oPres.PageSetup.SlideWidth := CONST_FIRST_X + (INCREASE_X * (maxLevel + 1)) ; (maxLevel - 1))
   oPres.PageSetup.SlideHeight := routinesCount * (CONST_H + INCREASE_Y)
   PpSlideLayout := ppLayoutBlank
   oSlide := oPres.Slides.Add(1, PpSlideLayout)
@@ -2367,11 +2367,11 @@ export_PPTX_vertical(expandAll, index1, index2) {
   }
 
   ; resize slide
-  ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight
-  oPres.PageSetup.SlideSize := ppSlideSizeCustom
-  oPres.PageSetup.SlideWidth := maxW
-  oPres.PageSetup.SlideHeight := maxH
-  ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight
+  ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight . "`nroot left=" . itemLevels[1].node.Left . "`nroot top=" . itemLevels[1].node.Top . "`nroot width=" . itemLevels[1].node.Width
+  ; oPres.PageSetup.SlideSize := ppSlideSizeCustom
+  ; oPres.PageSetup.SlideWidth := maxW
+  ; oPres.PageSetup.SlideHeight := maxH
+  ; Msgbox, % "w=" . oPres.PageSetup.SlideWidth . "`nh=" . oPres.PageSetup.SlideHeight . "`nroot left=" . itemLevels[1].node.Left . "`nroot top=" . itemLevels[1].node.Top . "`nroot width=" . itemLevels[1].node.Width
 
   outfile := A_ScriptDir . "\test.pptx"
   if FileExist(outfile)
