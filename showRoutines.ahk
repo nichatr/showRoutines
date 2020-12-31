@@ -1865,12 +1865,11 @@ exportNodes(expandAll, index1=0, index2=0) {
   if (exportOutputFormat = "json" or exportOutputFormat = "zTree")
     treeString := export_zTree_vertical(expandAll, index1, index2)
 
-  ; if (exportOutputFormat = "flowchartVertical")
-    ; treeString := export_flowchart_vertical(expandAll, index1, index2)
-    
+  if (exportOutputFormat = "flowchartVertical")
+    treeString := export_flowchart("vertical", expandAll, index1, index2)
 
   if (exportOutputFormat = "flowchartHorizontal")
-    treeString := export_flowchart_horizontal(expandAll, index1, index2)
+    treeString := export_flowchart("horizontal", expandAll, index1, index2)
   
   if (exportOutputFormat = "pptxVertical")
     treeString := export_PPTX_vertical(expandAll, index1, index2)
@@ -2002,15 +2001,20 @@ export_TXT_vertical(expandAll, index1, index2) {
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
   ;-------------------------------------------------------------------------------
-export_flowchart_horizontal(expandAll, index1, index2) {
+export_flowchart(direction, expandAll, index1, index2) {
   exportedString := ""
   currIndex := index1
   isRoot := True
+  rootTag := direction == "horizontal" ? "figure" : "div" ; the tag for the root node.
+  headerTag := direction == "horizontal" ? "h1" : "h1" ; the tag for the header node.
+  childrenTag := direction == "horizontal" ? "code" : "a" ; tag for each child node.
 
   try
+    {
     ; create an XMLDOMDocument object
     ; set its top-level node
-    xmlObj := new xml("<figure/>")
+    xmlObj := direction == "horizontal" ? new xml("<figure/>") : new xml("<div class=""content""/>")
+    }
   catch pe ; catch parsing error(if any)
 	  MsgBox, 16, PARSE ERROR
     , % "Exception thrown!!`n`nWhat: " pe.What "`nFile: " pe.File
@@ -2037,10 +2041,14 @@ export_flowchart_horizontal(expandAll, index1, index2) {
     ; for the root item create also the header.
     ;------------------------------------------
     if (isRoot) {
-      xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")
-      xmlObj.addElement("ul", "figure", {class: "tree"})              ; <ul class="tree">
+      xmlObj.addElement(headerTag, "//" . rootTag, {name: headerTag}, "Example DOM structure diagram")
+      xmlObj.addElement("ul", rootTag, {class: "tree"})  ; <ul class="tree">
+
+      ; xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")
+      ; xmlObj.addElement("ul", "figure", {class: "tree"})              ; <ul class="tree">
+
       nodeLI := xmlObj.addElement("li", "//ul")                         ; <li></li>
-      xmlObj.addElement("code", "//li", itemLevels[currIndex].routine)     ; <code>root routine</code>
+      xmlObj.addElement(childrenTag, "//li", itemLevels[currIndex].routine)     ; <code>root routine</code>
       itemLevels[currIndex].node := nodeLI  ; save root node object for later reference.
 
       ; write root's calls as ul/li.
@@ -2065,7 +2073,7 @@ export_flowchart_horizontal(expandAll, index1, index2) {
           newnode:= xmlObj.addElement("li", nodeUL)
 
           calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]            
-          xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>called routine</code>
+          xmlObj.addElement(childrenTag, newnode, calledRoutineName)  ; write <code>called routine</code>
           index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
           searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
           itemLevels[index_in_itemLevels].node := newnode  ; save current li node for later reference.
@@ -2105,7 +2113,7 @@ export_flowchart_horizontal(expandAll, index1, index2) {
 
         newnode:= xmlObj.addElement("li", nodeUL)
         calledRoutineName := allRoutines[allRoutinesIndex].calls[A_Index]          
-        xmlObj.addElement("code", newnode, calledRoutineName)  ; write <code>routine</code>
+        xmlObj.addElement(childrenTag, newnode, calledRoutineName)  ; write <code>routine</code>
         index_in_itemLevels := searchRoutine_inItemLevels(searchRoutine_fromIndex, calledRoutineName, allRoutines[allRoutinesIndex].routineName)
         searchRoutine_fromIndex := index_in_itemLevels + 1  ; next routine search : to avoid getting the wrong item when duplicates exist.
         itemLevels[index_in_itemLevels].node := newnode  ; save current li node for later reference.                    
