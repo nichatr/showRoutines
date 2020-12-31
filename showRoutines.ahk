@@ -37,6 +37,8 @@
   ; used for building the executable.
   FileInstall, tree diagram in zTree.html, tree diagram in zTree.html
   FileInstall, tree diagram in CSS_horizontal.html, tree diagram in CSS_horizontal.html
+  FileInstall, tree diagram in CSS_vertical.html, tree diagram in CSS_vertical.html
+  FileInstall, definitions.json, definitions.json
   FileInstall, showRoutines.ini, showRoutines.ini
   FileInstall, showRoutines.bat, showRoutines.bat
   FileInstall, prism.js, prism.js
@@ -405,7 +407,6 @@ saveExportedString(exportedString) {
     ; the <pre><code> tags are inside the template's body already. The addition of the code is done dynamically with $().html()
 
     ; replace dummy strings with actual data.
-    SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", exportedTitle)
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
     ; enclose the code in backticks for multiline functionality.
@@ -432,7 +433,6 @@ saveExportedString(exportedString) {
     }
 
     ; replace dummy strings with actual data.
-    SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
     templateContents := RegExReplace(templateContents, "TITLE", exportedTitle)
     ; below regex was taken from https://stackoverflow.com/questions/6109882/regex-match-all-characters-between-two-strings
     ; it replaces all dummy text between <body>..</body> with the actual content.
@@ -441,6 +441,7 @@ saveExportedString(exportedString) {
   }
 
   filename := A_ScriptDir . "\data\" . ExportedFilename . "." . extension
+
   if FileExist(filename)
     FileDelete, %filename%
 
@@ -825,7 +826,6 @@ setup() {
 	fullFileCode := path . fileCode
 
   if !FileExist(fullFileCode) {
-    ; msgbox, % line 799
     if (!fileSelector(path))
       ExitApp
   }
@@ -1778,7 +1778,6 @@ processRoutine(currRoutine, parentID=0, parentName="") {
 
   currThread.push(currentName)  ; add new routine to this thread.
 	itemId := addToTreeview(currRoutine, currentLevel, parentID, parentName)
-	; itemId := addToTreeview(currentName, currentLevel, parentID, parentName)
 	
 	Loop, % currRoutine.calls.MaxIndex() {
 		
@@ -1806,7 +1805,7 @@ addToTreeview(currRoutine, currentLevel, parentId, parentName) {
   routineLevel.routine := currRoutine.routineName  ; current node's TV text
   routineLevel.parentTvID := parentId     ; parent node's TV id
   routineLevel.parentRoutine := parentName
-  routineLevel.node := "" ; used only in export to html2 (flowchart)
+  routineLevel.node := "" ; used only in export to flowchart and powerpoint.
 
   followsSibling := false
   parentIndex := searchItemId(parentId) ; find parent node.
