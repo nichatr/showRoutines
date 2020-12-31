@@ -65,7 +65,7 @@
   global ListBoxWidth
   global MyTreeView, MyListBox, MyEdit_routine, MyEdit_code
   global exportedRoutines
-  global exportOutputFormat, exportMaxLevel, OutputFormatRadio, EditorRadio, ExportedFilename
+  global exportOutputFormat, exportMaxLevel, OutputFormatRadio, EditorRadio, ExportedFilename, exportedTitle
   global winX, winY ; main window position
   global winWidth, winHeight ; main window size
   global LVX, LVY,LVWidth, LVHeight
@@ -195,10 +195,16 @@ showExport() {
   Gui, 3:Add,Text,xm+20 yp+40, Exported filename
   Gui, 3:Add,Edit, vExportedFilename xp+90 yp-5 w300, %ExportedFilename%
 
+  ; title
+  Gui, 3:Add,Text, xm+80 yp+35, Title
+  exportedTitle := NameNoExt . ": routine calls"
+  Gui, 3:Add, Edit, vexportedTitle xm+110 yp-5 w300, %exportedTitle%
+
   ; max level
-  Gui, 3:Add,Text, xm+20 yp+35, Max level to export (2 - 999)
-  Gui, 3:Add, Edit, vexportMaxLevel xp+140 yp-5 w60 +Number
+  Gui, 3:Add,Text, xm+20 yp+35, Max export level
+  Gui, 3:Add, Edit, vexportMaxLevel xm+110 yp-5 w60 +Number
   Gui, 3:Add, UpDown, Range2-999, %exportMaxLevel%
+  Gui, 3:Add,Text, xp+80 yp+5, (2 - 999)
 
   ; output format
   Checked_zTree := exportOutputFormat == "zTree" ? "Checked" : ""
@@ -220,7 +226,7 @@ showExport() {
   outformat8 := objDefinitions["export-types"]["json"].title
 
   ; Gui, 3:Add, GroupBox, xm+20 y120 w150 h150, Output format
-  Gui, 3:Add, GroupBox, xm+20 y120 w150 h250, Output format
+  Gui, 3:Add, GroupBox, xm+20 y150 w190 h240, Output format
   Gui, 3:Add, Radio, Group xp+15 yp+30 g3Check vOutputFormatRadio %Checked_zTree%, %outformat1%
   Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_flowchartVertical%, %outformat2%
   Gui, 3:Add, Radio, xp yp+25 g3Check %Checked_flowchartHorizontal%, %outformat3%
@@ -400,7 +406,7 @@ saveExportedString(exportedString) {
 
     ; replace dummy strings with actual data.
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-    templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
+    templateContents := RegExReplace(templateContents, "TITLE", exportedTitle)
     OutputVar := RegExReplace(templateContents, "var zNodes = \[\]", "var zNodes = " . exportedString)
     ; enclose the code in backticks for multiline functionality.
     OutputVar := RegExReplace(OutputVar, "var myCode = ````", "var myCode = ``" . stringCode . "``")
@@ -427,7 +433,7 @@ saveExportedString(exportedString) {
 
     ; replace dummy strings with actual data.
     SplitPath, fileRoutines , FileName, Dir, Extension, NameNoExt, Drive
-    templateContents := RegExReplace(templateContents, "TITLE", NameNoExt . ": routine calls")
+    templateContents := RegExReplace(templateContents, "TITLE", exportedTitle)
     ; below regex was taken from https://stackoverflow.com/questions/6109882/regex-match-all-characters-between-two-strings
     ; it replaces all dummy text between <body>..</body> with the actual content.
     OutputVar := RegExReplace(templateContents, "\<body\>(?s)(.*)\<\/body\>", "<body>" . exportedString . "</body>")
@@ -2043,7 +2049,7 @@ export_flowchart(direction, expandAll, index1, index2) {
     ; for the root item create also the header.
     ;------------------------------------------
     if (isRoot) {
-      xmlObj.addElement(headerTag, "//" . rootTag, {name: headerTag}, "Example DOM structure diagram")
+      xmlObj.addElement(headerTag, "//" . rootTag, {name: headerTag}, exportedTitle)
       xmlObj.addElement("ul", rootTag, {class: "tree"})  ; <ul class="tree">
 
       ; xmlObj.addElement("figcaption", "//figure", {name: "figcaption"}, "Example DOM structure diagram")

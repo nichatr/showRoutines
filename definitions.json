@@ -23,7 +23,7 @@
   },
   "export-types": {
     "zTree": {
-      "title": "web tree"
+      "title": "web tree with source code"
     },
     "json": {
       "title": "json file"
@@ -35,16 +35,16 @@
       "title": "text tree for AS400"
     },
     "flowchartVertical": {
-      "title": "vertical flowchart"
+      "title": "vertical web flowchart"
     },
     "flowchartHorizontal": {
-      "title": "horizontal flowchart"
+      "title": "horizontal web flowchart"
     },
     "pptxVertical": {
-      "title": "vertical powerpoint"
+      "title": "vertical powerpoint flowchart"
     },
     "pptxHorizontal": {
-      "title": "horizontal powerpoint",
+      "title": "horizontal powerpoint flowchart",
       "disabled": "True"
     }
   }

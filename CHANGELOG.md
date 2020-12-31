@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - hide declarations sub nodes.
   - added export to powerpoint (vertical).
   - added export to flowchart (vertical).
+  - added title.
 
 ## 2020-12-25
 
