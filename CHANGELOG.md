@@ -16,6 +16,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - showRoutines/showPrograms: move menu items Settings, Help one level up.
 
+## 2020-12-31
+
+- showRoutines:
+  - hide declarations sub nodes.
+  - added export to powerpoint (vertical).
+  - added export to flowchart (vertical).
+
 ## 2020-12-25
 
 - showRoutines: move the declaration sections to a main routine (name= declarations).

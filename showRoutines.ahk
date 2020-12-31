@@ -1620,8 +1620,10 @@ processLevel(selected_level) {
       
     if (current_index > itemLevels.MaxIndex())    ; if end of array items, exit
       Break
-      
-    if (itemLevels[current_index].level >= selected_level)
+
+    if (itemLevels[current_index].level >= selected_level
+       or itemLevels[current_index].routine == CONST_DECLARATIONS
+      or  itemLevels[current_index].parent == CONST_DECLARATIONS)      
       TV_Modify(itemLevels[current_index].tvID, "-Expand")
     else
       TV_Modify(itemLevels[current_index].tvID, "Expand")
