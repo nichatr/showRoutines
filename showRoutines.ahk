@@ -36,7 +36,7 @@
 
   ; used for building the executable.
   FileInstall, tree diagram in zTree.html, tree diagram in zTree.html
-  FileInstall, tree diagram in CSS.html, tree diagram in CSS.html
+  FileInstall, tree diagram in CSS_horizontal.html, tree diagram in CSS_horizontal.html
   FileInstall, showRoutines.ini, showRoutines.ini
   FileInstall, showRoutines.bat, showRoutines.bat
   FileInstall, prism.js, prism.js
@@ -364,8 +364,11 @@ exportInBatch() {
 saveExportedString(exportedString) {
   global
   stringCode := ""
+  
+  if (exportedString = "pptx")  ; when powerpoint: no more action.
+    return
   if (exportedString = "") {
-    ; MsgBox, Nothing to export.
+    MsgBox, Nothing to export.
     return
   }
 
@@ -409,9 +412,9 @@ saveExportedString(exportedString) {
   else if (exportOutputFormat = "flowchartVertical" or exportOutputFormat = "flowchartHorizontal") {
 
     if (exportOutputFormat = "flowchartHorizontal") {
-      FileRead, templateContents, %A_ScriptDir%\tree diagram in CSS.html
+      FileRead, templateContents, %A_ScriptDir%\tree diagram in CSS_horizontal.html
       if ErrorLevel {
-        MsgBox, Template file not found (\tree diagram in CSS.html)
+        MsgBox, Template file not found (\tree diagram in CSS_horizontal.html)
         return
       }
     } else {
@@ -1862,7 +1865,7 @@ exportNodes(expandAll, index1=0, index2=0) {
   if (exportOutputFormat = "json" or exportOutputFormat = "zTree")
     treeString := export_zTree_vertical(expandAll, index1, index2)
 
-  if (exportOutputFormat = "flowchartVertical")
+  ; if (exportOutputFormat = "flowchartVertical")
     ; treeString := export_flowchart_vertical(expandAll, index1, index2)
     
 
@@ -2120,6 +2123,7 @@ export_flowchart_horizontal(expandAll, index1, index2) {
   ; export nodes to powerpoint - show as horizontal flowchart
   ;   expandAll = true : export all nodes / false : export only the shown nodes
   ;   index1, index2 = from item to item
+  ; TODO: finish the logic.
   ;-------------------------------------------------------------------------------
 export_PPTX_horizontal(expandAll, index1, index2) {
   exportedString := ""
@@ -2245,6 +2249,7 @@ export_PPTX_horizontal(expandAll, index1, index2) {
   if FileExist(outfile)
     FileDelete, %outfile%
   oPres.SaveAs(outfile)
+  return "pptx"
   }
   ;-------------------------------------------------------------------------------
   ; export nodes to powerpoint - show as vertical flowchart
@@ -2381,6 +2386,7 @@ export_PPTX_vertical(expandAll, index1, index2) {
   if FileExist(outfile)
     FileDelete, %outfile%
   oPres.SaveAs(outfile)
+  return "pptx"
   }
   ;-------------------------------------------------------------------------------
   ; find the max level to be exported.
