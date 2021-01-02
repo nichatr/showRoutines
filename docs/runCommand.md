@@ -1,12 +1,18 @@
 # Using PGROUT
 
 The command **PGROUT** runs in AS400.
-A mapped IFS drive is required, for example `Z --> \\gredev\output`.
+
+!> A mapped IFS drive is required, for example `Z --> \\gredev\output`.
 
 ```
 in command line run:
 DCOMMON/PGROUT PROGRAM(ZPROSUBR) FILE(ATHATSRC/QLBLSRC)
 ```
+
+where
+
+- PROGRAM = the source member
+- FILE = library and source file.
 
 ![command pgrout](./images/pgrout_command.jpg)
 

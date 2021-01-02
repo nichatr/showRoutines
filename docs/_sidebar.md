@@ -2,8 +2,12 @@
 
 - [HOME](./)
 
-- [Installation](./install)
+- [Installation](./install.md)
 
-- [Running the command](./runCommand)
+- [Running the command](./runCommand.md)
 
 - [Using the app](./using_the_app.md)
+
+- [Export](./export.md)
+
+- [Settings](./settings.md)

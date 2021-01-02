@@ -140,7 +140,6 @@ showHelp() {
   newX := targetX + (targetWidth - subGui2_W) / 2
   newY := targetY + (targetHeight - subGui2_H) / 2
 
-  Gui, 2:Add, Link,, <a href="https://www.autohotkey.com">User Guide</a>
   Gui, 2:+AlwaysOnTop -Caption +Owner1
   Gui, 2:Add,GroupBox,xm+5 y+20 w%subGui2_W% h%subGui2_H%, Function keys
   Gui, 2:Add,Text,xm+10 yp+20 w400,
@@ -165,6 +164,7 @@ showHelp() {
     double-click a routine left to open code in editor
 
     )
+  Gui, 2:Add, Link,, <a href="https://nichatr.github.io/showRoutines/#/./">User Guide</a>
   Gui, 2:Add, button, xm+10 y+20 Default g2Close, Close
   Gui, 2:show, x%newX% y%newY%, Gui 2
   return
@@ -988,6 +988,7 @@ setup() {
   Menu, MyMenuBar, Add, &View, :ViewMenu
 	Menu, MyMenuBar, Add, &Settings, :SettingsMenu
   Menu, MyMenuBar, Add, &Help, MenuHandler
+  Menu, MyMenuBar, Add, ?, MenuHandler
   ; Menu, MyMenuBar, Add, &Help, :HelpMenu
 	
 	Gui, 1:Menu, MyMenuBar
@@ -1291,8 +1292,12 @@ MenuHandler:
     return
   }
       
-  ; if (A_ThisMenuItem = "&Help `tF1") {
   if (A_ThisMenuItem = "&Help") {
+    Run, https://nichatr.github.io/showRoutines/#/./
+    return
+  }
+
+  if (A_ThisMenuItem = "?") {
     showHelp()
     return
   }
