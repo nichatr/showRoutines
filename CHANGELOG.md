@@ -14,7 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - parseRPG: the output section is not processed.
 
-- showRoutines/showPrograms: move menu items Settings, Help one level up.
+## 2021-01-02
+
+- [x] showRoutines/showPrograms: move menu items Settings, Help one level up.
 
 ## 2020-12-31
 

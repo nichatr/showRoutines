@@ -135,11 +135,12 @@ showGui() {
 showHelp() {
   Gui, 2:Destroy
   subGui2_W := 420
-  subGui2_H := 220
+  subGui2_H := 270
   WinGetPos, targetX, targetY, targetWidth, targetHeight, A
   newX := targetX + (targetWidth - subGui2_W) / 2
   newY := targetY + (targetHeight - subGui2_H) / 2
 
+  Gui, 2:Add, Link,, <a href="https://www.autohotkey.com">User Guide</a>
   Gui, 2:+AlwaysOnTop -Caption +Owner1
   Gui, 2:Add,GroupBox,xm+5 y+20 w%subGui2_W% h%subGui2_H%, Function keys
   Gui, 2:Add,Text,xm+10 yp+20 w400,
@@ -952,11 +953,8 @@ setup() {
 	Menu, FileMenu, Add, &Open file, MenuHandler
 	Menu, FileMenu, Icon, &Open file, shell32.dll, 4
 	
-  Menu, FileMenu, Add, Save settings, MenuHandler
-  ; Menu, FileMenu, Disable, Save settings
-	
 	Menu, FileMenu, Add, Export tree as..., MenuHandler
-	Menu, FileMenu, Icon, Export tree as..., shell32.dll, 259
+	Menu, FileMenu, Icon, Export tree as..., export.png
 	
 	Menu, FileMenu, Add, &Exit, MenuHandler
 	Menu, FileMenu, Icon, &Exit, shell32.dll, 123
@@ -978,16 +976,19 @@ setup() {
   ; settings submenu
 	Menu, SettingsMenu, Add, &Settings, MenuHandler
 	Menu, SettingsMenu, Icon, &Settings, shell32.dll, 317
+  Menu, SettingsMenu, Add, Save settings, MenuHandler
+	Menu, SettingsMenu, Icon, Save settings, shell32.dll, 259
 	
   ; help submenu
-  Menu, HelpMenu, Add, &Help `tF1, MenuHandler
+  ; Menu, HelpMenu, Add, &Help `tF1, MenuHandler
 
   ; define the menu bar.
 	Menu, MyMenuBar, Add, &File, :FileMenu
   Menu, MyMenuBar, Add, &Edit, :EditMenu
   Menu, MyMenuBar, Add, &View, :ViewMenu
 	Menu, MyMenuBar, Add, &Settings, :SettingsMenu
-  Menu, MyMenuBar, Add, &Help, :HelpMenu
+  Menu, MyMenuBar, Add, &Help, MenuHandler
+  ; Menu, MyMenuBar, Add, &Help, :HelpMenu
 	
 	Gui, 1:Menu, MyMenuBar
 	Gui, 1:Add, Button, gExit, Exit This Example
@@ -1290,7 +1291,8 @@ MenuHandler:
     return
   }
       
-  if (A_ThisMenuItem = "&Help `tF1") {
+  ; if (A_ThisMenuItem = "&Help `tF1") {
+  if (A_ThisMenuItem = "&Help") {
     showHelp()
     return
   }
