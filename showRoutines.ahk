@@ -43,6 +43,7 @@
   FileInstall, showRoutines.bat, showRoutines.bat
   FileInstall, prism.js, prism.js
   FileInstall, prism.css, prism.css
+  FileInstall, export.png, export.png
 
   #Include %A_ScriptDir%\JSON\JSON.ahk  ; for converting to/from json
   #Include %A_ScriptDir%\XML\xml.ahk  ; for building html (xml)
@@ -2301,11 +2302,14 @@ export_PPTX_vertical(expandAll, index1, index2) {
 
   ; rectangle dimensions.
   CONST_FIRST_X := 70
-  CONST_FIRST_Y := 100
-  CONST_W :=  200
-  CONST_H := 70
-  INCREASE_X := 150
+  CONST_FIRST_Y := 70
+  CONST_W :=  90
+  CONST_H := 30
+  INCREASE_X := 90
   INCREASE_Y := 10
+  CONST_FONT_SIZE := 10
+  CONST_MARGIN_TOP := 5
+  CONST_MARGIN_BOTTOM := 5
 
   ; create the main powerpoint containers.
   oApp := ComObjCreate("PowerPoint.Application") ; create powerpoint.
@@ -2314,7 +2318,7 @@ export_PPTX_vertical(expandAll, index1, index2) {
   ; oPres.PageSetup.Sli deWidth := 60 * 72
   ; oPres.PageSetup.Slid eHeight := 100 * 72
   oPres.PageSetup.SlideWidth := CONST_FIRST_X + (INCREASE_X * (maxLevel + 1)) ; (maxLevel - 1))
-  oPres.PageSetup.SlideHeight := routinesCount * (CONST_H + INCREASE_Y)
+  oPres.PageSetup.SlideHeight := CONST_FIRST_Y + (routinesCount * (CONST_H + INCREASE_Y))
   PpSlideLayout := ppLayoutBlank
   oSlide := oPres.Slides.Add(1, PpSlideLayout)
   oShapes := oPres.Slides(1).Shapes
@@ -2349,8 +2353,9 @@ export_PPTX_vertical(expandAll, index1, index2) {
       ; create root box.
       shapeParent := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
       shapeParent.TextFrame.TextRange.Text := itemLevels[currIndex].routine
-      shapeParent.TextFrame.MarginTop := 20
-      shapeParent.TextFrame.MarginBottom := 20
+      shapeParent.TextFrame.TextRange.Font.Size := CONST_FONT_SIZE
+      shapeParent.TextFrame.MarginTop := CONST_MARGIN_TOP
+      shapeParent.TextFrame.MarginBottom := CONST_MARGIN_BOTTOM
       ; shapeParent.TextFrame.WordWrap := False
       shapeParent.TextFrame.AutoSize := ppAutoSizeShapeToFitText
       previousHeight := shapeParent.Height
@@ -2375,8 +2380,9 @@ export_PPTX_vertical(expandAll, index1, index2) {
     shapeParent := itemLevels[parentIndex].node
     shapeChild := oShapes.AddShape(msoShapeRectangle, rectX, rectY, rectW, rectH)
     shapeChild.TextFrame.TextRange.Text := itemLevels[currIndex].routine
-    shapeChild.TextFrame.MarginTop := 20
-    shapeChild.TextFrame.MarginBottom := 20
+    shapeChild.TextFrame.TextRange.Font.Size := CONST_FONT_SIZE
+    shapeChild.TextFrame.MarginTop := CONST_MARGIN_TOP
+    shapeChild.TextFrame.MarginBottom := CONST_MARGIN_BOTTOM
     ; shapeChild.TextFrame.WordWrap := False
     shapeChild.TextFrame.AutoSize := ppAutoSizeShapeToFitText
     previousTop += previousHeight + INCREASE_Y
