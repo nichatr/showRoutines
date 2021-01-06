@@ -14,6 +14,7 @@
       integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh"
       crossorigin="anonymous"
     />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.1/css/all.min.css" integrity="sha512-+4zCK9k+qNFUR5X+cKL9EIR+ZOhtIloNl9GIKS57V1MyNsYpYcUrUeQc9vNfzsWfV28IaLL3i96P9sdNyeRssA==" crossorigin="anonymous" />
     <!-- <link
       rel="stylesheet"
       href="../zTree/css/zTreeStyle/zTreeStyle.css"
@@ -241,6 +242,8 @@
         $('#collapseAllBtn').bind('click', collapseAll);
         $('#expandLevelBtn').bind('click', expandLevel);
         $('#collapseLevelBtn').bind('click', collapseLevel);
+        $('#decrease').bind('click', decrease);
+        $('#increase').bind('click', increase);
       });
       /**---------------------------------------------------------------------
        * 
@@ -323,6 +326,64 @@
           }
         }
       }
+      /**---------------------------------------------------------------------
+       * 
+       *--------------------------------------------------------------------- */
+       function decrease() {
+        var pattern = /.+-(\d{1,2})$/
+        
+        var oldclass1 = $("#col1").attr("class")
+        var result1 = oldclass1.match(pattern)
+        oldlength1 = parseInt(result1[1])
+        
+        var oldclass2 = $("#col2").attr("class")
+        var result2 = oldclass2.match(pattern)
+        oldlength2 = parseInt(result2[1])
+
+        if (oldlength1 >= 1) {
+
+          var newlength1 = oldlength1 -1
+          var newlength2 = oldlength2 +1
+
+          $("#col1").removeClass(oldclass1)
+          $("#col2").removeClass(oldclass2)
+
+          newclass1 = oldclass1.replace(oldlength1, newlength1)
+          newclass2 = oldclass2.replace(oldlength2, newlength2)
+
+          $("#col1").addClass(newclass1)
+          $("#col2").addClass(newclass2)
+        }
+
+      }
+
+      function increase() {
+        var pattern = /.+-(\d{1,2})$/
+        
+        var oldclass1 = $("#col1").attr("class")
+        var result1 = oldclass1.match(pattern)
+        oldlength1 = parseInt(result1[1])
+        
+        var oldclass2 = $("#col2").attr("class")
+        var result2 = oldclass2.match(pattern)
+        oldlength2 = parseInt(result2[1])
+
+        if (oldlength1 < 12) {
+
+          var newlength1 = oldlength1 +1
+          var newlength2 = oldlength2 -1
+
+          $("#col1").removeClass(oldclass1)
+          $("#col2").removeClass(oldclass2)
+
+          newclass1 = oldclass1.replace(oldlength1, newlength1)
+          newclass2 = oldclass2.replace(oldlength2, newlength2)
+
+          $("#col1").addClass(newclass1)
+          $("#col2").addClass(newclass2)
+        }
+
+      }
     </script>
 
     <style type="text/css">
@@ -351,6 +412,11 @@
         <span class="badge">
           <h5>TITLE</h5>
         </span>
+      </div>
+
+      <div class="btn-group pl-5" role="group">
+        <button id="decrease" type="button" class="btn btn-light btn-sm"><i class="fas fa-angle-double-left"></i></button>
+        <button id="increase" type="button" class="btn btn-light btn-sm"><i class="fas fa-angle-double-right"></i></button>
       </div>
 
       <button
@@ -408,7 +474,7 @@
     </nav>
 
     <div class="row">
-      <div class="col-sm-4">
+      <div id="col1" class="col-sm-4">
         <div class="card">
           <div class="card-body">
             <div class="zTreeDemoBackground overflow-auto" style="max-height: 500px; background-color: #f5f2f0">
@@ -418,7 +484,7 @@
         </div>
       </div>
 
-      <div class="col-sm-8">
+      <div id="col2" class="col-sm-8">
         <div class="card ">
           <div class="card-body" >
             <div class="code overflow-auto" style="max-height: 1000px">
