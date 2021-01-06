@@ -1,36 +1,23 @@
 # Using the App
 
-## File menu
+## Code review/search
 
-![File menu](./images/File_menu.jpg)
+Select a routine to show the routine's code in the right panel.
 
-Open file is useful when the program source is already downloaded from the AS400 into windows storage.
+![Review routine](./images/review_routine.jpg)
 
-By selecting a cobol or rpg program source we skip the AS400 command and display immediately the tree.
+Fill a name or part of it in the left search box and press enter to locate the routine. Press enter again to find next occurence.
 
-The `Export as tree...` option opens up a window to select the type of the export (see [Export tree](./export.md)).
+![Search routine](./images/search_routine.jpg)
 
-## Edit menu
+Source search is rather rudimentary.
+To search inside the source fill the search-string in the right search box and press enter.
 
-![Edit menu](./images/Edit_menu.jpg)
+?>Tip: the better way to search is by exporting to a web page.
 
-`Toggle bookmark for export` marks the first or last routine for export. One or two bookmarks can be defined.
+## Managing levels
 
-`Search next` and `Search previous` searches the tree for the routine filled in the input field **Search for routine**.
+At first 3 levels are shown.
 
-## View menu
-
-![View menu](./images/View_menu.jpg)
-
-To clear the clutter there is the possibility to fold the unnecessary routines.
-
-By default only the first three levels are displayed at the start.
-It can be changed in [Settings](./settings.md).
-
-## Settings menu
-
-![Settings menu](./images/Settings_menu.jpg)
-
-`Settings` Opens the settings dialog (see [Settings](./settings.md)).
-
-`Save settings` saves the settings immediately, but it is done also when closing the application.
+- Press F4 to open all levels.
+- Press F3 to close all levels.

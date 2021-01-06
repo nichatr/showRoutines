@@ -8,6 +8,8 @@
 
 - [Using the app](./using_the_app.md)
 
+- [Menu options](./menuOptions.md)
+
 - [Export](./export.md)
 
 - [Settings](./settings.md)

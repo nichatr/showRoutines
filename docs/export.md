@@ -36,6 +36,28 @@ If you want to export a range of consecutive routines you can bookmark the **fir
 
 ![Web tree](./images/export_as_web_tree.jpg)
 
+#### Searching the source code
+
+By selecting (**left click**) a routine in the left panel the right panel is synchronized to show the selected routine.
+
+By **right clicking** a routine the right panel shows only the selected routine.
+
+`Control F` : opens browser search field to find a routine, word or anything else.
+
+#### Buttons in web page
+
+![decrease_increase](./images/decrease_increase.jpg)
+Make the left panel narrower and the right panel wider and conversely.
+
+![show_all_code](./images/show_all_code.jpg)
+Refreshes the page.
+
+![expand_collapse_all](./images/expand_collapse_all.jpg)
+Unfold and fold all routines.
+
+![expand_collapse_level](./images/expand_collapse_level.jpg)
+Unfold and fold current routine, it's siblings and all under it.
+
 ### Vertical web flowchart
 
 ![Vertical web flowchart](./images/export_as_vertical_flowchart.jpg)
