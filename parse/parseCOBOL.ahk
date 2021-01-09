@@ -14,9 +14,10 @@ global CobolParsingRegex := [ "im)^[^\*]\s*identification\s+division\s*\."  ; |n
                 , "im)^[^\*]\s*working-storage\s+section\s*\."
                 , "im)^[^\*]\s*linkage\s+section\s*\."
                 , "im)^[^\*]\s*procedure\s+division\s*"
+                , "im)^[^\*]\s*copy\s+main[bg]\s*\."
                 , "im)^[^\*]\s*copy\s+mainb\s*\."]
 
-global life400StandardRoutines := [ "0900-RESTART"
+global life400_MAINB_routines := [ "0900-RESTART"
                            , "1000-INITIALISE"
                            , "2000-READ-FILE"
                            , "2500-EDIT"
@@ -25,7 +26,13 @@ global life400StandardRoutines := [ "0900-RESTART"
                            , "3600-ROLLBACK"
                            , "4000-CLOSE" ]
 
-global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, foundMAINB, currentGroup
+global life400_MAING_routines := [ "1000-INITIALISE"
+                           , "PRE-SCREEN-EDIT"
+                           , "2000-SCREEN-EDIT"
+                           , "3000-UPDATE"
+                           , "4000-WHERE-NEXT" ]
+
+global allCode, allSections, mainSections, codeSections, currentRoutine, routineName, calledRoutines, calledStmts, currentGroup
 
   ;---------------------------------------------------------------
   ; parse the file.
@@ -60,8 +67,7 @@ mainCobol() {
   codeSections := []
   calledRoutines := []
   calledStmts := []
-  foundMAINB := False ; when true add standard sections 1000-,2000-,3000-,4000-
-  checkForMAINB := True ; when true check if [COPY MAINB.] exists, but after first procedure division's section is found stop checking.
+  checkFor_MAINB_MAING := True ; when true check if [COPY MAINB.] exists, but after first procedure division's section is found stop checking.
   currentRoutine := fileCode  ; "MAIN"
   currentGroup := 1
   firstRoutine := True
@@ -117,14 +123,17 @@ mainCobol() {
 
     ; all 6 main sections are parsed: parse routines.
 
-    ;----------------------------------------
+    ;-----------------------------------------------------------------------------------------------------
     ; check if exists [COPY MAINB.] --> it is a Life400 batch program, so standard routines must be added.
-    ;----------------------------------------
-    if (checkForMAINB && RegExMatch(My_LoopReadLine, CobolParsingRegex[7])) {
-      checkForMAINB := False
-      foundMAINB := True
-      addLife400BatchRoutines(current_line)
-      ; firstRoutine := False
+    ;-----------------------------------------------------------------------------------------------------
+    if (checkFor_MAINB_MAING && RegExMatch(My_LoopReadLine, CobolParsingRegex[7])) {
+      checkFor_MAINB_MAING := False
+
+      if (RegExMatch(My_LoopReadLine, CobolParsingRegex[8]))
+        addLife400BatchRoutines(current_line)
+      else
+        addLife400ScreenRoutines(current_line)
+
       Continue  ; parse next stmt
     }
 
@@ -134,6 +143,7 @@ mainCobol() {
     if (RegExMatch(My_LoopReadLine, "im)(?<=\sperform\s)\s*[\-\w]+", matchedString)) { ; the [\s*] is required to catch multiple spaces between perform and routine name.
       StringUpper, matchedString, matchedString
       matchedString := Trim(matchedString)
+      checkFor_MAINB_MAING := False
 
       ; ignore "fake" performs (perform varying | perform until)
       if (matchedString == "VARYING" || matchedString == "UNTIL")
@@ -152,6 +162,8 @@ mainCobol() {
     ;--------------------------------------------------------
     if (RegExMatch(My_LoopReadLine, "im)[\w\-]+(?=\s+SECTION\s*\.)", matchedString)) {
 
+      checkFor_MAINB_MAING := False
+
       ; if this section is "dummy" ignore it.
       if (firstRoutine && !calledRoutines.MaxIndex() > 0)
         Continue  ; parse next stmt
@@ -160,9 +172,9 @@ mainCobol() {
       Continue  ; parse next stmt
     }
 
-    ;--------------------------------
+    ;--------------------------------------------
     ; check for end of routine [EXIT. or GOBACK.]
-    ;--------------------------------
+    ;--------------------------------------------
     if (RegExMatch(My_LoopReadLine, "im)\s+(?:exit|goback|exit\s+program)\s*\.")) {
       endStmt := current_line
       processCobolENDSR()     
@@ -260,14 +272,33 @@ addCobolMainSections() {
 addLife400BatchRoutines(stmt) {
   global
 
-  Loop, % life400StandardRoutines.MaxIndex() {
+  Loop, % life400_MAINB_routines.MaxIndex() {
 
     newSection := {}
     newSection.name := currentRoutine
     newSection.startStmt := 1
     newSection.endStmt := 1
     newSection.callingStmt := stmt
-    newSection.calledSection := life400StandardRoutines[A_Index]
+    newSection.calledSection := life400_MAINB_routines[A_Index]
+
+    codeSections.InsertAt(A_Index, newSection)  ; add at the beginning of the array.
+  }
+
+}
+  ;---------------------------------------------------------------
+  ; add the Life400 screen program <standard routines>.
+  ;---------------------------------------------------------------
+addLife400ScreenRoutines(stmt) {
+  global
+
+  Loop, % life400_MAING_routines.MaxIndex() {
+
+    newSection := {}
+    newSection.name := currentRoutine
+    newSection.startStmt := 1
+    newSection.endStmt := 1
+    newSection.callingStmt := stmt
+    newSection.calledSection := life400_MAING_routines[A_Index]
 
     codeSections.InsertAt(A_Index, newSection)  ; add at the beginning of the array.
   }
