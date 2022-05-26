@@ -68,6 +68,7 @@ mainCobol() {
   calledRoutines := []
   calledStmts := []
   checkFor_MAINB_MAING := True ; when true check if [COPY MAINB.] exists, but after first procedure division's section is found stop checking.
+  found_MAINB_MAING := False
   currentRoutine := fileCode  ; "MAIN"
   currentGroup := 1
   firstRoutine := True
@@ -128,6 +129,7 @@ mainCobol() {
     ;-----------------------------------------------------------------------------------------------------
     if (checkFor_MAINB_MAING && RegExMatch(My_LoopReadLine, CobolParsingRegex[7])) {
       checkFor_MAINB_MAING := False
+      found_MAINB_MAING := True
 
       if (RegExMatch(My_LoopReadLine, CobolParsingRegex[8]))
         addLife400BatchRoutines(current_line)
@@ -165,7 +167,7 @@ mainCobol() {
       checkFor_MAINB_MAING := False
 
       ; if this section is "dummy" ignore it.
-      if (firstRoutine && !calledRoutines.MaxIndex() > 0)
+      if (firstRoutine && !found_MAINB_MAING && !calledRoutines.MaxIndex() > 0)
         Continue  ; parse next stmt
 
       processCobolBEGSR()

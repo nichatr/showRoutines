@@ -99,7 +99,7 @@ mainRpg() {
     ; check for routine call [EXSR|CAS routine-name]
     ;-------------------------------------------------
     if (RegExMatch(current_code, "im)(?<=EXSR\s{6})[\w]+", matchedString) 
-        || RegExMatch(current_code, "im)(?<=CAS\.{21})[\w]+", matchedString)) {
+        || RegExMatch(current_code, "im)(?<=CAS.{21})[\w]+", matchedString)) {
       StringUpper, matchedString, matchedString
       
       ; found routine call, save name/stmt if not already saved.
