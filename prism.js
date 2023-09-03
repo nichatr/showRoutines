@@ -1675,7 +1675,10 @@ Prism.languages.rpg = {
   ],
 
   paragraphOrSection: /^[HFIDCO]/im,
-  routineName: /[\w]+(?=\s+BEGSR)/im,
+  routineName: [
+   {pattern: /[\w]+(?=\s+BEGSR)/im},
+   {pattern: /\s+(?<=begsr\s+)[\w]+/im}
+  ],
   callRoutine: {
     pattern: /(?<=exsr\s{6})[\w]+/im, // positive lookbehind: if [exsr XXXX] --> XXXX = routine executed.
     lookbehind: true,
@@ -1976,9 +1979,9 @@ Prism.languages.rpg = {
 
   var LOADING_MESSAGE = 'Loadingâ€¦';
   var FAILURE_MESSAGE = function (status, message) {
-    return 'âœ– Error ' + status + ' while fetching file: ' + message;
+    return 'âÿ– Error ' + status + ' while fetching file: ' + message;
   };
-  var FAILURE_EMPTY_MESSAGE = 'âœ– Error: File does not exist or is empty';
+  var FAILURE_EMPTY_MESSAGE = 'âÿ– Error: File does not exist or is empty';
 
   var EXTENSIONS = {
     js: 'javascript',
